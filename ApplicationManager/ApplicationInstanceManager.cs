@@ -1072,19 +1072,6 @@ namespace Iso.Opc.ApplicationManager
                     {
                         csrCertificate = _certificate;
                     }
-                    else
-                    {
-                        //string absoluteCertificatePrivateKeyPath = Utils.GetAbsoluteFilePath(m_application.CertificatePrivateKeyPath, true, false, false);
-                        //byte[] pkcsData = File.ReadAllBytes(absoluteCertificatePrivateKeyPath);
-                        //if (_application.GetPrivateKeyFormat(m_server?.GetSupportedKeyFormats()) == "PFX")
-                        //{
-                        //    csrCertificate = CertificateFactory.CreateCertificateFromPKCS12(pkcsData, m_certificatePassword);
-                        //}
-                        //else
-                        //{
-                        //    csrCertificate = CertificateFactory.CreateCertificateWithPEMPrivateKey(m_certificate, pkcsData, m_certificatePassword);
-                        //}
-                    }
                     byte[] certificateRequest = CertificateFactory.CreateSigningRequest(csrCertificate, domainNames);
                     requestId = GlobalDiscoveryServerClient.StartSigningRequest(RegisteredApplication.ApplicationId, null, null, certificateRequest);
                 }
@@ -1093,6 +1080,7 @@ namespace Iso.Opc.ApplicationManager
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Request new certificate pull mode exception: \r\n{ex.StackTrace}");
                 return false;
             }
             return true;
