@@ -52,7 +52,6 @@ namespace Server
             {
                "opc.tcp://localhost:58810/UADiscovery"
             };
-
             //Initialise
             _applicationInstanceManager = new ApplicationInstanceManager(ApplicationName, ApplicationUri,
                 baseAddress, serverCapabilities, DiscoveryEndpointUrl, DiscoveryEndpointApplicationUri, discoveryUrls, null, ApplicationType);
