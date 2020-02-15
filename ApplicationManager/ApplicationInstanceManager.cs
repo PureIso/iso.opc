@@ -851,20 +851,17 @@ namespace Iso.Opc.ApplicationManager
         {
             //We need to query the parent which will give us the information about the controllers
             GetRootObjectReferenceDescriptions();
-            //Controllers:-> (AirConditioner1, Furnace1)
             return BrowseReferenceDescription(ReferenceDescriptionDictionary[NameObject.Controllers]);
         }
         public List<ReferenceDescription> GetControllersAttributeReferenceDescriptions()
         {
             GetRootObjectReferenceDescriptions();
-            //Controllers:-> (AirConditioner1, Furnace1)
             GetControllersReferenceDescriptions();
             return BrowseReferenceDescription(ReferenceDescriptionDictionary[Process.Name]);
         }
-        private List<ReferenceDescription> BrowseReferenceDescription(ReferenceDescription parentReferenceDescription = null)
+        public List<ReferenceDescription> BrowseReferenceDescription(ReferenceDescription parentReferenceDescription = null)
         {
             BrowseDescriptionCollection browseDescriptionCollection = new BrowseDescriptionCollection();
-            List<ReferenceDescription> referenceDescriptions = new List<ReferenceDescription>();
             BrowseDescription browseDescription = new BrowseDescription
             {
                 BrowseDirection = BrowseDirection.Forward,
@@ -890,7 +887,7 @@ namespace Iso.Opc.ApplicationManager
             browseDescriptionCollection.Add(browseDescription);
             RequestHeader requestHeader = null;
             ViewDescription viewDescription = null;
-            uint requestedMaxReferencesPerNode = 100;
+            const uint requestedMaxReferencesPerNode = 100;
             // Call browse service.
             Session.Browse(
                 requestHeader,
@@ -904,10 +901,10 @@ namespace Iso.Opc.ApplicationManager
             if (browseResultCollection == null || !browseResultCollection.Any())
                 return null;
             //Flatten the reference descriptions
-            referenceDescriptions = browseResultCollection
+            List<ReferenceDescription> referenceDescriptions = browseResultCollection
                 .Where(x => x.References != null)
                 .Select(y => y.References.ToList()).SelectMany(i => i).ToList();
-            if (referenceDescriptions == null || !referenceDescriptions.Any())
+            if (!referenceDescriptions.Any())
                 return null;
             if (ReferenceDescriptionDictionary == null || !ReferenceDescriptionDictionary.Any())
             {
@@ -957,29 +954,12 @@ namespace Iso.Opc.ApplicationManager
                     }         
                 }
             }
-
-            //// continue browse operation.
-            //ByteStringCollection continuationPoints = new ByteStringCollection
-            //    {
-            //        browseResultCollection[0].ContinuationPoint
-            //    };
-
-            //Session.BrowseNext(
-            //    null,
-            //    false,
-            //    continuationPoints,
-            //    out browseResultCollection,
-            //    out diagnosticInfoCollection);
-
-            //ClientBase.ValidateResponse(browseResultCollection, continuationPoints);
-            //ClientBase.ValidateDiagnosticInfos(diagnosticInfoCollection, continuationPoints);
-
-
             return referenceDescriptions;
         }
         #endregion
 
         #region Public Methods
+
         /// <summary>
         /// Create a session with the GDS.
         /// GlobalDiscoveryServerClient class has encapsulated/wrapped the GDS call services
@@ -987,9 +967,9 @@ namespace Iso.Opc.ApplicationManager
         /// It may also provide Certificate Services
         /// It provides Methods that allow applications to search for other applications
         /// </summary>
+        /// <param name="globalDiscoveryServerEndpoint"></param>
         /// <param name="username">username to identify user</param>
         /// <param name="password">user password</param>
-        /// <param name="wellKnownDiscoveryUrls"></param>
         /// <returns>True if connection is successful</returns>
         public bool ConnectToGlobalDiscoveryServer(string globalDiscoveryServerEndpoint, string username, string password)
         {
@@ -1045,14 +1025,12 @@ namespace Iso.Opc.ApplicationManager
                     }
                 }
 
-                bool hasPrivateKeyFile = false;
                 if (!string.IsNullOrEmpty(RegisteredApplication.CertificatePrivateKeyPath))
                 {
                     FileInfo file = new FileInfo(RegisteredApplication.CertificatePrivateKeyPath);
-                    hasPrivateKeyFile = file.Exists;
                 }
 
-                var domainNames = RegisteredApplication.GetDomainNames(_certificate);
+                List<string> domainNames = RegisteredApplication.GetDomainNames(_certificate);
                 if (_certificate == null)
                 {
                     // no private key

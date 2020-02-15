@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using Opc.Ua;
+using Opc.Ua.Export;
 using Opc.Ua.Server;
+using LocalizedText = Opc.Ua.LocalizedText;
 
 namespace Iso.Opc.ApplicationNodeManager.Server
 {
@@ -22,6 +24,39 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             lock (Lock)
             {
                 CreateProcessNode(externalReferences);
+                foreach (string file in Directory.EnumerateFiles(PredefinedXMLNodeDirectory, "*.xml"))
+                {
+                    ImportXMLModels(externalReferences, file);
+                }
+            }
+        }
+
+        private void ImportXMLModels(IDictionary<NodeId, IList<IReference>> externalReferences, string resourcePath)
+        {
+            try
+            {
+                List<string> namespaceUriList = new List<string>();
+                NodeStateCollection predefinedNodeStateCollection = new NodeStateCollection();
+                Stream stream = new FileStream(resourcePath, FileMode.Open);
+                UANodeSet uaNodeSet = UANodeSet.Read(stream);
+                namespaceUriList.AddRange(NamespaceUris);
+                foreach (string namespaceUri in uaNodeSet.NamespaceUris)
+                {
+                    namespaceUriList.Add(namespaceUri);
+                    SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
+                }
+
+                NamespaceUris = namespaceUriList;
+                uaNodeSet.Import(SystemContext, predefinedNodeStateCollection);
+                foreach (NodeState nodeState in predefinedNodeStateCollection)
+                {
+                    AddPredefinedNode(SystemContext,nodeState);
+                }
+                AddReverseReferences(externalReferences);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Import XML exception: {e.StackTrace}");
             }
         }
         public ServiceResult OnWriteValue(ISystemContext context, NodeState node, ref object value)
@@ -38,8 +73,7 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             try
             {
                 string filePath = value as string;
-                PropertyState<string> variable = node as PropertyState<string>;
-                if (!string.IsNullOrEmpty(variable.Value))
+                if (node is PropertyState<string> variable && !string.IsNullOrEmpty(variable.Value))
                 {
                     FileInfo file = new FileInfo(variable.Value);
                     if (file.Exists)
@@ -75,6 +109,9 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             }
             return ServiceResult.Good;
         }
+        #endregion
+
+        #region Overridden Methods
         /// <summary>
         /// Frees any resources allocated for the address space.
         /// </summary>
@@ -97,8 +134,7 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 {
                     return null;
                 }
-                NodeState node = null;
-                if (!PredefinedNodes.TryGetValue(nodeId, out node))
+                if (!PredefinedNodes.TryGetValue(nodeId, out NodeState node))
                 {
                     return null;
                 }
@@ -114,7 +150,7 @@ namespace Iso.Opc.ApplicationNodeManager.Server
         /// <summary>
         /// Verifies that the specified node exists.
         /// </summary>
-        protected override NodeState ValidateNode(ServerSystemContext context,NodeHandle handle,IDictionary<NodeId, NodeState> cache)
+        protected override NodeState ValidateNode(ServerSystemContext context, NodeHandle handle, IDictionary<NodeId, NodeState> cache)
         {
             // not valid if no root.
             if (handle == null)
@@ -122,18 +158,9 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 return null;
             }
             // check if previously validated.
-            if (handle.Validated)
-            {
-                return handle.Node;
-            }
-
+            return handle.Validated ? handle.Node : null;
             // TBD
-
-            return null;
         }
-        #endregion
-
-        #region Overridden Methods
         #endregion
     }
 }

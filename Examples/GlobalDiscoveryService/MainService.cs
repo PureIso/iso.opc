@@ -65,10 +65,6 @@ namespace LocalDiscoveryService
                 applicationDatabase,
                 certificateGroup);
             mainDiscoveryServer.Start(_applicationInstanceManager.ApplicationInstance.ApplicationConfiguration);
-            foreach (EndpointDescription endpointDescription in mainDiscoveryServer.GetEndpoints())
-            {
-                Console.WriteLine($"Endpoint: {endpointDescription.EndpointUrl}");
-            }
         }
 
         protected override void OnStop()

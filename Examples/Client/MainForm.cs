@@ -51,11 +51,15 @@ namespace Client
             } 
             string userName = useSecurityCheckBox.Checked ? serverUserNameTextBox.Text : null; 
             string userPassword = useSecurityCheckBox.Checked ? serverPasswordTextBox.Text : null; 
-            bool connectedToServer = _applicationInstanceManager.ConnectToServer(serverDiscoveryURLTextBox.Text, userName, userPassword); 
-            if (connectedToServer)
-            {
-                _applicationInstanceManager.GetControllersAttributeReferenceDescriptions();
-            }
+            bool connectedToServer = _applicationInstanceManager.ConnectToServer(serverDiscoveryURLTextBox.Text, userName, userPassword);
+            if (!connectedToServer) 
+                return;
+
+            objectListView.Items.Clear();
+            ListViewItem[] browsedObjects = (from x in _applicationInstanceManager.ReferenceDescriptionDictionary select new ListViewItem(x.Value.DisplayName.Text)).ToArray();
+            objectListView.Items.AddRange(browsedObjects);
+
+            _applicationInstanceManager.GetControllersAttributeReferenceDescriptions();
         }
         private void GetDiscoveryServerTrustedListButtonClick(object sender, EventArgs e)
         {

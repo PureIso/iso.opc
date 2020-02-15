@@ -12,7 +12,6 @@ namespace LocalDiscoveryService
     public class MainLocalDiscoveryServer : StandardServer
     {
         #region Private Fields
-
         private readonly object _requestLock;
         private readonly Dictionary<uint, ImpersonationContext> _contexts;
         private readonly IApplicationsDatabase _database;
@@ -43,9 +42,15 @@ namespace LocalDiscoveryService
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
             Console.WriteLine("Creating the Node Managers.");
-            List<INodeManager> nodeManagers = new List<INodeManager>(); 
+            List<INodeManager> nodeManagers = new List<INodeManager>
+            {
+                new GlobalDiscoveryServiceNodeManager(server, configuration,
+                    _database,
+                    _request,
+                    _certificateGroup,
+                    _autoApprove)
+            };
             //create the custom node managers.
-            nodeManagers.Add(new GlobalDiscoveryServiceNodeManager(server, configuration, _database, _request, _certificateGroup, _autoApprove));
             // create master node manager.
             return new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
         }
@@ -84,13 +89,11 @@ namespace LocalDiscoveryService
             }
             UserIdentityToken securityToken = context.UserIdentity.GetIdentityToken();
             // check for a user name token.
-            UserNameIdentityToken userNameToken = securityToken as UserNameIdentityToken;
-            if (userNameToken != null)
+            if (!(securityToken is UserNameIdentityToken)) 
+                return context;
+            lock (_requestLock)
             {
-                lock (_requestLock)
-                {
-                    _contexts.Add(context.RequestId, new ImpersonationContext());
-                }
+                _contexts.Add(context.RequestId, new ImpersonationContext());
             }
             return context;
         }
@@ -105,53 +108,55 @@ namespace LocalDiscoveryService
         }
         private void SessionManager_ImpersonateUser(Session session, ImpersonateEventArgs args)
         {
-            // check for a user name token
-            UserNameIdentityToken userNameToken = args.NewIdentity as UserNameIdentityToken;
-            if (userNameToken != null)
+            switch (args.NewIdentity)
             {
-                if (VerifyPassword(userNameToken))
+                // check for a user name token
+                case UserNameIdentityToken userNameToken:
                 {
-                    switch (userNameToken.UserName)
+                    if (VerifyPassword(userNameToken))
                     {
-                        // Server configuration administrator, manages the GDS server security
-                        case "sysadmin":
+                        switch (userNameToken.UserName)
+                        {
+                            // Server configuration administrator, manages the GDS server security
+                            case "sysadmin":
                             {
                                 args.Identity = new SystemConfigurationIdentity(new UserIdentity(userNameToken));
                                 Utils.Trace($"SystemConfigurationAdmin Token Accepted: {args.Identity.DisplayName}");
                                 return;
                             }
-                        // GDS administrator
-                        case "appadmin":
+                            // GDS administrator
+                            case "appadmin":
                             {
                                 //can register to GDS
                                 args.Identity = new RoleBasedIdentity(new UserIdentity(userNameToken), GdsRole.ApplicationAdmin);
                                 Utils.Trace($"ApplicationAdmin Token Accepted: {args.Identity.DisplayName}");
                                 return;
                             }
-                        // GDS user
-                        case "appuser":
+                            // GDS user
+                            case "appuser":
                             {
                                 args.Identity = new RoleBasedIdentity(new UserIdentity(userNameToken), GdsRole.ApplicationUser);
                                 Utils.Trace($"ApplicationUser Token Accepted: {args.Identity.DisplayName}");
                                 return;
                             }
+                        }
                     }
+
+                    break;
                 }
-            }
+                // check for x509 user token.
+                case X509IdentityToken x509Token:
+                {
+                    const GdsRole role = GdsRole.ApplicationUser;
+                    VerifyUserTokenCertificate(x509Token.Certificate);
 
-            // check for x509 user token.
-            X509IdentityToken x509Token = args.NewIdentity as X509IdentityToken;
-            if (x509Token != null)
-            {
-                GdsRole role = GdsRole.ApplicationUser;
-                VerifyUserTokenCertificate(x509Token.Certificate);
+                    // todo: is cert listed in admin list? then 
+                    // role = GdsRole.ApplicationAdmin;
 
-                // todo: is cert listed in admin list? then 
-                // role = GdsRole.ApplicationAdmin;
-
-                Utils.Trace($"X509 Token Accepted: {args.Identity.DisplayName} as {role.ToString()}");
-                args.Identity = new RoleBasedIdentity(new UserIdentity(x509Token), role);
-                return;
+                    Utils.Trace($"X509 Token Accepted: {args.Identity.DisplayName} as {role.ToString()}");
+                    args.Identity = new RoleBasedIdentity(new UserIdentity(x509Token), role);
+                    return;
+                }
             }
         }
         private void VerifyUserTokenCertificate(X509Certificate2 certificate)
@@ -164,8 +169,7 @@ namespace LocalDiscoveryService
             {
                 TranslationInfo info;
                 StatusCode result = StatusCodes.BadIdentityTokenRejected;
-                ServiceResultException se = e as ServiceResultException;
-                if (se != null && se.StatusCode == StatusCodes.BadCertificateUseNotAllowed)
+                if (e is ServiceResultException se && se.StatusCode == StatusCodes.BadCertificateUseNotAllowed)
                 {
                     info = new TranslationInfo(
                         "InvalidCertificate",

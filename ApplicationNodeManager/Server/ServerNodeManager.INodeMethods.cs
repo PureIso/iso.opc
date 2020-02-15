@@ -7,10 +7,10 @@ namespace Iso.Opc.ApplicationNodeManager.Server
 {
     public sealed partial class ServerNodeManager
     {
-        private object m_processLock = new object();
+        private readonly object _processLock = new object();
         private uint _state;
-        private uint m_finalState;
-        private Timer m_processTimer;
+        private uint _finalState;
+        private Timer _processTimer;
         private PropertyState<uint> _stateNode;
 
         private void CreateProcessNode(IDictionary<NodeId, IList<IReference>> externalReferences)
@@ -57,8 +57,7 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 DisplayName = new LocalizedText("Start"),
                 ReferenceTypeId = ReferenceTypeIds.HasComponent,
                 UserExecutable = true,
-                Executable = true,
-               // AccessRestrictions = AccessRestrictionType.None
+                Executable = true
             };
             //Method - Input
             start.InputArguments = new PropertyState<Argument[]>(start)
@@ -90,8 +89,7 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 ReferenceTypeId = ReferenceTypeIds.HasComponent,
                 UserExecutable = true,
                 Executable = true,
-                AccessRestrictions = AccessRestrictionType.SigningRequired,
-                //UserRolePermissions = RolePermissionTypeCollection
+                AccessRestrictions = AccessRestrictionType.SigningRequired
             };
             //Method - Input
             stop.InputArguments = new PropertyState<Argument[]>(stop)
@@ -125,73 +123,6 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             }
             controller.AddReference(ReferenceTypeIds.Organizes, true, ObjectIds.ObjectsFolder);
             references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, controller.NodeId));
-
-            // a property to report the process state.
-
-            //_stateNode = state;
-            //process.AddChild(state);
-
-            // a method to start the process.
-            //MethodState start = new MethodState(process)
-            //{
-            //    NodeId = new NodeId(3, NamespaceIndex),
-            //    BrowseName = new QualifiedName("Start", NamespaceIndex),
-            //    ReferenceTypeId = ReferenceTypeIds.HasComponent,
-            //    UserExecutable = true,
-            //    Executable = true
-            //};
-            //start.DisplayName = start.BrowseName.Name;
-
-            // add input arguments.
-            //start.InputArguments = new PropertyState<Argument[]>(start)
-            //{
-            //    NodeId = new NodeId(4, NamespaceIndex),
-            //    BrowseName = BrowseNames.InputArguments,
-            //    TypeDefinitionId = VariableTypeIds.PropertyType,
-            //    ReferenceTypeId = ReferenceTypeIds.HasProperty,
-            //    DataType = DataTypeIds.Argument,
-            //    ValueRank = ValueRanks.OneDimension
-            //};
-            //start.InputArguments.DisplayName = start.InputArguments.BrowseName.Name;
-
-            //Argument[] args = new Argument[2];
-            //args[0] = new Argument
-            //{
-            //    Name = "Initial State",
-            //    Description = "The initialize state for the process.",
-            //    DataType = DataTypeIds.UInt32,
-            //    ValueRank = ValueRanks.Scalar
-            //};
-
-            //args[1] = new Argument
-            //{
-            //    Name = "Final State",
-            //    Description = "The final state for the process.",
-            //    DataType = DataTypeIds.UInt32,
-            //    ValueRank = ValueRanks.Scalar
-            //};
-
-            //start.InputArguments.Value = args;
-
-
-
-            //args = new Argument[2];
-            //args[0] = new Argument();
-            //args[0].Name = "Revised Initial State";
-            //args[0].Description = "The revised initialize state for the process.";
-            //args[0].DataType = DataTypeIds.UInt32;
-            //args[0].ValueRank = ValueRanks.Scalar;
-
-            //args[1] = new Argument();
-            //args[1].Name = "Revised Final State";
-            //args[1].Description = "The revised final state for the process.";
-            //args[1].DataType = DataTypeIds.UInt32;
-            //args[1].ValueRank = ValueRanks.Scalar;
-
-            //start.OutputArguments.Value = args;
-
-            //process.AddChild(start);
-            // save in dictionary. 
             AddPredefinedNode(SystemContext, controller);
 
             // set up method handlers. 
@@ -227,24 +158,24 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 return StatusCodes.BadTypeMismatch;
             }
 
-            lock (m_processLock)
+            lock (_processLock)
             {
                 // check if the process is running.
-                if (m_processTimer != null)
+                if (_processTimer != null)
                 {
-                    m_processTimer.Dispose();
-                    m_processTimer = null;
+                    _processTimer.Dispose();
+                    _processTimer = null;
                 }
 
                 // start the process.
                 _state = initialState.Value;
-                m_finalState = finalState.Value;
-                m_processTimer = new Timer(OnUpdateProcess, null, 1000, 1000);
+                _finalState = finalState.Value;
+                _processTimer = new Timer(OnUpdateProcess, null, 1000, 1000);
 
                 // the calling function sets default values for all output arguments.
                 // only need to update them here.
                 outputArguments[0] = _state;
-                outputArguments[1] = m_finalState;
+                outputArguments[1] = _finalState;
             }
 
             // signal update to state node.
@@ -265,16 +196,16 @@ namespace Iso.Opc.ApplicationNodeManager.Server
         {
             try
             {
-                lock (m_processLock)
+                lock (_processLock)
                 {
                     // check if increasing.
-                    if (_state < m_finalState)
+                    if (_state < _finalState)
                     {
                         _state++;
                     }
 
                     // check if decreasing.
-                    else if (_state > m_finalState)
+                    else if (_state > _finalState)
                     {
                         _state--;
                     }
@@ -282,8 +213,8 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                     // check if all done.
                     else
                     {
-                        m_processTimer.Dispose();
-                        m_processTimer = null;
+                        _processTimer.Dispose();
+                        _processTimer = null;
                     };
                 }
 

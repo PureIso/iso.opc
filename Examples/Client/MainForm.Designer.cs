@@ -32,19 +32,19 @@
             this.customConnectionButton = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.globalDiscoveryServerUseSecurityCheckBox = new System.Windows.Forms.CheckBox();
-            this.label4 = new System.Windows.Forms.Label();
-            this.globalDiscoveryServerPasswordTextBox = new System.Windows.Forms.TextBox();
-            this.label5 = new System.Windows.Forms.Label();
-            this.globalDiscoveryServerUserNameTextBox = new System.Windows.Forms.TextBox();
-            this.label6 = new System.Windows.Forms.Label();
-            this.globalDiscoveryServerDiscoveryURLTextBox = new System.Windows.Forms.TextBox();
-            this.useSecurityCheckBox = new System.Windows.Forms.CheckBox();
-            this.label3 = new System.Windows.Forms.Label();
-            this.serverPasswordTextBox = new System.Windows.Forms.TextBox();
-            this.label2 = new System.Windows.Forms.Label();
-            this.serverUserNameTextBox = new System.Windows.Forms.TextBox();
-            this.label1 = new System.Windows.Forms.Label();
             this.serverDiscoveryURLTextBox = new System.Windows.Forms.TextBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.serverUserNameTextBox = new System.Windows.Forms.TextBox();
+            this.globalDiscoveryServerPasswordTextBox = new System.Windows.Forms.TextBox();
+            this.label2 = new System.Windows.Forms.Label();
+            this.label5 = new System.Windows.Forms.Label();
+            this.serverPasswordTextBox = new System.Windows.Forms.TextBox();
+            this.globalDiscoveryServerUserNameTextBox = new System.Windows.Forms.TextBox();
+            this.label3 = new System.Windows.Forms.Label();
+            this.label6 = new System.Windows.Forms.Label();
+            this.useSecurityCheckBox = new System.Windows.Forms.CheckBox();
+            this.globalDiscoveryServerDiscoveryURLTextBox = new System.Windows.Forms.TextBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.objectListView = new System.Windows.Forms.ListView();
             this.objectsHolumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -117,6 +117,24 @@
             this.globalDiscoveryServerUseSecurityCheckBox.UseVisualStyleBackColor = true;
             this.globalDiscoveryServerUseSecurityCheckBox.CheckedChanged += new System.EventHandler(this.GlobalDiscoveryServerUseSecurityCheckBoxCheckedChanged);
             // 
+            // serverDiscoveryURLTextBox
+            // 
+            this.serverDiscoveryURLTextBox.Location = new System.Drawing.Point(183, 96);
+            this.serverDiscoveryURLTextBox.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.serverDiscoveryURLTextBox.Name = "serverDiscoveryURLTextBox";
+            this.serverDiscoveryURLTextBox.Size = new System.Drawing.Size(402, 26);
+            this.serverDiscoveryURLTextBox.TabIndex = 0;
+            this.serverDiscoveryURLTextBox.Text = "opc.tcp://localhost:48001/BasicServer";
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(6, 102);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(168, 20);
+            this.label1.TabIndex = 1;
+            this.label1.Text = "Server Discovery URL:";
+            // 
             // label4
             // 
             this.label4.AutoSize = true;
@@ -125,6 +143,15 @@
             this.label4.Size = new System.Drawing.Size(82, 20);
             this.label4.TabIndex = 12;
             this.label4.Text = "Password:";
+            // 
+            // serverUserNameTextBox
+            // 
+            this.serverUserNameTextBox.Location = new System.Drawing.Point(183, 131);
+            this.serverUserNameTextBox.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.serverUserNameTextBox.Name = "serverUserNameTextBox";
+            this.serverUserNameTextBox.Size = new System.Drawing.Size(151, 26);
+            this.serverUserNameTextBox.TabIndex = 2;
+            this.serverUserNameTextBox.Text = "sysadmin";
             // 
             // globalDiscoveryServerPasswordTextBox
             // 
@@ -136,6 +163,15 @@
             this.globalDiscoveryServerPasswordTextBox.TabIndex = 11;
             this.globalDiscoveryServerPasswordTextBox.Text = "demo";
             // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(83, 135);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(93, 20);
+            this.label2.TabIndex = 3;
+            this.label2.Text = "User Name:";
+            // 
             // label5
             // 
             this.label5.AutoSize = true;
@@ -144,6 +180,16 @@
             this.label5.Size = new System.Drawing.Size(93, 20);
             this.label5.TabIndex = 10;
             this.label5.Text = "User Name:";
+            // 
+            // serverPasswordTextBox
+            // 
+            this.serverPasswordTextBox.Location = new System.Drawing.Point(442, 131);
+            this.serverPasswordTextBox.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.serverPasswordTextBox.Name = "serverPasswordTextBox";
+            this.serverPasswordTextBox.PasswordChar = '*';
+            this.serverPasswordTextBox.Size = new System.Drawing.Size(144, 26);
+            this.serverPasswordTextBox.TabIndex = 4;
+            this.serverPasswordTextBox.Text = "demo";
             // 
             // globalDiscoveryServerUserNameTextBox
             // 
@@ -154,6 +200,15 @@
             this.globalDiscoveryServerUserNameTextBox.TabIndex = 9;
             this.globalDiscoveryServerUserNameTextBox.Text = "appadmin";
             // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(353, 135);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(82, 20);
+            this.label3.TabIndex = 5;
+            this.label3.Text = "Password:";
+            // 
             // label6
             // 
             this.label6.AutoSize = true;
@@ -162,15 +217,6 @@
             this.label6.Size = new System.Drawing.Size(158, 20);
             this.label6.TabIndex = 8;
             this.label6.Text = "GDS Discovery URL:";
-            // 
-            // globalDiscoveryServerDiscoveryURLTextBox
-            // 
-            this.globalDiscoveryServerDiscoveryURLTextBox.Location = new System.Drawing.Point(182, 27);
-            this.globalDiscoveryServerDiscoveryURLTextBox.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.globalDiscoveryServerDiscoveryURLTextBox.Name = "globalDiscoveryServerDiscoveryURLTextBox";
-            this.globalDiscoveryServerDiscoveryURLTextBox.Size = new System.Drawing.Size(402, 26);
-            this.globalDiscoveryServerDiscoveryURLTextBox.TabIndex = 7;
-            this.globalDiscoveryServerDiscoveryURLTextBox.Text = "opc.tcp://localhost:58810/UADiscovery";
             // 
             // useSecurityCheckBox
             // 
@@ -186,65 +232,19 @@
             this.useSecurityCheckBox.UseVisualStyleBackColor = true;
             this.useSecurityCheckBox.CheckedChanged += new System.EventHandler(this.UseSecurityCheckBoxCheckedChanged);
             // 
-            // label3
+            // globalDiscoveryServerDiscoveryURLTextBox
             // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(353, 135);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(82, 20);
-            this.label3.TabIndex = 5;
-            this.label3.Text = "Password:";
-            // 
-            // serverPasswordTextBox
-            // 
-            this.serverPasswordTextBox.Location = new System.Drawing.Point(442, 131);
-            this.serverPasswordTextBox.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.serverPasswordTextBox.Name = "serverPasswordTextBox";
-            this.serverPasswordTextBox.PasswordChar = '*';
-            this.serverPasswordTextBox.Size = new System.Drawing.Size(144, 26);
-            this.serverPasswordTextBox.TabIndex = 4;
-            this.serverPasswordTextBox.Text = "demo";
-            // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(83, 135);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(93, 20);
-            this.label2.TabIndex = 3;
-            this.label2.Text = "User Name:";
-            // 
-            // serverUserNameTextBox
-            // 
-            this.serverUserNameTextBox.Location = new System.Drawing.Point(183, 131);
-            this.serverUserNameTextBox.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.serverUserNameTextBox.Name = "serverUserNameTextBox";
-            this.serverUserNameTextBox.Size = new System.Drawing.Size(151, 26);
-            this.serverUserNameTextBox.TabIndex = 2;
-            this.serverUserNameTextBox.Text = "sysadmin";
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(6, 102);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(168, 20);
-            this.label1.TabIndex = 1;
-            this.label1.Text = "Server Discovery URL:";
-            // 
-            // serverDiscoveryURLTextBox
-            // 
-            this.serverDiscoveryURLTextBox.Location = new System.Drawing.Point(183, 96);
-            this.serverDiscoveryURLTextBox.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.serverDiscoveryURLTextBox.Name = "serverDiscoveryURLTextBox";
-            this.serverDiscoveryURLTextBox.Size = new System.Drawing.Size(402, 26);
-            this.serverDiscoveryURLTextBox.TabIndex = 0;
-            this.serverDiscoveryURLTextBox.Text = "opc.tcp://localhost:48001/BasicServer";
+            this.globalDiscoveryServerDiscoveryURLTextBox.Location = new System.Drawing.Point(182, 27);
+            this.globalDiscoveryServerDiscoveryURLTextBox.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.globalDiscoveryServerDiscoveryURLTextBox.Name = "globalDiscoveryServerDiscoveryURLTextBox";
+            this.globalDiscoveryServerDiscoveryURLTextBox.Size = new System.Drawing.Size(402, 26);
+            this.globalDiscoveryServerDiscoveryURLTextBox.TabIndex = 7;
+            this.globalDiscoveryServerDiscoveryURLTextBox.Text = "opc.tcp://localhost:58810/UADiscovery";
             // 
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.objectListView);
-            this.groupBox2.Location = new System.Drawing.Point(12, 324);
+            this.groupBox2.Location = new System.Drawing.Point(12, 378);
             this.groupBox2.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Padding = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -283,7 +283,7 @@
             this.discoveredServersListView.Location = new System.Drawing.Point(12, 237);
             this.discoveredServersListView.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.discoveredServersListView.Name = "discoveredServersListView";
-            this.discoveredServersListView.Size = new System.Drawing.Size(841, 79);
+            this.discoveredServersListView.Size = new System.Drawing.Size(841, 133);
             this.discoveredServersListView.TabIndex = 5;
             this.discoveredServersListView.UseCompatibleStateImageBehavior = false;
             this.discoveredServersListView.View = System.Windows.Forms.View.Details;
@@ -291,13 +291,13 @@
             // discoveredServersColumnHeader
             // 
             this.discoveredServersColumnHeader.Text = "Servers";
-            this.discoveredServersColumnHeader.Width = 792;
+            this.discoveredServersColumnHeader.Width = 723;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(871, 649);
+            this.ClientSize = new System.Drawing.Size(871, 703);
             this.Controls.Add(this.discoveredServersListView);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
