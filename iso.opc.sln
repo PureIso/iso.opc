@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Examples\Client\C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GlobalDiscoveryService", "Examples\GlobalDiscoveryService\GlobalDiscoveryService.csproj", "{5E83EF52-7D65-4863-BD35-26399D984A27}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.Interface", "Iso.Opc.Interface\Iso.Opc.Interface.csproj", "{EBA60041-B1B0-4313-B9F8-53ADDD272630}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{5E83EF52-7D65-4863-BD35-26399D984A27}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5E83EF52-7D65-4863-BD35-26399D984A27}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5E83EF52-7D65-4863-BD35-26399D984A27}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EBA60041-B1B0-4313-B9F8-53ADDD272630}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBA60041-B1B0-4313-B9F8-53ADDD272630}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBA60041-B1B0-4313-B9F8-53ADDD272630}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBA60041-B1B0-4313-B9F8-53ADDD272630}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

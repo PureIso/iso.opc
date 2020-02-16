@@ -26,15 +26,14 @@ namespace Iso.Opc.ApplicationManager
         private List<List<ReferenceDescription>> _referenceDescriptions;
 
         #region Fields
-        private int _reconnectPeriod = 10;
-        private int _discoverTimeout = 5000;
-        private SessionReconnectHandler _reconnectHandler;
-        private EventHandler _reconnectStarting;
-        private EventHandler _reconnectComplete;
-        private EventHandler _KeepAliveComplete;
+        private readonly int _reconnectPeriod = 10;
         #endregion
 
         #region Properties
+        public SessionReconnectHandler SessionReconnectHandler;
+        public EventHandler ReconnectStartingHandler;
+        public EventHandler ReconnectCompleteHandler;
+        public EventHandler KeepAliveCompleteHandler;
         public ApplicationInstance ApplicationInstance { get; set; }
         public GlobalDiscoveryServerClient GlobalDiscoveryServerClient { get; set; }
         public RegisteredApplication RegisteredApplication { get; set; }
@@ -47,9 +46,7 @@ namespace Iso.Opc.ApplicationManager
         /// 
         /// </summary>
         /// <param name="applicationName"></param>
-        /// <param name="productUri"></param>
         /// <param name="applicationUri"></param>
-        /// <param name="subjectName"></param>
         /// <param name="baseAddress"></param>
         /// <param name="serverCapabilities"></param>
         /// <param name="endpointUrl"></param>
@@ -1123,20 +1120,10 @@ namespace Iso.Opc.ApplicationManager
                 {
                     string absoluteCertificatePublicKeyPath = Utils.GetAbsoluteFilePath(RegisteredApplication.CertificatePublicKeyPath, true, false, false) ?? RegisteredApplication.CertificatePublicKeyPath;
                     FileInfo file = new FileInfo(absoluteCertificatePublicKeyPath);
-                    bool replaceCertificate = true;
-                    if (replaceCertificate)
-                    {
-                        byte[] exportedCert;
-                        if (string.Compare(file.Extension, ".PEM", true) == 0)
-                        {
-                            exportedCert = CertificateFactory.ExportCertificateAsPEM(newCert);
-                        }
-                        else
-                        {
-                            exportedCert = newCert.Export(X509ContentType.Cert);
-                        }
+                    byte[] exportedCert = string.Compare(file.Extension, ".PEM", StringComparison.OrdinalIgnoreCase) == 0 ? 
+                            CertificateFactory.ExportCertificateAsPEM(newCert) : 
+                            newCert.Export(X509ContentType.Cert);
                         File.WriteAllBytes(absoluteCertificatePublicKeyPath, exportedCert);
-                    }
                 }
 
                 // update trust list.
@@ -1344,13 +1331,16 @@ namespace Iso.Opc.ApplicationManager
             try
             {
                 // ignore callbacks from discarded objects.
-                if (!ReferenceEquals(sender, _reconnectHandler))
+                if (!ReferenceEquals(sender, SessionReconnectHandler))
                     return;
-                Session = _reconnectHandler.Session;
-                _reconnectHandler.Dispose();
-                _reconnectHandler = null;
+                if (SessionReconnectHandler != null)
+                {
+                    Session = SessionReconnectHandler.Session;
+                    SessionReconnectHandler.Dispose();
+                }
+                SessionReconnectHandler = null;
                 // raise any additional notifications.
-                _reconnectComplete?.Invoke(this, e);
+                ReconnectCompleteHandler?.Invoke(this, e);
             }
             catch (Exception ex)
             {
@@ -1374,6 +1364,7 @@ namespace Iso.Opc.ApplicationManager
                 }
                 e.Accept = true;
                 //Experiment
+                //TODO
                 //if (ApplicationInstance.ApplicationConfiguration.SecurityConfiguration.AddAppCertToTrustedStore)
                 //{
                 //     AddToTrustedStore(ApplicationInstance.ApplicationConfiguration,e.Certificate).Wait();
@@ -1407,18 +1398,17 @@ namespace Iso.Opc.ApplicationManager
                         return;
                     }
                     Console.WriteLine($"{e.CurrentTime} Reconnecting in: {_reconnectPeriod}");
-                    if (_reconnectHandler == null)
-                    {
-                        _reconnectStarting?.Invoke(this, e);
-                        _reconnectHandler = new SessionReconnectHandler();
-                        _reconnectHandler.BeginReconnect(Session, _reconnectPeriod * 1000, ReconnectComplete);
-                    }
+                    if (SessionReconnectHandler != null) 
+                        return;
+                    ReconnectStartingHandler?.Invoke(this, e);
+                    SessionReconnectHandler = new SessionReconnectHandler();
+                    SessionReconnectHandler.BeginReconnect(Session, _reconnectPeriod * 1000, ReconnectComplete);
                     return;
                 }
                 // update status.
                 Console.WriteLine($"{e.CurrentTime} Connected: {session.Endpoint.EndpointUrl}");
                 // raise any additional notifications.
-                _KeepAliveComplete?.Invoke(this, e);
+                KeepAliveCompleteHandler?.Invoke(this, e);
             }
             catch (Exception ex)
             {

@@ -40,12 +40,17 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 Stream stream = new FileStream(resourcePath, FileMode.Open);
                 UANodeSet uaNodeSet = UANodeSet.Read(stream);
                 namespaceUriList.AddRange(NamespaceUris);
+                // Update namespace table
                 foreach (string namespaceUri in uaNodeSet.NamespaceUris)
                 {
                     namespaceUriList.Add(namespaceUri);
                     SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
                 }
-
+                // Update server table
+                foreach (string serverUri in uaNodeSet.ServerUris)
+                {
+                    SystemContext.ServerUris.GetIndexOrAppend(serverUri);
+                }
                 NamespaceUris = namespaceUriList;
                 uaNodeSet.Import(SystemContext, predefinedNodeStateCollection);
                 foreach (NodeState nodeState in predefinedNodeStateCollection)

@@ -263,7 +263,7 @@
             this.objectListView.Location = new System.Drawing.Point(11, 27);
             this.objectListView.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.objectListView.Name = "objectListView";
-            this.objectListView.Size = new System.Drawing.Size(283, 277);
+            this.objectListView.Size = new System.Drawing.Size(266, 277);
             this.objectListView.TabIndex = 0;
             this.objectListView.UseCompatibleStateImageBehavior = false;
             this.objectListView.View = System.Windows.Forms.View.Details;
@@ -291,7 +291,7 @@
             // discoveredServersColumnHeader
             // 
             this.discoveredServersColumnHeader.Text = "Servers";
-            this.discoveredServersColumnHeader.Width = 723;
+            this.discoveredServersColumnHeader.Width = 469;
             // 
             // MainForm
             // 
