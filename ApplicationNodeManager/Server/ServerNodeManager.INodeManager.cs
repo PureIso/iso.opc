@@ -55,7 +55,8 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 uaNodeSet.Import(SystemContext, predefinedNodeStateCollection);
                 foreach (NodeState nodeState in predefinedNodeStateCollection)
                 {
-                    AddPredefinedNode(SystemContext,nodeState);
+                    NodeState bindNodeState = bindNodeStates(nodeState);
+                    AddPredefinedNode(SystemContext, bindNodeState);
                 }
                 AddReverseReferences(externalReferences);
             }
@@ -63,6 +64,39 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             {
                 Console.WriteLine($"Import XML exception: {e.StackTrace}");
             }
+        }
+
+        private NodeState _previousBaseNode;
+        private NodeState _previousMethod;
+
+        private ServiceResult OnGeneratedMethod(ISystemContext context, MethodState method,
+            IList<object> inputArguments, IList<object> outputArguments)
+        {
+            Console.WriteLine($"Method Called - Displayed Name: {method.DisplayName}");
+            return ServiceResult.Good;
+        }
+
+        private NodeState bindNodeStates(NodeState nodeState)
+        {
+            switch (nodeState.NodeClass)
+            {
+                case NodeClass.Object:
+                    _previousBaseNode = nodeState;
+                    break;
+                case NodeClass.Method:
+                    MethodState methodState = nodeState as MethodState;
+                    if (methodState == null)
+                        return nodeState;
+                    methodState.OnCallMethod = new GenericMethodCalledEventHandler(OnGeneratedMethod);
+                    _previousBaseNode.AddChild(methodState);
+                    _previousMethod = methodState;
+                    return methodState;
+                case NodeClass.Variable:
+                    
+                    break;
+            }
+
+            return nodeState;
         }
         public ServiceResult OnWriteValue(ISystemContext context, NodeState node, ref object value)
         {
