@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Iso.Opc.ApplicationManager;
@@ -76,5 +77,19 @@ namespace Client
             globalDiscoveryServerPasswordTextBox.Enabled = globalDiscoveryServerUseSecurityCheckBox.Checked;
         }
         #endregion
+
+        //Keeping up Github commits
+        private void ObjectListViewMouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                ListViewItem selectedItem = objectListView.GetItemAt(e.X, e.Y);
+                if (selectedItem == null)
+                    return;
+                int itemIndex = selectedItem.Index;
+                Point point = objectListView.PointToScreen(e.Location);
+                referenceContextMenuStrip.Show(point);
+            }
+        }
     }
 }

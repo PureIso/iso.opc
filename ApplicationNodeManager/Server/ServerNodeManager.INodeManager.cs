@@ -55,7 +55,7 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 uaNodeSet.Import(SystemContext, predefinedNodeStateCollection);
                 foreach (NodeState nodeState in predefinedNodeStateCollection)
                 {
-                    NodeState bindNodeState = bindNodeStates(nodeState);
+                    NodeState bindNodeState = BindNodeStates(nodeState);
                     AddPredefinedNode(SystemContext, bindNodeState);
                 }
                 AddReverseReferences(externalReferences);
@@ -76,12 +76,13 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             return ServiceResult.Good;
         }
 
-        private NodeState bindNodeStates(NodeState nodeState)
+        private NodeState BindNodeStates(NodeState nodeState)
         {
             switch (nodeState.NodeClass)
             {
                 case NodeClass.Object:
                     _previousBaseNode = nodeState;
+                    _previousMethod = null;
                     break;
                 case NodeClass.Method:
                     MethodState methodState = nodeState as MethodState;

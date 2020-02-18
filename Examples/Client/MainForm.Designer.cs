@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.getDiscoveryServerTrustedListButton = new System.Windows.Forms.Button();
             this.customConnectionButton = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
@@ -50,8 +51,11 @@
             this.objectsHolumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.discoveredServersListView = new System.Windows.Forms.ListView();
             this.discoveredServersColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.referenceContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.browseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
+            this.referenceContextMenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // getDiscoveryServerTrustedListButton
@@ -267,6 +271,7 @@
             this.objectListView.TabIndex = 0;
             this.objectListView.UseCompatibleStateImageBehavior = false;
             this.objectListView.View = System.Windows.Forms.View.Details;
+            this.objectListView.MouseDown += new System.Windows.Forms.MouseEventHandler(this.ObjectListViewMouseDown);
             // 
             // objectsHolumnHeader
             // 
@@ -293,6 +298,20 @@
             this.discoveredServersColumnHeader.Text = "Servers";
             this.discoveredServersColumnHeader.Width = 469;
             // 
+            // referenceContextMenuStrip
+            // 
+            this.referenceContextMenuStrip.ImageScalingSize = new System.Drawing.Size(24, 24);
+            this.referenceContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.browseToolStripMenuItem});
+            this.referenceContextMenuStrip.Name = "referenceContextMenuStrip";
+            this.referenceContextMenuStrip.Size = new System.Drawing.Size(142, 36);
+            // 
+            // browseToolStripMenuItem
+            // 
+            this.browseToolStripMenuItem.Name = "browseToolStripMenuItem";
+            this.browseToolStripMenuItem.Size = new System.Drawing.Size(141, 32);
+            this.browseToolStripMenuItem.Text = "Browse";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
@@ -307,6 +326,7 @@
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
+            this.referenceContextMenuStrip.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -334,6 +354,8 @@
         private System.Windows.Forms.TextBox globalDiscoveryServerDiscoveryURLTextBox;
         private System.Windows.Forms.ListView discoveredServersListView;
         private System.Windows.Forms.ColumnHeader discoveredServersColumnHeader;
+        private System.Windows.Forms.ContextMenuStrip referenceContextMenuStrip;
+        private System.Windows.Forms.ToolStripMenuItem browseToolStripMenuItem;
     }
 }
 
