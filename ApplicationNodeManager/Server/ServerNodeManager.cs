@@ -19,18 +19,13 @@ namespace Iso.Opc.ApplicationNodeManager.Server
         #endregion
 
         public ServerNodeManager(IServerInternal server, ApplicationConfiguration applicationConfiguration) 
-            : base(server, applicationConfiguration)
+            : base(server, applicationConfiguration, Namespaces.BasicApplications)
         {
-            List<string> namespaceUris = new List<string>
-            {
-                Namespaces.BasicApplications,
-                Namespaces.Methods                 
-            };
-            NamespaceUris = namespaceUris;
             SystemContext.NodeIdFactory = this;
             _applicationConfiguration = applicationConfiguration;
             _baseDataVariableStates = new List<BaseDataVariableState>();
-            if (!string.IsNullOrEmpty(PredefinedXMLNodeDirectory)) return;
+            if (!string.IsNullOrEmpty(PredefinedXMLNodeDirectory)) 
+                return;
             PredefinedXMLNodeDirectory = AppDomain.CurrentDomain.BaseDirectory + "predefined_models";
             if (!Directory.Exists(PredefinedXMLNodeDirectory))
                 Directory.CreateDirectory(PredefinedXMLNodeDirectory);

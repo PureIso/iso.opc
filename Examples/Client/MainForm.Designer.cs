@@ -47,8 +47,8 @@
             this.useSecurityCheckBox = new System.Windows.Forms.CheckBox();
             this.globalDiscoveryServerDiscoveryURLTextBox = new System.Windows.Forms.TextBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.objectListView = new System.Windows.Forms.ListView();
-            this.objectsHolumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.objectTreeView = new System.Windows.Forms.TreeView();
+            this.button1 = new System.Windows.Forms.Button();
             this.discoveredServersListView = new System.Windows.Forms.ListView();
             this.discoveredServersColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.referenceContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -247,7 +247,8 @@
             // 
             // groupBox2
             // 
-            this.groupBox2.Controls.Add(this.objectListView);
+            this.groupBox2.Controls.Add(this.objectTreeView);
+            this.groupBox2.Controls.Add(this.button1);
             this.groupBox2.Location = new System.Drawing.Point(12, 378);
             this.groupBox2.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.groupBox2.Name = "groupBox2";
@@ -257,26 +258,23 @@
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Reference Descriptions";
             // 
-            // objectListView
+            // objectTreeView
             // 
-            this.objectListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.objectsHolumnHeader});
-            this.objectListView.FullRowSelect = true;
-            this.objectListView.GridLines = true;
-            this.objectListView.HideSelection = false;
-            this.objectListView.Location = new System.Drawing.Point(11, 27);
-            this.objectListView.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.objectListView.Name = "objectListView";
-            this.objectListView.Size = new System.Drawing.Size(266, 277);
-            this.objectListView.TabIndex = 0;
-            this.objectListView.UseCompatibleStateImageBehavior = false;
-            this.objectListView.View = System.Windows.Forms.View.Details;
-            this.objectListView.MouseDown += new System.Windows.Forms.MouseEventHandler(this.ObjectListViewMouseDown);
+            this.objectTreeView.Location = new System.Drawing.Point(10, 27);
+            this.objectTreeView.Name = "objectTreeView";
+            this.objectTreeView.Size = new System.Drawing.Size(320, 278);
+            this.objectTreeView.TabIndex = 2;
+            this.objectTreeView.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.ObjectTreeViewMouseDoubleClick);
             // 
-            // objectsHolumnHeader
+            // button1
             // 
-            this.objectsHolumnHeader.Text = "Objects";
-            this.objectsHolumnHeader.Width = 223;
+            this.button1.Location = new System.Drawing.Point(336, 27);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(99, 38);
+            this.button1.TabIndex = 1;
+            this.button1.Text = "Test";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // discoveredServersListView
             // 
@@ -343,8 +341,6 @@
         private System.Windows.Forms.TextBox serverUserNameTextBox;
         private System.Windows.Forms.CheckBox useSecurityCheckBox;
         private System.Windows.Forms.GroupBox groupBox2;
-        private System.Windows.Forms.ListView objectListView;
-        private System.Windows.Forms.ColumnHeader objectsHolumnHeader;
         private System.Windows.Forms.CheckBox globalDiscoveryServerUseSecurityCheckBox;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.TextBox globalDiscoveryServerPasswordTextBox;
@@ -356,6 +352,8 @@
         private System.Windows.Forms.ColumnHeader discoveredServersColumnHeader;
         private System.Windows.Forms.ContextMenuStrip referenceContextMenuStrip;
         private System.Windows.Forms.ToolStripMenuItem browseToolStripMenuItem;
+        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.TreeView objectTreeView;
     }
 }
 

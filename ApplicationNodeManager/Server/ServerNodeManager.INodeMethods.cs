@@ -25,20 +25,18 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 DisplayName = new LocalizedText("Controllers"),
                 TypeDefinitionId = ObjectTypeIds.BaseObjectType
             };
-            /* ***************************************** */
-            /* AirConditionerControllerType              */
-            /* ***************************************** */
-            BaseObjectState ProcessController = new BaseObjectState(controller)
+
+            // ensure the process object can be found via the server object. 
+            IList<IReference> references = null;
+            if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out references))
             {
-                NodeId = new NodeId(6, NamespaceIndex),
-                BrowseName = new QualifiedName("ProcessControllerType", NamespaceIndex),
-                DisplayName = new LocalizedText("ProcessControllerType"),
-                TypeDefinitionId = ObjectTypeIds.BaseObjectType,
-                //UserRolePermissions = AccessLevels.
-            };
-            
+                externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
+            }
+            controller.AddReference(ReferenceTypeIds.Organizes, true, ObjectIds.ObjectsFolder);
+            references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, controller.NodeId));
+
             //Variables
-            PropertyState<uint> state = new PropertyState<uint>(ProcessController)
+            PropertyState<uint> state = new PropertyState<uint>(controller)
             {
                 NodeId = new NodeId(2, NamespaceIndex),
                 BrowseName = new QualifiedName("State", NamespaceIndex),
@@ -48,9 +46,11 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 DataType = DataTypeIds.UInt32,
                 ValueRank = ValueRanks.Scalar
             };
-            ProcessController.AddChild(state);
+            _stateNode = state;
+            controller.AddChild(state);
+
             //Method
-            MethodState start = new MethodState(ProcessController)
+            MethodState start = new MethodState(controller)
             {
                 NodeId = new NodeId(3, NamespaceIndex),
                 BrowseName = new QualifiedName("Start", NamespaceIndex),
@@ -59,6 +59,7 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 UserExecutable = true,
                 Executable = true
             };
+
             //Method - Input
             start.InputArguments = new PropertyState<Argument[]>(start)
             {
@@ -70,6 +71,22 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 DataType = DataTypeIds.Argument,
                 ValueRank = ValueRanks.OneDimension
             };
+
+            Argument[] args = new Argument[2];
+            args[0] = new Argument();
+            args[0].Name = "Initial State";
+            args[0].Description = "The initialize state for the process.";
+            args[0].DataType = DataTypeIds.UInt32;
+            args[0].ValueRank = ValueRanks.Scalar;
+
+            args[1] = new Argument();
+            args[1].Name = "Final State";
+            args[1].Description = "The final state for the process.";
+            args[1].DataType = DataTypeIds.UInt32;
+            args[1].ValueRank = ValueRanks.Scalar;
+
+            start.InputArguments.Value = args;
+
             //Method - Output
             start.OutputArguments = new PropertyState<Argument[]>(start);
             start.OutputArguments.NodeId = new NodeId(5, NamespaceIndex);
@@ -79,50 +96,25 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             start.OutputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
             start.OutputArguments.DataType = DataTypeIds.Argument;
             start.OutputArguments.ValueRank = ValueRanks.OneDimension;
-            ProcessController.AddChild(start);
-            controller.AddChild(ProcessController);
-            MethodState stop = new MethodState(ProcessController)
-            {
-                NodeId = new NodeId(7, NamespaceIndex),
-                BrowseName = new QualifiedName("Stop", NamespaceIndex),
-                DisplayName = new LocalizedText("Stop"),
-                ReferenceTypeId = ReferenceTypeIds.HasComponent,
-                UserExecutable = true,
-                Executable = true,
-                AccessRestrictions = AccessRestrictionType.SigningRequired
-            };
-            //Method - Input
-            stop.InputArguments = new PropertyState<Argument[]>(stop)
-            {
-                NodeId = new NodeId(4, NamespaceIndex),
-                BrowseName = BrowseNames.InputArguments,
-                DisplayName = new LocalizedText(BrowseNames.InputArguments),
-                TypeDefinitionId = VariableTypeIds.PropertyType,
-                ReferenceTypeId = ReferenceTypeIds.HasProperty,
-                DataType = DataTypeIds.Argument,
-                ValueRank = ValueRanks.OneDimension
-            };
-            //Method - Output
-            stop.OutputArguments = new PropertyState<Argument[]>(stop)
-            {
-                NodeId = new NodeId(5, NamespaceIndex),
-                BrowseName = BrowseNames.OutputArguments
-            };
-            stop.OutputArguments.DisplayName = stop.OutputArguments.BrowseName.Name;
-            stop.OutputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-            stop.OutputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-            stop.OutputArguments.DataType = DataTypeIds.Argument;
-            stop.OutputArguments.ValueRank = ValueRanks.OneDimension;
-            ProcessController.AddChild(stop);
-            controller.AddChild(ProcessController);
-            // ensure the process object can be found via the server object. 
-            if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
-            {
-                references = new List<IReference>();
-                externalReferences[ObjectIds.ObjectsFolder] = references;
-            }
-            controller.AddReference(ReferenceTypeIds.Organizes, true, ObjectIds.ObjectsFolder);
-            references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, controller.NodeId));
+
+            args = new Argument[2];
+            args[0] = new Argument();
+            args[0].Name = "Revised Initial State";
+            args[0].Description = "The revised initialize state for the process.";
+            args[0].DataType = DataTypeIds.UInt32;
+            args[0].ValueRank = ValueRanks.Scalar;
+
+            args[1] = new Argument();
+            args[1].Name = "Revised Final State";
+            args[1].Description = "The revised final state for the process.";
+            args[1].DataType = DataTypeIds.UInt32;
+            args[1].ValueRank = ValueRanks.Scalar;
+
+            start.OutputArguments.Value = args;
+
+            controller.AddChild(start);
+
+            // save in dictionary. 
             AddPredefinedNode(SystemContext, controller);
 
             // set up method handlers. 

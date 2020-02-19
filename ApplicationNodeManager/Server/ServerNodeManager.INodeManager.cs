@@ -26,7 +26,7 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 CreateProcessNode(externalReferences);
                 foreach (string file in Directory.EnumerateFiles(PredefinedXMLNodeDirectory, "*.xml"))
                 {
-                    ImportXMLModels(externalReferences, file);
+                   ImportXMLModels(externalReferences, file);
                 }
             }
         }
@@ -41,22 +41,33 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 UANodeSet uaNodeSet = UANodeSet.Read(stream);
                 namespaceUriList.AddRange(NamespaceUris);
                 // Update namespace table
-                foreach (string namespaceUri in uaNodeSet.NamespaceUris)
+                if (uaNodeSet.ServerUris != null)
                 {
-                    namespaceUriList.Add(namespaceUri);
-                    SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
-                }
-                // Update server table
-                foreach (string serverUri in uaNodeSet.ServerUris)
-                {
-                    SystemContext.ServerUris.GetIndexOrAppend(serverUri);
+                    foreach (string namespaceUri in uaNodeSet.NamespaceUris)
+                    {
+                        namespaceUriList.Add(namespaceUri);
+                        SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
+                    }
                 }
                 NamespaceUris = namespaceUriList;
+                // Update server table
+                if (uaNodeSet.ServerUris != null)
+                {
+                    foreach (string serverUri in uaNodeSet.ServerUris)
+                    {
+                        SystemContext.ServerUris.GetIndexOrAppend(serverUri);
+                    }
+                }
                 uaNodeSet.Import(SystemContext, predefinedNodeStateCollection);
+                NodeStateCollection parsedNodeState = new NodeStateCollection();
                 foreach (NodeState nodeState in predefinedNodeStateCollection)
                 {
-                    NodeState bindNodeState = BindNodeStates(nodeState);
-                    AddPredefinedNode(SystemContext, bindNodeState);
+                    NodeState bindNodeState = BindNodeStates(externalReferences, nodeState, ref parsedNodeState);
+                    parsedNodeState.Add(bindNodeState);
+                }
+                foreach (NodeState nodeState in parsedNodeState)
+                {
+                    AddPredefinedNode(SystemContext, nodeState);
                 }
                 AddReverseReferences(externalReferences);
             }
@@ -66,37 +77,120 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             }
         }
 
-        private NodeState _previousBaseNode;
-        private NodeState _previousMethod;
+        private BaseObjectState _previousBaseNode;
+        private MethodState _previousMethod;
 
-        private ServiceResult OnGeneratedMethod(ISystemContext context, MethodState method,
-            IList<object> inputArguments, IList<object> outputArguments)
+        private ServiceResult OnGeneratedMethod(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             Console.WriteLine($"Method Called - Displayed Name: {method.DisplayName}");
             return ServiceResult.Good;
         }
 
-        private NodeState BindNodeStates(NodeState nodeState)
+        private ServiceResult OnGeneratedMethod2(ISystemContext context, MethodState method, NodeId objectId, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            Console.WriteLine($"Method Called - Displayed Name: {method.DisplayName}");
+            return ServiceResult.Good;
+        }
+
+
+        private NodeState BindNodeStates(IDictionary<NodeId, IList<IReference>> externalReferences, NodeState nodeState, ref NodeStateCollection bindedNodeStates)
         {
             switch (nodeState.NodeClass)
             {
                 case NodeClass.Object:
-                    _previousBaseNode = nodeState;
+                    if (!(nodeState is BaseObjectState baseObjectState))
+                        return nodeState;
+                    _previousBaseNode = baseObjectState;
+                    //Bind previous method now since it will be cleared
+                    if (_previousMethod != null)
+                    {
+                        int index = bindedNodeStates.FindIndex(x => x.NodeId == _previousMethod.NodeId);
+                        if (index == -1)
+                            bindedNodeStates.Add(_previousMethod);
+                        else
+                            bindedNodeStates[index] = _previousMethod;
+                    }
+
+                    // ensure the process object can be found via the server object. 
+                    if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
+                    {
+                        externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
+                    }
+                    references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, _previousBaseNode.NodeId));
                     _previousMethod = null;
                     break;
                 case NodeClass.Method:
-                    MethodState methodState = nodeState as MethodState;
-                    if (methodState == null)
+                    if (!(nodeState is MethodState methodState))
                         return nodeState;
-                    methodState.OnCallMethod = new GenericMethodCalledEventHandler(OnGeneratedMethod);
-                    _previousBaseNode.AddChild(methodState);
+                    methodState.OnCallMethod = OnGeneratedMethod;
+                    methodState.OnCallMethod2 = OnGeneratedMethod2;
+                    _previousBaseNode?.AddChild(methodState);
+                    if (_previousMethod != null)
+                    {
+                        int index = bindedNodeStates.FindIndex(x => x.NodeId == _previousMethod.NodeId);
+                        if (index == -1)
+                            bindedNodeStates.Add(_previousMethod);
+                        else
+                            bindedNodeStates[index] = _previousMethod;
+                    }
                     _previousMethod = methodState;
                     return methodState;
                 case NodeClass.Variable:
-                    
+                    if (_previousMethod != null)
+                    {
+                        if (!(nodeState is PropertyState propertyState))
+                            return nodeState;
+                        if (propertyState.DisplayName == BrowseNames.InputArguments)
+                        {
+                            _previousMethod.InputArguments = new PropertyState<Argument[]>(_previousMethod)
+                            {
+                                NodeId = propertyState.NodeId,
+                                BrowseName = propertyState.BrowseName,
+                                DisplayName = propertyState.DisplayName,
+                                TypeDefinitionId = propertyState.TypeDefinitionId,
+                                ReferenceTypeId = propertyState.ReferenceTypeId,
+                                DataType = propertyState.DataType,
+                                ValueRank = propertyState.ValueRank,
+                                Value = ExtensionObject.ToArray(propertyState.Value, typeof(Argument)) as Argument[]
+                            };
+                        }
+                        else if (propertyState.DisplayName == BrowseNames.OutputArguments)
+                        {
+                            _previousMethod.OutputArguments = new PropertyState<Argument[]>(_previousMethod)
+                            {
+                                NodeId = propertyState.NodeId,
+                                BrowseName = propertyState.BrowseName,
+                                DisplayName = propertyState.DisplayName,
+                                TypeDefinitionId = propertyState.TypeDefinitionId,
+                                ReferenceTypeId = propertyState.ReferenceTypeId,
+                                DataType = propertyState.DataType,
+                                ValueRank = propertyState.ValueRank,
+                                Value = ExtensionObject.ToArray(propertyState.Value, typeof(Argument)) as Argument[]
+                            };
+                        }
+                    }
+                    break;
+                default:
+                    if (_previousBaseNode != null)
+                    {
+                        int index = bindedNodeStates.FindIndex(x => x.NodeId == _previousBaseNode.NodeId);
+                        if (index == -1)
+                            bindedNodeStates.Add(_previousBaseNode);
+                        else
+                            bindedNodeStates[index] = _previousBaseNode;
+                    }
+                    if (_previousMethod != null)
+                    {
+                        int index = bindedNodeStates.FindIndex(x => x.NodeId == _previousMethod.NodeId);
+                        if (index == -1)
+                            bindedNodeStates.Add(_previousMethod);
+                        else
+                            bindedNodeStates[index] = _previousMethod;
+                    }
+                    _previousBaseNode = null;
+                    _previousMethod = null;
                     break;
             }
-
             return nodeState;
         }
         public ServiceResult OnWriteValue(ISystemContext context, NodeState node, ref object value)

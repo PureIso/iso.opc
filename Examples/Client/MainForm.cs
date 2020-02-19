@@ -30,6 +30,7 @@ namespace Client
             _globalDiscoveryServerWellKnownUrls = new StringCollection {"opc.tcp://localhost:58810/UADiscovery"};
         }
         #endregion
+
         #region Handlers
         private void CustomConnectionButtonClick(object sender, EventArgs e)
         { 
@@ -56,11 +57,10 @@ namespace Client
             if (!connectedToServer) 
                 return;
 
-            objectListView.Items.Clear();
-            ListViewItem[] browsedObjects = (from x in _applicationInstanceManager.ReferenceDescriptionDictionary select new ListViewItem(x.Value.DisplayName.Text)).ToArray();
-            objectListView.Items.AddRange(browsedObjects);
-
-            _applicationInstanceManager.GetControllersAttributeReferenceDescriptions();
+            TreeNode[] browsedObjects = (from x in _applicationInstanceManager.ReferenceDescriptionDictionary select new TreeNode(x.Value.DisplayName.Text)).ToArray();
+            objectTreeView.Nodes.Clear();
+            objectTreeView.Nodes.AddRange(browsedObjects);
+            _applicationInstanceManager.GetControllersReferenceDescriptions();
         }
         private void GetDiscoveryServerTrustedListButtonClick(object sender, EventArgs e)
         {
@@ -78,18 +78,27 @@ namespace Client
         }
         #endregion
 
-        //Keeping up Github commits
-        private void ObjectListViewMouseDown(object sender, MouseEventArgs e)
+
+        private void button1_Click(object sender, EventArgs e)
         {
-            if (e.Button == MouseButtons.Right)
-            {
-                ListViewItem selectedItem = objectListView.GetItemAt(e.X, e.Y);
-                if (selectedItem == null)
-                    return;
-                int itemIndex = selectedItem.Index;
-                Point point = objectListView.PointToScreen(e.Location);
-                referenceContextMenuStrip.Show(point);
-            }
+            ReferenceDescription objectReference =
+                _applicationInstanceManager.ExtendedReferenceDescriptions[0].ParentReferenceDescription;
+            ReferenceDescription methodReference =
+                _applicationInstanceManager.ExtendedReferenceDescriptions[0].MethodReferenceDescriptions[0];
+            NodeId objectNodeId = new NodeId(objectReference.NodeId.Identifier, objectReference.NodeId.NamespaceIndex);
+            NodeId methodNodeId = new NodeId(methodReference.NodeId.Identifier, methodReference.NodeId.NamespaceIndex);
+            _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, 1, 100);
+        }
+
+        private void ObjectTreeViewMouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            TreeNode parentNode = objectTreeView.SelectedNode;
+            ReferenceDescription objectReference =
+                _applicationInstanceManager.ReferenceDescriptionDictionary[parentNode.Text];
+            List<ReferenceDescription> referenceDescription =  _applicationInstanceManager.BrowseReferenceDescription(objectReference);
+            TreeNode[] browsedObjects = (from x in referenceDescription select new TreeNode(x.DisplayName.Text)).ToArray();
+            parentNode.Nodes.AddRange(browsedObjects);
+            parentNode.Expand();
         }
     }
 }

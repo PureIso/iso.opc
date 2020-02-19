@@ -850,12 +850,6 @@ namespace Iso.Opc.ApplicationManager
             GetRootObjectReferenceDescriptions();
             return BrowseReferenceDescription(ReferenceDescriptionDictionary[NameObject.Controllers]);
         }
-        public List<ReferenceDescription> GetControllersAttributeReferenceDescriptions()
-        {
-            GetRootObjectReferenceDescriptions();
-            GetControllersReferenceDescriptions();
-            return BrowseReferenceDescription(ReferenceDescriptionDictionary[Process.Name]);
-        }
         public List<ReferenceDescription> BrowseReferenceDescription(ReferenceDescription parentReferenceDescription = null)
         {
             BrowseDescriptionCollection browseDescriptionCollection = new BrowseDescriptionCollection();
