@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29728.190
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.ApplicationNodeManager", "ApplicationNodeManager\Iso.Opc.ApplicationNodeManager.csproj", "{D1DCE023-982F-4D26-B674-A1057F6595DB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.ApplicationNodeManager", "Iso.Opc.ApplicationNodeManager\Iso.Opc.ApplicationNodeManager.csproj", "{D1DCE023-982F-4D26-B674-A1057F6595DB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.ApplicationManager", "ApplicationManager\Iso.Opc.ApplicationManager.csproj", "{05C3AB19-150B-4FBB-85AA-760BEED083A4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.ApplicationManager", "Iso.Opc.ApplicationManager\Iso.Opc.ApplicationManager.csproj", "{05C3AB19-150B-4FBB-85AA-760BEED083A4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Examples\Server\Server.csproj", "{C1EC8AA4-DA7C-48AA-AB7A-A07D0C6D9B3D}"
 EndProject

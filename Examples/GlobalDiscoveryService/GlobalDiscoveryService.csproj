@@ -49,36 +49,36 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ApplicationManager\Iso.Opc.ApplicationManager.csproj">
+    <ProjectReference Include="..\..\Iso.Opc.ApplicationManager\Iso.Opc.ApplicationManager.csproj">
       <Project>{05c3ab19-150b-4fbb-85aa-760beed083a4}</Project>
       <Name>ApplicationManager</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\ApplicationNodeManager\Iso.Opc.ApplicationNodeManager.csproj">
+    <ProjectReference Include="..\..\Iso.Opc.ApplicationNodeManager\Iso.Opc.ApplicationNodeManager.csproj">
       <Project>{d1dce023-982f-4d26-b674-a1057f6595db}</Project>
       <Name>ApplicationNodeManager</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="BouncyCastle.Crypto, Version=1.8.5.0, Culture=neutral, PublicKeyToken=0e99375e54769942, processorArchitecture=MSIL">
-      <HintPath>..\packages\Portable.BouncyCastle.1.8.5.2\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.5\lib\net40\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
-    <Reference Include="Opc.Ua.Client">
-      <HintPath>..\..\opc_ua_package\Opc.Ua.Client.dll</HintPath>
+    <Reference Include="Opc.Ua.Client, Version=1.4.359.0, Culture=neutral, PublicKeyToken=bfa7a73c5cf4b6e8, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\OPCFoundation.NetStandard.Opc.Ua.1.4.359.31\lib\net46\Opc.Ua.Client.dll</HintPath>
     </Reference>
-    <Reference Include="Opc.Ua.Configuration">
-      <HintPath>..\..\opc_ua_package\Opc.Ua.Configuration.dll</HintPath>
+    <Reference Include="Opc.Ua.Configuration, Version=1.4.359.0, Culture=neutral, PublicKeyToken=bfa7a73c5cf4b6e8, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\OPCFoundation.NetStandard.Opc.Ua.1.4.359.31\lib\net46\Opc.Ua.Configuration.dll</HintPath>
     </Reference>
-    <Reference Include="Opc.Ua.Core">
-      <HintPath>..\..\opc_ua_package\Opc.Ua.Core.dll</HintPath>
+    <Reference Include="Opc.Ua.Core, Version=1.4.359.0, Culture=neutral, PublicKeyToken=bfa7a73c5cf4b6e8, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\OPCFoundation.NetStandard.Opc.Ua.1.4.359.31\lib\net46\Opc.Ua.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Opc.Ua.Gds.Client.Common">
-      <HintPath>..\..\opc_ua_package\Opc.Ua.Gds.Client.Common.dll</HintPath>
+    <Reference Include="Opc.Ua.Gds.Client.Common, Version=1.4.359.0, Culture=neutral, PublicKeyToken=bfa7a73c5cf4b6e8, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\OPCFoundation.NetStandard.Opc.Ua.1.4.359.31\lib\net46\Opc.Ua.Gds.Client.Common.dll</HintPath>
     </Reference>
-    <Reference Include="Opc.Ua.Gds.Server.Common">
-      <HintPath>..\..\opc_ua_package\Opc.Ua.Gds.Server.Common.dll</HintPath>
+    <Reference Include="Opc.Ua.Gds.Server.Common, Version=1.4.359.0, Culture=neutral, PublicKeyToken=bfa7a73c5cf4b6e8, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\OPCFoundation.NetStandard.Opc.Ua.1.4.359.31\lib\net46\Opc.Ua.Gds.Server.Common.dll</HintPath>
     </Reference>
-    <Reference Include="Opc.Ua.Server">
-      <HintPath>..\..\opc_ua_package\Opc.Ua.Server.dll</HintPath>
+    <Reference Include="Opc.Ua.Server, Version=1.4.359.0, Culture=neutral, PublicKeyToken=bfa7a73c5cf4b6e8, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\OPCFoundation.NetStandard.Opc.Ua.1.4.359.31\lib\net46\Opc.Ua.Server.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.IdentityModel" />

@@ -22,11 +22,10 @@ namespace LocalDiscoveryService
 
         public MainLocalDiscoveryServer(IApplicationsDatabase database,ICertificateRequest request,ICertificateGroup certificateGroup,bool autoApprove = true)
         {
-            _database = database;
+            _database = database ?? throw new Exception("Please provide data storage information.");
             _request = request;
             _certificateGroup = certificateGroup;
             _autoApprove = autoApprove;
-
             _requestLock = new object();
             _contexts = new Dictionary<uint, ImpersonationContext>();
         }

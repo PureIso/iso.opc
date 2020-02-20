@@ -87,7 +87,11 @@ namespace Client
                 _applicationInstanceManager.ExtendedReferenceDescriptions[0].MethodReferenceDescriptions[0];
             NodeId objectNodeId = new NodeId(objectReference.NodeId.Identifier, objectReference.NodeId.NamespaceIndex);
             NodeId methodNodeId = new NodeId(methodReference.NodeId.Identifier, methodReference.NodeId.NamespaceIndex);
-            _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, 1, 100);
+
+            object[] arguments = new object[2];
+            arguments[0] = Convert.ToUInt32(1);
+            arguments[1] = Convert.ToUInt32(100);
+            _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, arguments);
         }
 
         private void ObjectTreeViewMouseDoubleClick(object sender, MouseEventArgs e)
@@ -95,7 +99,11 @@ namespace Client
             TreeNode parentNode = objectTreeView.SelectedNode;
             ReferenceDescription objectReference =
                 _applicationInstanceManager.ReferenceDescriptionDictionary[parentNode.Text];
+            if (objectReference == null)
+                return;
             List<ReferenceDescription> referenceDescription =  _applicationInstanceManager.BrowseReferenceDescription(objectReference);
+            if (referenceDescription == null)
+                return;
             TreeNode[] browsedObjects = (from x in referenceDescription select new TreeNode(x.DisplayName.Text)).ToArray();
             parentNode.Nodes.AddRange(browsedObjects);
             parentNode.Expand();

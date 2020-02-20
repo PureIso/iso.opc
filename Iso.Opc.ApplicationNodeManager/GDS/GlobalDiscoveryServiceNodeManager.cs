@@ -21,7 +21,6 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
         private readonly string _defaultSubjectNameContext;
         private readonly CertificateGroupConfigurationCollection _certificateGroupConfigurationCollection;
         private StringCollection _knownHostNames;
-        private string _databaseStorePath;
         private readonly bool _autoApprove;
         private readonly IApplicationsDatabase _database;
         private readonly ICertificateRequest _request;
@@ -73,15 +72,6 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             if (!Directory.Exists(baseCertificateGroupStorePathDirectory))
                 Directory.CreateDirectory(baseCertificateGroupStorePathDirectory);
             _baseCertificateGroupStorePath = baseCertificateGroupStorePathDirectory;
-            //Database Directory
-            string databaseDirectory = AppDomain.CurrentDomain.BaseDirectory + "\\database";
-            if (!Directory.Exists(databaseDirectory))
-                Directory.CreateDirectory(databaseDirectory);
-            string databaseFile = databaseDirectory + "\\gds.database.json";
-            if (!File.Exists(databaseFile))
-                File.Create(databaseFile).Close();
-            _databaseStorePath = databaseDirectory;
-
             _certificateGroupConfigurationCollection.Add(new CertificateGroupConfiguration {
                 Id = "Default",
                 CertificateType = "RsaSha256ApplicationCertificateType",

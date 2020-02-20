@@ -919,13 +919,10 @@ namespace Iso.Opc.ApplicationManager
                 //We need to iterate through the list
                 foreach (ReferenceDescription referenceDescription in referenceDescriptions)
                 {
-                    if (referenceDescription.NodeClass != NodeClass.Method &&
-                        referenceDescription.NodeClass != NodeClass.Variable)
+                    if (referenceDescription.NodeClass == NodeClass.Method ||
+                        referenceDescription.NodeClass == NodeClass.Variable)
                     {
                         ReferenceDescriptionDictionary[referenceDescription.BrowseName.Name] = referenceDescription;
-                    }
-                    else
-                    {
                         ExtendedReferenceDescription extendedReferenceDescription = ExtendedReferenceDescriptions
                             .FirstOrDefault(x => x.ParentReferenceDescription == parentReferenceDescription);
                         if (extendedReferenceDescription == null)
@@ -942,7 +939,8 @@ namespace Iso.Opc.ApplicationManager
                                 extendedReferenceDescription.VariableReferenceDescriptions.Add(referenceDescription);
                                 break;
                         }                      
-                    }         
+                    }
+                    ReferenceDescriptionDictionary[referenceDescription.BrowseName.Name] = referenceDescription;
                 }
             }
             return referenceDescriptions;
