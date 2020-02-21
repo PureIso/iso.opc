@@ -33,7 +33,8 @@ namespace Client
 
         #region Handlers
         private void CustomConnectionButtonClick(object sender, EventArgs e)
-        { 
+        {
+            connectionStatusPanel.BackColor = Color.Red;
             _applicationInstanceManager = new ApplicationInstanceManager(ApplicationName, ApplicationUri, 
                 null, null, null, null, _globalDiscoveryServerUrls, _globalDiscoveryServerWellKnownUrls, ApplicationType);
             string gdsUserName = globalDiscoveryServerUseSecurityCheckBox.Checked ? globalDiscoveryServerUserNameTextBox.Text : null;
@@ -56,7 +57,7 @@ namespace Client
             bool connectedToServer = _applicationInstanceManager.ConnectToServer(serverDiscoveryURLTextBox.Text, userName, userPassword);
             if (!connectedToServer) 
                 return;
-
+            connectionStatusPanel.BackColor = Color.Green;
             TreeNode[] browsedObjects = (from x in _applicationInstanceManager.ReferenceDescriptionDictionary select new TreeNode(x.Value.DisplayName.Text)).ToArray();
             objectTreeView.Nodes.Clear();
             objectTreeView.Nodes.AddRange(browsedObjects);

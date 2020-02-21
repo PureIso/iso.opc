@@ -53,6 +53,7 @@
             this.discoveredServersColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.referenceContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.browseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.connectionStatusPanel = new System.Windows.Forms.Panel();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.referenceContextMenuStrip.SuspendLayout();
@@ -82,6 +83,7 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.connectionStatusPanel);
             this.groupBox1.Controls.Add(this.globalDiscoveryServerUseSecurityCheckBox);
             this.groupBox1.Controls.Add(this.serverDiscoveryURLTextBox);
             this.groupBox1.Controls.Add(this.label1);
@@ -310,6 +312,14 @@
             this.browseToolStripMenuItem.Size = new System.Drawing.Size(141, 32);
             this.browseToolStripMenuItem.Text = "Browse";
             // 
+            // connectionStatusPanel
+            // 
+            this.connectionStatusPanel.BackColor = System.Drawing.Color.Red;
+            this.connectionStatusPanel.Location = new System.Drawing.Point(594, 33);
+            this.connectionStatusPanel.Name = "connectionStatusPanel";
+            this.connectionStatusPanel.Size = new System.Drawing.Size(17, 16);
+            this.connectionStatusPanel.TabIndex = 14;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
@@ -354,6 +364,7 @@
         private System.Windows.Forms.ToolStripMenuItem browseToolStripMenuItem;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.TreeView objectTreeView;
+        private System.Windows.Forms.Panel connectionStatusPanel;
     }
 }
 
