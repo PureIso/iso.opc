@@ -1,34 +1,48 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using Iso.Opc.Interface;
 using Opc.Ua;
+using Opc.Ua.Server;
 
-namespace Iso.Opc.ApplicationNodeManager.Server
+namespace ControllerServerNodeManagerPlugin
 {
-    public sealed partial class ServerNodeManager
+    public class EntryPoint : AbstractApplicationNodeManagerPlugin
     {
+        #region Fields
         private readonly object _processLock = new object();
         private uint _state;
         private uint _finalState;
         private Timer _processTimer;
         private PropertyState<uint> _stateNode;
+        #endregion
 
-        private void CreateProcessNode(IDictionary<NodeId, IList<IReference>> externalReferences)
+        public EntryPoint()
         {
+            base.ApplicationName = "Controller Server Node Manager";
+            base.Author = "Ola";
+            base.Description = "Plugin Test";
+            base.Version = "1.0.0.0";
+        }
+
+        #region Overridden Methods
+        public override void Initialise(CustomNodeManager2 nodeManager, IDictionary<NodeId, IList<IReference>> externalReferences, string resourcePath = null)
+        {
+            base.ApplicationNodeManager = nodeManager;
+
             /* ***************************************** */
             /* ControllerType                            */
             /* ***************************************** */
             BaseObjectState controller = new BaseObjectState(null)
             {
-                NodeId = new NodeId(1, NamespaceIndex),
-                BrowseName = new QualifiedName("Controllers", NamespaceIndex),
+                NodeId = new NodeId(1, nodeManager.NamespaceIndex),
+                BrowseName = new QualifiedName("Controllers", nodeManager.NamespaceIndex),
                 DisplayName = new LocalizedText("Controllers"),
                 TypeDefinitionId = ObjectTypeIds.BaseObjectType
             };
 
             // ensure the process object can be found via the server object. 
-            IList<IReference> references = null;
-            if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out references))
+            if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
             {
                 externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
             }
@@ -38,22 +52,25 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             //Variables
             PropertyState<uint> state = new PropertyState<uint>(controller)
             {
-                NodeId = new NodeId(2, NamespaceIndex),
-                BrowseName = new QualifiedName("State", NamespaceIndex),
+                NodeId = new NodeId(2, nodeManager.NamespaceIndex),
+                BrowseName = new QualifiedName("State", nodeManager.NamespaceIndex),
                 DisplayName = new LocalizedText("State"),
                 TypeDefinitionId = VariableTypeIds.PropertyType,
                 ReferenceTypeId = ReferenceTypeIds.HasProperty,
                 DataType = DataTypeIds.UInt32,
                 ValueRank = ValueRanks.Scalar
             };
-            _stateNode = state;
+            lock (ApplicationNodeManager.Lock)
+            {
+                _stateNode = state;
+            }
             controller.AddChild(state);
 
             //Method
             MethodState start = new MethodState(controller)
             {
-                NodeId = new NodeId(3, NamespaceIndex),
-                BrowseName = new QualifiedName("Start", NamespaceIndex),
+                NodeId = new NodeId(3, nodeManager.NamespaceIndex),
+                BrowseName = new QualifiedName("Start", nodeManager.NamespaceIndex),
                 DisplayName = new LocalizedText("Start"),
                 ReferenceTypeId = ReferenceTypeIds.HasComponent,
                 UserExecutable = true,
@@ -63,64 +80,72 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             //Method - Input
             start.InputArguments = new PropertyState<Argument[]>(start)
             {
-                NodeId = new NodeId(4, NamespaceIndex),
+                NodeId = new NodeId(4, nodeManager.NamespaceIndex),
                 BrowseName = BrowseNames.InputArguments,
                 DisplayName = new LocalizedText(BrowseNames.InputArguments),
                 TypeDefinitionId = VariableTypeIds.PropertyType,
                 ReferenceTypeId = ReferenceTypeIds.HasProperty,
                 DataType = DataTypeIds.Argument,
-                ValueRank = ValueRanks.OneDimension
+                ValueRank = ValueRanks.OneDimension,
+                OnReadUserAccessLevel = OnReadUserAccessLevel,
+                OnSimpleWriteValue = OnWriteValue
             };
 
-            Argument[] args = new Argument[2];
-            args[0] = new Argument();
-            args[0].Name = "Initial State";
-            args[0].Description = "The initialize state for the process.";
-            args[0].DataType = DataTypeIds.UInt32;
-            args[0].ValueRank = ValueRanks.Scalar;
-
-            args[1] = new Argument();
-            args[1].Name = "Final State";
-            args[1].Description = "The final state for the process.";
-            args[1].DataType = DataTypeIds.UInt32;
-            args[1].ValueRank = ValueRanks.Scalar;
-
-            start.InputArguments.Value = args;
+            Argument[] inputArguments = new Argument[2];
+            inputArguments[0] = new Argument
+            {
+                Name = "Initial State",
+                Description = "The initialize state for the process.",
+                DataType = DataTypeIds.UInt32,
+                ValueRank = ValueRanks.Scalar,
+            };
+            inputArguments[1] = new Argument
+            {
+                Name = "Final State",
+                Description = "The final state for the process.",
+                DataType = DataTypeIds.UInt32,
+                ValueRank = ValueRanks.Scalar
+            };
+            start.InputArguments.Value = inputArguments;
 
             //Method - Output
-            start.OutputArguments = new PropertyState<Argument[]>(start);
-            start.OutputArguments.NodeId = new NodeId(5, NamespaceIndex);
-            start.OutputArguments.BrowseName = BrowseNames.OutputArguments;
+            start.OutputArguments = new PropertyState<Argument[]>(start)
+            {
+                NodeId = new NodeId(5, nodeManager.NamespaceIndex),
+                BrowseName = BrowseNames.OutputArguments,
+                TypeDefinitionId = VariableTypeIds.PropertyType,
+                ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                DataType = DataTypeIds.Argument,
+                ValueRank = ValueRanks.OneDimension,
+                OnReadUserAccessLevel = OnReadUserAccessLevel,
+                OnSimpleWriteValue = OnWriteValue
+            };
             start.OutputArguments.DisplayName = start.OutputArguments.BrowseName.Name;
-            start.OutputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-            start.OutputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-            start.OutputArguments.DataType = DataTypeIds.Argument;
-            start.OutputArguments.ValueRank = ValueRanks.OneDimension;
 
-            args = new Argument[2];
-            args[0] = new Argument();
-            args[0].Name = "Revised Initial State";
-            args[0].Description = "The revised initialize state for the process.";
-            args[0].DataType = DataTypeIds.UInt32;
-            args[0].ValueRank = ValueRanks.Scalar;
-
-            args[1] = new Argument();
-            args[1].Name = "Revised Final State";
-            args[1].Description = "The revised final state for the process.";
-            args[1].DataType = DataTypeIds.UInt32;
-            args[1].ValueRank = ValueRanks.Scalar;
-
-            start.OutputArguments.Value = args;
-
+            Argument[] outputArguments = new Argument[2];
+            outputArguments[0] = new Argument
+            {
+                Name = "Revised Initial State",
+                Description = "The revised initialize state for the process.",
+                DataType = DataTypeIds.UInt32,
+                ValueRank = ValueRanks.Scalar
+            };
+            outputArguments[1] = new Argument
+            {
+                Name = "Revised Final State",
+                Description = "The revised final state for the process.",
+                DataType = DataTypeIds.UInt32,
+                ValueRank = ValueRanks.Scalar
+            };
+            start.OutputArguments.Value = inputArguments;
+            start.OnCallMethod = OnStart;
             controller.AddChild(start);
 
-            // save in dictionary. 
-            AddPredefinedNode(SystemContext, controller);
-
-            // set up method handlers. 
-            start.OnCallMethod = new GenericMethodCalledEventHandler(OnStart);
+            base.NodeStateCollection = new NodeStateCollection {controller};
         }
+        #endregion
 
+        #region
         /// <summary>
         /// Called when the Start method is called.
         /// </summary>
@@ -129,11 +154,7 @@ namespace Iso.Opc.ApplicationNodeManager.Server
         /// <param name="inputArguments">The input arguments.</param>
         /// <param name="outputArguments">The output arguments.</param>
         /// <returns></returns>
-        public ServiceResult OnStart(
-            ISystemContext context,
-            MethodState method,
-            IList<object> inputArguments,
-            IList<object> outputArguments)
+        private ServiceResult OnStart(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             // all arguments must be provided.
             if (inputArguments.Count < 2)
@@ -171,15 +192,14 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             }
 
             // signal update to state node.
-            lock (Lock)
+            lock (ApplicationNodeManager.Lock)
             {
                 _stateNode.Value = _state;
-                _stateNode.ClearChangeMasks(SystemContext, true);
+                _stateNode.ClearChangeMasks(ApplicationNodeManager.SystemContext, true);
             }
 
             return ServiceResult.Good;
         }
-
         /// <summary>
         /// Called when updating the process.
         /// </summary>
@@ -211,10 +231,10 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 }
 
                 // signal update to state node.
-                lock (Lock)
+                lock (ApplicationNodeManager.Lock)
                 {
                     _stateNode.Value = _state;
-                    _stateNode.ClearChangeMasks(SystemContext, true);
+                    _stateNode.ClearChangeMasks(ApplicationNodeManager.SystemContext, true);
                 }
             }
             catch (Exception e)
@@ -222,5 +242,6 @@ namespace Iso.Opc.ApplicationNodeManager.Server
                 Utils.Trace(e, "Unexpected error updating process.");
             }
         }
+        #endregion
     }
 }

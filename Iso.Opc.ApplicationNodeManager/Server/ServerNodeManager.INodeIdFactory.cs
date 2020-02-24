@@ -10,7 +10,9 @@ namespace Iso.Opc.ApplicationNodeManager.Server
         /// </summary>
         public override NodeId New(ISystemContext context, NodeState node)
         {
-            return node.NodeId;
+            if (!(node is BaseInstanceState instance) || instance.Parent == null)
+                return node.NodeId;
+            return new NodeId(++_nextNodeId, NamespaceIndex);
         }
         #endregion
     }

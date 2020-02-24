@@ -8,8 +8,25 @@ namespace Iso.Opc.ApplicationNodeManager.Plugin
 {
     public class ApplicationNodeManagerPluginService
     {
+        #region Constants
         private const string AssemblyBaseTypeFullName = "Iso.Opc.Interface.AbstractApplicationNodeManagerPlugin";
+        #endregion
+
+        #region Fields
         private readonly List<AbstractApplicationNodeManagerPlugin> _pluginBaseNodeManagers = new List<AbstractApplicationNodeManagerPlugin>();
+        #endregion
+
+        #region Properties
+        public List<AbstractApplicationNodeManagerPlugin> PluginBaseNodeManagers
+        {
+            get
+            {
+                _pluginBaseNodeManagers.Sort((x, y) => string.CompareOrdinal(y.ApplicationName, x.ApplicationName));
+                return _pluginBaseNodeManagers;
+            }
+        }
+        #endregion
+
         /// <summary>
         ///     Plug-in service constructor
         /// </summary>
@@ -33,6 +50,7 @@ namespace Iso.Opc.ApplicationNodeManager.Plugin
             }
         }
 
+        #region Methods
         private void AddPlugin(string pluginPath)
         {
             try
@@ -58,5 +76,6 @@ namespace Iso.Opc.ApplicationNodeManager.Plugin
                 throw new Exception(e.Message);
             }
         }
+        #endregion
     }
 }

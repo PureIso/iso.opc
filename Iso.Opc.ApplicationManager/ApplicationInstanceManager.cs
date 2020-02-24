@@ -795,6 +795,7 @@ namespace Iso.Opc.ApplicationManager
         {
             try
             {
+                Session?.Close();
                 IUserIdentity userIdentity = null;
                 //create end point configuration using application instance transport quotas
                 EndpointConfiguration endpointConfiguration = EndpointConfiguration.Create(ApplicationInstance.ApplicationConfiguration);

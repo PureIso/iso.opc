@@ -2,7 +2,7 @@
 
 namespace Iso.Opc.ApplicationNodeManager.GDS
 {
-    public partial class GlobalDiscoveryServiceNodeManager
+    public sealed partial class GlobalDiscoveryServiceNodeManager
     {
         #region INodeIdFactory Members
         /// <summary>

@@ -9,51 +9,48 @@ using Opc.Ua;
 using Opc.Ua.Gds;
 using Opc.Ua.Gds.Server;
 using Opc.Ua.Server;
+using static System.String;
 
 namespace Iso.Opc.ApplicationNodeManager.GDS
 {
-    public partial class GlobalDiscoveryServiceNodeManager
+    public sealed partial class GlobalDiscoveryServiceNodeManager
     {
-        private void HasApplicationAdminAccess(ISystemContext context)
+        #region Private Methods
+        private static string GetDefaultUserToken()
         {
-            if (context != null)
+            return "USER";
+        }
+        private static void HasApplicationAdminAccess(ISystemContext context)
+        {
+            if (context == null) 
+                return;
+            if (!(context.UserIdentity is RoleBasedIdentity identity) || (identity.Role != GdsRole.ApplicationAdmin))
             {
-                RoleBasedIdentity identity = context.UserIdentity as RoleBasedIdentity;
-
-                if ((identity == null) || (identity.Role != GdsRole.ApplicationAdmin))
-                {
-                    throw new ServiceResultException(StatusCodes.BadUserAccessDenied, "Application Administrator access required.");
-                }
+                throw new ServiceResultException(StatusCodes.BadUserAccessDenied, "Application Administrator access required.");
             }
         }
 
-        private void HasApplicationUserAccess(ISystemContext context)
+        private static void HasApplicationUserAccess(ISystemContext context)
         {
-            if (context != null)
+            if (context == null)
+                return;
+            if (!(context.UserIdentity is RoleBasedIdentity))
             {
-                RoleBasedIdentity identity = context.UserIdentity as RoleBasedIdentity;
-
-                if (identity == null)
-                {
-                    throw new ServiceResultException(StatusCodes.BadUserAccessDenied, "Application User access required.");
-                }
+                throw new ServiceResultException(StatusCodes.BadUserAccessDenied, "Application User access required.");
             }
         }
         private ICertificateGroup GetGroupForCertificate(byte[] certificate)
         {
-            if (certificate != null && certificate.Length > 0)
+            if (certificate == null || certificate.Length <= 0) 
+                return null;
+            X509Certificate2 x509 = new X509Certificate2(certificate);
+            foreach (CertificateGroup certificateGroup in _certificateGroups.Values)
             {
-                var x509 = new X509Certificate2(certificate);
-
-                foreach (var certificateGroup in _certificateGroups.Values)
+                if (Utils.CompareDistinguishedName(certificateGroup.Certificate.Subject, x509.Issuer))
                 {
-                    if (Utils.CompareDistinguishedName(certificateGroup.Certificate.Subject, x509.Issuer))
-                    {
-                        return certificateGroup;
-                    }
+                    return certificateGroup;
                 }
             }
-
             return null;
         }
         private async Task RevokeCertificateAsync(byte[] certificate)
@@ -76,7 +73,7 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             }
         }
 
-        private ServiceResult VerifyApprovedState(CertificateRequestState state)
+        private static ServiceResult VerifyApprovedState(CertificateRequestState state)
         {
             switch (state)
             {
@@ -98,35 +95,22 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             {
                 certificateGroupId = _defaultApplicationGroupId;
             }
-
-            CertificateGroup certificateGroup = null;
-            if (_certificateGroups.TryGetValue(certificateGroupId, out certificateGroup))
-            {
-                return certificateGroup.DefaultTrustList?.NodeId;
-            }
-
-            return null;
+            return _certificateGroups.TryGetValue(certificateGroupId, out CertificateGroup certificateGroup) ? certificateGroup.DefaultTrustList?.NodeId : null;
         }
 
-        private Boolean? GetCertificateStatus(
+        private bool? GetCertificateStatus(
             NodeId certificateGroupId,
             NodeId certificateTypeId)
         {
-            CertificateGroup certificateGroup = null;
-            if (_certificateGroups.TryGetValue(certificateGroupId, out certificateGroup))
-            {
-                if (!NodeId.IsNull(certificateTypeId))
-                {
-                    if (!Utils.IsEqual(certificateGroup.CertificateType, certificateTypeId))
-                    {
-                        return null;
-                    }
-                }
+            if (!_certificateGroups.TryGetValue(certificateGroupId, out CertificateGroup certificateGroup)) 
+                return null;
+            if (NodeId.IsNull(certificateTypeId)) 
                 return certificateGroup.UpdateRequired;
-            }
-
-            return null;
+            if (!Utils.IsEqual(certificateGroup.CertificateType, certificateTypeId)) 
+                return null; 
+            return certificateGroup.UpdateRequired;
         }
+        #endregion
 
 
         #region INodeManager Members
@@ -165,8 +149,8 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                     certificateGroup.DefaultTrustList,
                     certificateGroup.Configuration.TrustedListPath,
                     certificateGroup.Configuration.IssuerListPath,
-                    new TrustList.SecureAccess(HasApplicationUserAccess),
-                    new TrustList.SecureAccess(HasApplicationAdminAccess));
+                    HasApplicationUserAccess,
+                    HasApplicationAdminAccess);
             }
         }
 
@@ -183,8 +167,8 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             lock (Lock)
             {
                 base.CreateAddressSpace(externalReferences);
-                _database.NamespaceIndex = this.NamespaceIndexes[0];
-                _request.NamespaceIndex = this.NamespaceIndexes[0];
+                _database.NamespaceIndex = NamespaceIndexes[0];
+                _request.NamespaceIndex = NamespaceIndexes[0];
                 foreach (CertificateGroupConfiguration certificateGroupConfiguration in _certificateGroupConfigurationCollection)
                 {
                     try
@@ -197,9 +181,9 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                     }
                     catch (Exception e)
                     {
-                        Utils.Trace(e, "Unexpected error initializing certificateGroup: " + certificateGroupConfiguration.Id + "\r\n" + e.StackTrace);
+                        Utils.Trace(e, $"Unexpected error initializing certificateGroup: {certificateGroupConfiguration.Id}\r\n{e.StackTrace}");
                         // make sure gds server doesn't start without cert groups!
-                        throw e;
+                        throw;
                     }
                 }
                 _certTypeMap = new Dictionary<NodeId, string>
@@ -229,25 +213,20 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
         /// </summary>
         protected override NodeState AddBehaviourToPredefinedNode(ISystemContext context, NodeState predefinedNode)
         {
-            BaseObjectState passiveNode = predefinedNode as BaseObjectState;
-
-            if (passiveNode == null)
+            if (!(predefinedNode is BaseObjectState passiveNode))
             {
                 return predefinedNode;
             }
-
             NodeId typeId = passiveNode.TypeDefinitionId;
-
             if (!IsNodeIdInNamespace(typeId) || typeId.IdType != IdType.Numeric)
             {
                 return predefinedNode;
             }
-
             switch ((uint)typeId.Identifier)
             {
                 case global::Opc.Ua.Gds.ObjectTypes.CertificateDirectoryType:
                     {
-                        if (passiveNode is global::Opc.Ua.Gds.CertificateDirectoryState)
+                        if (passiveNode is CertificateDirectoryState)
                         {
                             break;
                         }
@@ -287,10 +266,7 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                         activeNode.CertificateGroups.DefaultUserTokenGroup.TrustList.UserWritable.Value = false;
 
                         // replace the node in the parent.
-                        if (passiveNode.Parent != null)
-                        {
-                            passiveNode.Parent.ReplaceChild(context, activeNode);
-                        }
+                        passiveNode.Parent?.ReplaceChild(context, activeNode);
 
                         return activeNode;
                     }
@@ -385,7 +361,7 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
 
             Utils.Trace(Utils.TraceMasks.Information, $"OnRegisterApplication: {application.ApplicationUri}");
 
-            var record = _database.GetApplication(application.ApplicationId);
+            ApplicationRecordDataType record = _database.GetApplication(application.ApplicationId);
 
             if (record == null)
             {
@@ -404,21 +380,16 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             NodeId applicationId)
         {
             HasApplicationAdminAccess(context);
-
             Utils.Trace(Utils.TraceMasks.Information, $"OnRegisterApplication: {applicationId.ToString()}");
-
-
-            foreach (var certType in _certTypeMap)
+            foreach (KeyValuePair<NodeId, string> certType in _certTypeMap)
             {
                 try
                 {
-                    byte[] certificate;
-                    if (_database.GetApplicationCertificate(applicationId, certType.Value, out certificate))
+                    if (!_database.GetApplicationCertificate(applicationId, certType.Value, out byte[] certificate))
+                        continue;
+                    if (certificate != null)
                     {
-                        if (certificate != null)
-                        {
-                            RevokeCertificateAsync(certificate).Wait();
-                        }
+                        RevokeCertificateAsync(certificate).Wait();
                     }
                 }
                 catch
@@ -428,7 +399,6 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             }
 
             _database.UnregisterApplication(applicationId);
-
             return ServiceResult.Good;
         }
 
@@ -458,90 +428,65 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             return ServiceResult.Good;
         }
 
-        private ServiceResult CheckHttpsDomain(ApplicationRecordDataType application, string commonName)
+        private static ServiceResult CheckHttpsDomain(ApplicationRecordDataType application, string commonName)
         {
             if (application.ApplicationType == ApplicationType.Client)
             {
                 return new ServiceResult(StatusCodes.BadInvalidArgument, "Cannot issue HTTPS certificates to client applications.");
             }
-
             bool found = false;
-
-            if (application.DiscoveryUrls != null)
+            if (application.DiscoveryUrls == null)
+                return new ServiceResult(StatusCodes.BadInvalidArgument,
+                    "Cannot issue HTTPS certificates to server applications without a matching HTTPS discovery URL.");
+            foreach (string discoveryUrl in application.DiscoveryUrls)
             {
-                foreach (var discoveryUrl in application.DiscoveryUrls)
-                {
-                    if (Uri.IsWellFormedUriString(discoveryUrl, UriKind.Absolute))
-                    {
-                        Uri url = new Uri(discoveryUrl);
+                if (!Uri.IsWellFormedUriString(discoveryUrl, UriKind.Absolute)) 
+                    continue;
+                Uri url = new Uri(discoveryUrl);
 
-                        if (url.Scheme == Utils.UriSchemeHttps)
-                        {
-                            if (Utils.AreDomainsEqual(commonName, url.DnsSafeHost))
-                            {
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-                }
+                if (url.Scheme != Utils.UriSchemeHttps) 
+                    continue;
+                if (!Utils.AreDomainsEqual(commonName, url.DnsSafeHost)) 
+                    continue;
+                found = true;
+                break;
             }
-
-            if (!found)
-            {
-                return new ServiceResult(StatusCodes.BadInvalidArgument, "Cannot issue HTTPS certificates to server applications without a matching HTTPS discovery URL.");
-            }
-
-            return ServiceResult.Good;
+            return !found ? new ServiceResult(StatusCodes.BadInvalidArgument, "Cannot issue HTTPS certificates to server applications without a matching HTTPS discovery URL.") : ServiceResult.Good;
         }
 
         private string GetDefaultHttpsDomain(ApplicationRecordDataType application)
         {
-            if (application.DiscoveryUrls != null)
+            if (application.DiscoveryUrls == null)
+                throw new ServiceResultException(StatusCodes.BadInvalidArgument,
+                    "Cannot issue HTTPS certificates to server applications without a HTTPS discovery URL.");
+            foreach (string discoveryUrl in application.DiscoveryUrls)
             {
-                foreach (var discoveryUrl in application.DiscoveryUrls)
+                if (!Uri.IsWellFormedUriString(discoveryUrl, UriKind.Absolute)) 
+                    continue;
+                Uri url = new Uri(discoveryUrl);
+                if (url.Scheme == Utils.UriSchemeHttps)
                 {
-                    if (Uri.IsWellFormedUriString(discoveryUrl, UriKind.Absolute))
-                    {
-                        Uri url = new Uri(discoveryUrl);
-
-                        if (url.Scheme == Utils.UriSchemeHttps)
-                        {
-                            return url.DnsSafeHost;
-                        }
-                    }
+                    return url.DnsSafeHost;
                 }
             }
-
             throw new ServiceResultException(StatusCodes.BadInvalidArgument, "Cannot issue HTTPS certificates to server applications without a HTTPS discovery URL.");
         }
-
-        private string GetDefaultUserToken()
-        {
-            return "USER";
-        }
-
-        private string GetSubjectName(ApplicationRecordDataType application, CertificateGroup certificateGroup, string subjectName)
+        private string GetSubjectName(ApplicationRecordDataType application, ICertificateGroup certificateGroup, string subjectName)
         {
             bool contextFound = false;
-
-            var fields = Utils.ParseDistinguishedName(subjectName);
-
+            List<string> fields = Utils.ParseDistinguishedName(subjectName);
             StringBuilder builder = new StringBuilder();
-
-            foreach (var field in fields)
+            foreach (string field in fields)
             {
                 if (builder.Length > 0)
                 {
                     builder.Append(",");
                 }
-
                 if (field.StartsWith("CN=", StringComparison.Ordinal))
                 {
                     if (certificateGroup.Id == _defaultHttpsGroupId)
                     {
-                        var error = CheckHttpsDomain(application, field.Substring(3));
-
+                        ServiceResult error = CheckHttpsDomain(application, field.Substring(3));
                         if (StatusCode.IsBad(error.StatusCode))
                         {
                             builder.Append("CN=");
@@ -550,49 +495,39 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                         }
                     }
                 }
-
                 contextFound |= (field.StartsWith("DC=", StringComparison.Ordinal) || field.StartsWith("O=", StringComparison.Ordinal));
-
                 builder.Append(field);
             }
 
-            if (!contextFound)
+            if (contextFound) 
+                return builder.ToString();
+            if (!IsNullOrEmpty(_defaultSubjectNameContext))
             {
-                if (!String.IsNullOrEmpty(_defaultSubjectNameContext))
-                {
-                    builder.Append(_defaultSubjectNameContext);
-                }
+                builder.Append(_defaultSubjectNameContext);
             }
-
             return builder.ToString();
         }
 
-        private string[] GetDefaultDomainNames(ApplicationRecordDataType application)
+        private static string[] GetDefaultDomainNames(ApplicationRecordDataType application)
         {
             List<string> names = new List<string>();
-
-            if (application.DiscoveryUrls != null && application.DiscoveryUrls.Count > 0)
+            if (application.DiscoveryUrls == null || application.DiscoveryUrls.Count <= 0) 
+                return names.ToArray();
+            foreach (string discoveryUrl in application.DiscoveryUrls)
             {
-                foreach (var discoveryUrl in application.DiscoveryUrls)
+                if (!Uri.IsWellFormedUriString(discoveryUrl, UriKind.Absolute)) 
+                    continue;
+                Uri url = new Uri(discoveryUrl);
+                foreach (string name in names)
                 {
-                    if (Uri.IsWellFormedUriString(discoveryUrl, UriKind.Absolute))
-                    {
-                        Uri url = new Uri(discoveryUrl);
-
-                        foreach (var name in names)
-                        {
-                            if (Utils.AreDomainsEqual(name, url.DnsSafeHost))
-                            {
-                                url = null;
-                                break;
-                            }
-                        }
-
-                        if (url != null)
-                        {
-                            names.Add(url.DnsSafeHost);
-                        }
-                    }
+                    if (!Utils.AreDomainsEqual(name, url.DnsSafeHost))
+                        continue;
+                    url = null;
+                    break;
+                }
+                if (url != null)
+                {
+                    names.Add(url.DnsSafeHost);
                 }
             }
 
@@ -613,9 +548,7 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             ref NodeId requestId)
         {
             HasApplicationAdminAccess(context);
-
-            var application = _database.GetApplication(applicationId);
-
+            ApplicationRecordDataType application = _database.GetApplication(applicationId);
             if (application == null)
             {
                 return new ServiceResult(StatusCodes.BadNotFound, "The ApplicationId does not refer to a valid application.");
@@ -625,13 +558,10 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             {
                 certificateGroupId = ExpandedNodeId.ToNodeId(global::Opc.Ua.Gds.ObjectIds.Directory_CertificateGroups_DefaultApplicationGroup, Server.NamespaceUris);
             }
-
-            CertificateGroup certificateGroup = null;
-            if (!_certificateGroups.TryGetValue(certificateGroupId, out certificateGroup))
+            if (!_certificateGroups.TryGetValue(certificateGroupId, out CertificateGroup certificateGroup))
             {
                 return new ServiceResult(StatusCodes.BadInvalidArgument, "The certificateGroup is not supported.");
             }
-
             if (!NodeId.IsNull(certificateTypeId))
             {
                 if (!Server.TypeTree.IsTypeOf(certificateGroup.CertificateType, certificateTypeId))
@@ -643,23 +573,18 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             {
                 certificateTypeId = certificateGroup.CertificateType;
             }
-
-            string certificateTypeNameId;
-            if (!_certTypeMap.TryGetValue(certificateTypeId, out certificateTypeNameId))
+            if (!_certTypeMap.TryGetValue(certificateTypeId, out string certificateTypeNameId))
             {
                 return new ServiceResult(StatusCodes.BadInvalidArgument, "The CertificateType is invalid.");
             }
-
-            if (!String.IsNullOrEmpty(subjectName))
+            if (!IsNullOrEmpty(subjectName))
             {
                 subjectName = GetSubjectName(application, certificateGroup, subjectName);
             }
             else
             {
                 StringBuilder buffer = new StringBuilder();
-
                 buffer.Append("CN=");
-
                 if ((NodeId.IsNull(certificateGroup.Id) || (certificateGroup.Id == _defaultApplicationGroupId)) && (application.ApplicationNames.Count > 0))
                 {
                     buffer.Append(application.ApplicationNames[0]);
@@ -672,18 +597,16 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                 {
                     buffer.Append(GetDefaultUserToken());
                 }
-
-                if (!String.IsNullOrEmpty(_defaultSubjectNameContext))
+                if (!IsNullOrEmpty(_defaultSubjectNameContext))
                 {
                     buffer.Append(_defaultSubjectNameContext);
                 }
 
                 subjectName = buffer.ToString();
             }
-
             if (domainNames != null && domainNames.Length > 0)
             {
-                foreach (var domainName in domainNames)
+                foreach (string domainName in domainNames)
                 {
                     if (Uri.CheckHostName(domainName) == UriHostNameType.Unknown)
                     {
@@ -695,7 +618,6 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             {
                 domainNames = GetDefaultDomainNames(application);
             }
-
             requestId = _request.StartNewKeyPairRequest(
                 applicationId,
                 certificateGroup.Configuration.Id,
@@ -706,18 +628,15 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                 privateKeyPassword,
                 context.UserIdentity?.DisplayName);
 
-            if (_autoApprove)
+            if (!_autoApprove) return ServiceResult.Good;
+            try
             {
-                try
-                {
-                    _request.ApproveRequest(requestId, false);
-                }
-                catch
-                {
-                    // ignore error as user may not have authorization to approve requests
-                }
+                _request.ApproveRequest(requestId, false);
             }
-
+            catch
+            {
+                Console.WriteLine("User may not have authorization to approve request");
+            }
             return ServiceResult.Good;
         }
 
@@ -732,9 +651,7 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             ref NodeId requestId)
         {
             HasApplicationAdminAccess(context);
-
-            var application = _database.GetApplication(applicationId);
-
+            ApplicationRecordDataType application = _database.GetApplication(applicationId);
             if (application == null)
             {
                 return new ServiceResult(StatusCodes.BadNotFound, "The ApplicationId does not refer to a valid application.");
@@ -744,13 +661,10 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             {
                 certificateGroupId = ExpandedNodeId.ToNodeId(global::Opc.Ua.Gds.ObjectIds.Directory_CertificateGroups_DefaultApplicationGroup,Server.NamespaceUris);
             }
-
-            CertificateGroup certificateGroup = null;
-            if (!_certificateGroups.TryGetValue(certificateGroupId, out certificateGroup))
+            if (!_certificateGroups.TryGetValue(certificateGroupId, out CertificateGroup certificateGroup))
             {
                 return new ServiceResult(StatusCodes.BadInvalidArgument, "The CertificateGroupId does not refer to a supported certificateGroup.");
             }
-
             if (!NodeId.IsNull(certificateTypeId))
             {
                 if (!Server.TypeTree.IsTypeOf(certificateGroup.CertificateType, certificateTypeId))
@@ -762,14 +676,10 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             {
                 certificateTypeId = certificateGroup.CertificateType;
             }
-
-            string certificateTypeNameId;
-            if (!_certTypeMap.TryGetValue(certificateTypeId, out certificateTypeNameId))
+            if (!_certTypeMap.TryGetValue(certificateTypeId, out string certificateTypeNameId))
             {
                 return new ServiceResult(StatusCodes.BadInvalidArgument, "The CertificateType is invalid.");
             }
-
-
             // verify the CSR integrity for the application
             certificateGroup.VerifySigningRequestAsync(
                 application,
@@ -784,18 +694,15 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                 certificateRequest,
                 context.UserIdentity?.DisplayName);
 
-            if (_autoApprove)
+            if (!_autoApprove) return ServiceResult.Good;
+            try
             {
-                try
-                {
-                    _request.ApproveRequest(requestId, false);
-                }
-                catch
-                {
-                    // ignore error as user may not have authorization to approve requests
-                }
+                _request.ApproveRequest(requestId, false);
             }
-
+            catch
+            {
+                Console.WriteLine("User may not have authorization to approve request");
+            }
             return ServiceResult.Good;
         }
 
@@ -814,50 +721,42 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             privateKey = null;
             HasApplicationAdminAccess(context);
 
-            var application = _database.GetApplication(applicationId);
+            ApplicationRecordDataType application = _database.GetApplication(applicationId);
             if (application == null)
             {
                 return new ServiceResult(StatusCodes.BadNotFound, "The ApplicationId does not refer to a valid application.");
             }
-
-            string certificateGroupId;
-            string certificateTypeId;
-
-            var state = _request.FinishRequest(
+            CertificateRequestState state = _request.FinishRequest(
                 applicationId,
                 requestId,
-                out certificateGroupId,
-                out certificateTypeId,
+                out string certificateGroupId,
+                out string certificateTypeId,
                 out signedCertificate,
                 out privateKey);
 
-            var approvalState = VerifyApprovedState(state);
+            ServiceResult approvalState = VerifyApprovedState(state);
             if (approvalState != null)
             {
                 return approvalState;
             }
-
             CertificateGroup certificateGroup = null;
-            if (!String.IsNullOrWhiteSpace(certificateGroupId))
+            if (!IsNullOrWhiteSpace(certificateGroupId))
             {
                 foreach (var group in _certificateGroups)
                 {
-                    if (String.Compare(group.Value.Configuration.Id, certificateGroupId, StringComparison.OrdinalIgnoreCase) == 0)
+                    if (Compare(group.Value.Configuration.Id, certificateGroupId, StringComparison.OrdinalIgnoreCase) == 0)
                     {
                         certificateGroup = group.Value;
                         break;
                     }
                 }
             }
-
             if (certificateGroup == null)
             {
                 return new ServiceResult(StatusCodes.BadInvalidArgument, "The CertificateGroupId does not refer to a supported certificate group.");
             }
-
-            NodeId certificateTypeNodeId;
-            certificateTypeNodeId = _certTypeMap.Where(
-                pair => pair.Value.Equals(certificateTypeId, StringComparison.OrdinalIgnoreCase))
+            NodeId certificateTypeNodeId = _certTypeMap.Where(
+                    pair => pair.Value.Equals(certificateTypeId, StringComparison.OrdinalIgnoreCase))
                 .Select(pair => pair.Key).SingleOrDefault();
 
             if (!NodeId.IsNull(certificateTypeNodeId))
@@ -867,27 +766,20 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                     return new ServiceResult(StatusCodes.BadInvalidArgument, "The CertificateTypeId is not supported by the certificateGroup.");
                 }
             }
-
             // distinguish cert creation at approval/complete time
             X509Certificate2 certificate = null;
             if (signedCertificate == null)
             {
-                byte[] certificateRequest;
-                string subjectName;
-                string[] domainNames;
-                string privateKeyFormat;
-                string privateKeyPassword;
-
                 state = _request.ReadRequest(
                     applicationId,
                     requestId,
                     out certificateGroupId,
                     out certificateTypeId,
-                    out certificateRequest,
-                    out subjectName,
-                    out domainNames,
-                    out privateKeyFormat,
-                    out privateKeyPassword
+                    out byte[] certificateRequest,
+                    out string subjectName,
+                    out string[] domainNames,
+                    out string privateKeyFormat,
+                    out string privateKeyPassword
                     );
 
                 approvalState = VerifyApprovedState(state);
@@ -912,7 +804,7 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                         StringBuilder error = new StringBuilder();
 
                         error.Append("Error Generating Certificate=" + e.Message);
-                        error.Append("\r\nApplicationId=" + applicationId.ToString());
+                        error.Append("\r\nApplicationId=" + applicationId);
                         error.Append("\r\nApplicationUri=" + application.ApplicationUri);
                         error.Append("\r\nApplicationName=" + application.ApplicationNames[0].Text);
 
@@ -921,7 +813,7 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                 }
                 else
                 {
-                    X509Certificate2KeyPair newKeyPair = null;
+                    X509Certificate2KeyPair newKeyPair;
                     try
                     {
                         newKeyPair = certificateGroup.NewKeyPairRequestAsync(
@@ -936,12 +828,11 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                         StringBuilder error = new StringBuilder();
 
                         error.Append("Error Generating New Key Pair Certificate=" + e.Message);
-                        error.Append("\r\nApplicationId=" + applicationId.ToString());
+                        error.Append("\r\nApplicationId=" + applicationId);
                         error.Append("\r\nApplicationUri=" + application.ApplicationUri);
 
                         return new ServiceResult(StatusCodes.BadConfigurationError, error.ToString());
                     }
-
                     certificate = newKeyPair.Certificate;
                     privateKey = newKeyPair.PrivateKey;
 
@@ -977,22 +868,18 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             ref NodeId[] certificateGroupIds)
         {
             HasApplicationUserAccess(context);
-
-            var application = _database.GetApplication(applicationId);
-
+            ApplicationRecordDataType application = _database.GetApplication(applicationId);
             if (application == null)
             {
                 return new ServiceResult(StatusCodes.BadNotFound, "The ApplicationId does not refer to a valid application.");
             }
-
-            var certificateGroupIdList = new List<NodeId>();
-            foreach (var certificateGroup in _certificateGroups)
+            List<NodeId> certificateGroupIdList = new List<NodeId>();
+            foreach (KeyValuePair<NodeId, CertificateGroup> certificateGroup in _certificateGroups)
             {
                 NodeId key = certificateGroup.Key;
                 certificateGroupIdList.Add(key);
             }
             certificateGroupIds = certificateGroupIdList.ToArray();
-
             return ServiceResult.Good;
         }
 
@@ -1005,27 +892,17 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             ref NodeId trustListId)
         {
             HasApplicationUserAccess(context);
-
-            var application = _database.GetApplication(applicationId);
-
+            ApplicationRecordDataType application = _database.GetApplication(applicationId);
             if (application == null)
             {
                 return new ServiceResult(StatusCodes.BadNotFound, "The ApplicationId does not refer to a valid application.");
             }
-
             if (NodeId.IsNull(certificateGroupId))
             {
                 certificateGroupId = _defaultApplicationGroupId;
             }
-
             trustListId = GetTrustListId(certificateGroupId);
-
-            if (trustListId == null)
-            {
-                return new ServiceResult(StatusCodes.BadNotFound, "The CertificateGroupId does not refer to a group that is valid for the application.");
-            }
-
-            return ServiceResult.Good;
+            return trustListId == null ? new ServiceResult(StatusCodes.BadNotFound, "The CertificateGroupId does not refer to a group that is valid for the application.") : ServiceResult.Good;
         }
 
         public ServiceResult OnGetCertificateStatus(
@@ -1035,12 +912,10 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             NodeId applicationId,
             NodeId certificateGroupId,
             NodeId certificateTypeId,
-            ref Boolean updateRequired)
+            ref bool updateRequired)
         {
             HasApplicationUserAccess(context);
-
-            var application = _database.GetApplication(applicationId);
-
+            ApplicationRecordDataType application = _database.GetApplication(applicationId);
             if (application == null)
             {
                 return new ServiceResult(StatusCodes.BadNotFound, "The ApplicationId does not refer to a valid application.");
@@ -1050,15 +925,12 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             {
                 certificateGroupId = _defaultApplicationGroupId;
             }
-
-            Boolean? updateRequiredResult = GetCertificateStatus(certificateGroupId, certificateTypeId);
+            bool? updateRequiredResult = GetCertificateStatus(certificateGroupId, certificateTypeId);
             if (updateRequiredResult == null)
             {
                 return new ServiceResult(StatusCodes.BadNotFound, "The CertificateGroupId and CertificateTypeId do not refer to a group and type that is valid for the application.");
             }
-
-            updateRequired = (Boolean)updateRequiredResult;
-
+            updateRequired = (bool)updateRequiredResult;
             return ServiceResult.Good;
         }
 
@@ -1069,7 +941,7 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
         {
             lock (Lock)
             {
-                // TBD
+                base.DeleteAddressSpace();
             }
         }
 
@@ -1085,9 +957,7 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                 {
                     return null;
                 }
-
-                NodeState node = null;
-
+                NodeState node;
                 // check cache (the cache is used because the same node id can appear many times in a single request).
                 if (cache != null)
                 {
@@ -1096,22 +966,13 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                         return new NodeHandle(nodeId, node);
                     }
                 }
-
                 // look up predefined node.
-                if (PredefinedNodes.TryGetValue(nodeId, out node))
-                {
-                    NodeHandle handle = new NodeHandle(nodeId, node);
-
-                    if (cache != null)
-                    {
-                        cache.Add(nodeId, node);
-                    }
-
-                    return handle;
-                }
-
+                if (!PredefinedNodes.TryGetValue(nodeId, out node)) 
+                    return null;
+                NodeHandle handle = new NodeHandle(nodeId, node);
+                cache?.Add(nodeId, node);
+                return handle;
                 // node not found.
-                return null;
             }
         }
 

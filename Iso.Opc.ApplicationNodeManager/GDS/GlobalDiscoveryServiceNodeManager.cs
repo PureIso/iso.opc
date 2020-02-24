@@ -7,17 +7,14 @@ using Opc.Ua;
 using Opc.Ua.Gds.Server;
 using Opc.Ua.Gds.Server.Database;
 using Opc.Ua.Server;
-using Namespaces = Iso.Opc.ApplicationNodeManager.Models.Namespaces;
 
 namespace Iso.Opc.ApplicationNodeManager.GDS
 {
-    public partial class GlobalDiscoveryServiceNodeManager : CustomNodeManager2
+    public sealed partial class GlobalDiscoveryServiceNodeManager : CustomNodeManager2
     {
-        private ApplicationConfiguration _applicationConfiguration;
-        private List<BaseDataVariableState> _baseDataVariableStates;
+        #region Fields
         private readonly string _authoritiesStorePath;
         private readonly string _applicationCertificatesStorePath;
-        private readonly string _baseCertificateGroupStorePath;
         private readonly string _defaultSubjectNameContext;
         private readonly CertificateGroupConfigurationCollection _certificateGroupConfigurationCollection;
         private StringCollection _knownHostNames;
@@ -31,32 +28,22 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
         private readonly NodeId _defaultApplicationGroupId;
         private readonly NodeId _defaultHttpsGroupId;
         private readonly NodeId _defaultUserTokenGroupId;
+        #endregion
 
         #region Constructors
-        public GlobalDiscoveryServiceNodeManager(IServerInternal server, ApplicationConfiguration applicationConfiguration)
-           : base(server, applicationConfiguration, Namespaces.BasicApplications)
-        {
-            SystemContext.NodeIdFactory = this;
-            _applicationConfiguration = applicationConfiguration;
-            _baseDataVariableStates = new List<BaseDataVariableState>();
-        }
         /// <summary>
         /// Initializes the node manager.
         /// </summary>
         public GlobalDiscoveryServiceNodeManager(IServerInternal server, ApplicationConfiguration applicationConfiguration,
             IApplicationsDatabase database, ICertificateRequest request, ICertificateGroup certificateGroup, bool autoApprove = false)
-            : base(server, applicationConfiguration, Namespaces.GlobalDiscoveryServerApplications)
+            : base(server, applicationConfiguration)
         {
-            List<string> namespaceUris = new List<string>
-            {
-                Namespaces.GlobalDiscoveryServerApplications,
-                global::Opc.Ua.Gds.Namespaces.OpcUaGds                  //Allows us to use the predefined access data nodes
-            };
-            NamespaceUris = namespaceUris;
+            NamespaceUris = new List<string> { $"http://{Dns.GetHostName()}/GDS/Default", global::Opc.Ua.Gds.Namespaces.OpcUaGds };
+            _nextNodeId = 0;
             SystemContext.NodeIdFactory = this;
-
             _defaultSubjectNameContext = "CN=" + applicationConfiguration.ApplicationName + ", DC=" + Dns.GetHostName();
             _certificateGroupConfigurationCollection = new CertificateGroupConfigurationCollection();
+
             //Authorities Certificates Store Path
             string authoritiesStorePathDirectory = AppDomain.CurrentDomain.BaseDirectory + "pki\\authoritie";
             if (!Directory.Exists(authoritiesStorePathDirectory))
@@ -71,12 +58,11 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             string baseCertificateGroupStorePathDirectory = AppDomain.CurrentDomain.BaseDirectory + "pki\\CA\\default";
             if (!Directory.Exists(baseCertificateGroupStorePathDirectory))
                 Directory.CreateDirectory(baseCertificateGroupStorePathDirectory);
-            _baseCertificateGroupStorePath = baseCertificateGroupStorePathDirectory;
             _certificateGroupConfigurationCollection.Add(new CertificateGroupConfiguration {
                 Id = "Default",
                 CertificateType = "RsaSha256ApplicationCertificateType",
                 SubjectName = _defaultSubjectNameContext,
-                BaseStorePath = _baseCertificateGroupStorePath,
+                BaseStorePath = baseCertificateGroupStorePathDirectory,
                 DefaultCertificateLifetime = 12,
                 DefaultCertificateKeySize = 2048,
                 DefaultCertificateHashSize = 256,
@@ -85,8 +71,6 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
                 CACertificateHashSize = 256
             });
             _knownHostNames = new StringCollection();
-            _applicationConfiguration = applicationConfiguration;
-            _baseDataVariableStates = new List<BaseDataVariableState>();
 
             _defaultApplicationGroupId = ExpandedNodeId.ToNodeId(global::Opc.Ua.Gds.ObjectIds.Directory_CertificateGroups_DefaultApplicationGroup, Server.NamespaceUris);
             _defaultHttpsGroupId = ExpandedNodeId.ToNodeId(global::Opc.Ua.Gds.ObjectIds.Directory_CertificateGroups_DefaultHttpsGroup, Server.NamespaceUris);

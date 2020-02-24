@@ -166,19 +166,26 @@ namespace Server
         /// </summary>
         private void SessionManager_ImpersonateUser(Session session, ImpersonateEventArgs args)
         {
-            switch (args.NewIdentity)
+            try
             {
-                //New connection entry point
-                // check for a user name token.
-                case UserNameIdentityToken userNameToken:
-                    args.Identity = VerifyPassword(userNameToken);
-                    return;
-                // check for x509 user token.
-                case X509IdentityToken x509Token:
-                    VerifyUserTokenCertificate(x509Token.Certificate);
-                    args.Identity = new UserIdentity(x509Token);
-                    Utils.Trace($"X509 Token Accepted: {args.Identity.DisplayName}");
-                    return;
+                switch (args.NewIdentity)
+                {
+                    //New connection entry point
+                    // check for a user name token.
+                    case UserNameIdentityToken userNameToken:
+                        args.Identity = VerifyPassword(userNameToken);
+                        return;
+                    // check for x509 user token.
+                    case X509IdentityToken x509Token:
+                        VerifyUserTokenCertificate(x509Token.Certificate);
+                        args.Identity = new UserIdentity(x509Token);
+                        Utils.Trace($"X509 Token Accepted: {args.Identity.DisplayName}");
+                        return;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Session Manager Impersonate Exception:\r\n{e.StackTrace}");
             }
         }
         /// <summary>
@@ -186,45 +193,54 @@ namespace Server
         /// </summary>
         private IUserIdentity VerifyPassword(UserNameIdentityToken userNameToken)
         {
-            string userName = userNameToken.UserName;
-            string password = userNameToken.DecryptedPassword;
-            if (string.IsNullOrEmpty(userName))
+            try
             {
-                // an empty username is not accepted.
-                throw ServiceResultException.Create(StatusCodes.BadIdentityTokenInvalid,
-                    "Security token is not a valid username token. An empty username is not accepted.");
-            }
-            if (string.IsNullOrEmpty(password))
-            {
-                // an empty password is not accepted.
-                throw ServiceResultException.Create(StatusCodes.BadIdentityTokenRejected,
-                    "Security token is not a valid username token. An empty password is not accepted.");
-            }
-            switch (userName)
-            {
-                // User with permission to configure server
-                case "sysadmin" when password == "demo":
-                    return new SystemConfigurationIdentity(new UserIdentity(userNameToken));
-                // standard users for CTT verification
-                case "user1" when password == "password":
-                case "user2" when password == "password1":
-                    return new UserIdentity(userNameToken);
-                default:
+                string userName = userNameToken.UserName;
+                string password = userNameToken.DecryptedPassword;
+
+                if (string.IsNullOrEmpty(userName))
                 {
-                    // construct translation object with default text.
-                    TranslationInfo info = new TranslationInfo(
-                        "InvalidPassword",
-                        "en-US",
-                        "Invalid username or password.",
-                        userName);
-                    // create an exception with a vendor defined sub-code.
-                    throw new ServiceResultException(new ServiceResult(
-                        StatusCodes.BadUserAccessDenied,
-                        "InvalidPassword",
-                        LoadServerProperties().ProductUri,
-                        new LocalizedText(info)));
+                    // an empty username is not accepted.
+                    throw ServiceResultException.Create(StatusCodes.BadIdentityTokenInvalid,
+                        "Security token is not a valid username token. An empty username is not accepted.");
+                }
+                if (string.IsNullOrEmpty(password))
+                {
+                    // an empty password is not accepted.
+                    throw ServiceResultException.Create(StatusCodes.BadIdentityTokenRejected,
+                        "Security token is not a valid username token. An empty password is not accepted.");
+                }
+                switch (userName)
+                {
+                    // User with permission to configure server
+                    case "sysadmin" when password == "demo":
+                        return new SystemConfigurationIdentity(new UserIdentity(userNameToken));
+                    // standard users for CTT verification
+                    case "user1" when password == "password":
+                    case "user2" when password == "password1":
+                        return new UserIdentity(userNameToken);
+                    default:
+                        {
+                            // construct translation object with default text.
+                            TranslationInfo info = new TranslationInfo(
+                                "InvalidPassword",
+                                "en-US",
+                                "Invalid username or password.",
+                                userName);
+                            // create an exception with a vendor defined sub-code.
+                            throw new ServiceResultException(new ServiceResult(
+                                StatusCodes.BadUserAccessDenied,
+                                "InvalidPassword",
+                                LoadServerProperties().ProductUri,
+                                new LocalizedText(info)));
+                        }
                 }
             }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Session Manager Impersonate Exception:\r\n{e.StackTrace}");
+            }
+            return null;
         }
         /// <summary>
         /// Verifies that a certificate user token is trusted.
@@ -268,7 +284,5 @@ namespace Server
             }
         }
         #endregion
-
-        
     }
 }

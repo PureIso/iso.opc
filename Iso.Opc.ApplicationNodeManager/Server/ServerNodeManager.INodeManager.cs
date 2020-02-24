@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
+using Iso.Opc.ApplicationNodeManager.Plugin;
+using Iso.Opc.Interface;
 using Opc.Ua;
-using Opc.Ua.Export;
 using Opc.Ua.Server;
-using LocalizedText = Opc.Ua.LocalizedText;
 
 namespace Iso.Opc.ApplicationNodeManager.Server
 {
@@ -23,225 +22,19 @@ namespace Iso.Opc.ApplicationNodeManager.Server
         {
             lock (Lock)
             {
-                CreateProcessNode(externalReferences);
-                foreach (string file in Directory.EnumerateFiles(PredefinedXMLNodeDirectory, "*.xml"))
+                //CreateProcessNode(externalReferences);
+                _applicationNodeManagerPluginService = new ApplicationNodeManagerPluginService(_pluginDirectory);
+                foreach (AbstractApplicationNodeManagerPlugin abstractApplicationNodeManagerPlugin in _applicationNodeManagerPluginService.PluginBaseNodeManagers)
                 {
-                   ImportXMLModels(externalReferences, file);
+                    abstractApplicationNodeManagerPlugin.Initialise(this, externalReferences);
+                    if (abstractApplicationNodeManagerPlugin.NodeStateCollection == null) 
+                        continue;
+                    foreach (NodeState nodeState in abstractApplicationNodeManagerPlugin.NodeStateCollection)
+                    {
+                        AddPredefinedNode(SystemContext, nodeState);
+                    }
                 }
             }
-        }
-
-        private void ImportXMLModels(IDictionary<NodeId, IList<IReference>> externalReferences, string resourcePath)
-        {
-            try
-            {
-                List<string> namespaceUriList = new List<string>();
-                NodeStateCollection predefinedNodeStateCollection = new NodeStateCollection();
-                Stream stream = new FileStream(resourcePath, FileMode.Open);
-                UANodeSet uaNodeSet = UANodeSet.Read(stream);
-                namespaceUriList.AddRange(NamespaceUris);
-                // Update namespace table
-                if (uaNodeSet.ServerUris != null)
-                {
-                    foreach (string namespaceUri in uaNodeSet.NamespaceUris)
-                    {
-                        namespaceUriList.Add(namespaceUri);
-                        SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
-                    }
-                }
-                NamespaceUris = namespaceUriList;
-                // Update server table
-                if (uaNodeSet.ServerUris != null)
-                {
-                    foreach (string serverUri in uaNodeSet.ServerUris)
-                    {
-                        SystemContext.ServerUris.GetIndexOrAppend(serverUri);
-                    }
-                }
-                uaNodeSet.Import(SystemContext, predefinedNodeStateCollection);
-                NodeStateCollection parsedNodeState = new NodeStateCollection();
-                foreach (NodeState nodeState in predefinedNodeStateCollection)
-                {
-                    NodeState bindNodeState = BindNodeStates(externalReferences, nodeState, ref parsedNodeState);
-                    parsedNodeState.Add(bindNodeState);
-                }
-                foreach (NodeState nodeState in parsedNodeState)
-                {
-                    AddPredefinedNode(SystemContext, nodeState);
-                }
-                AddReverseReferences(externalReferences);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Import XML exception: {e.StackTrace}");
-            }
-        }
-
-        private BaseObjectState _previousBaseNode;
-        private MethodState _previousMethod;
-
-        private ServiceResult OnGeneratedMethod(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            Console.WriteLine($"Method Called - Displayed Name: {method.DisplayName}");
-            return ServiceResult.Good;
-        }
-
-        private ServiceResult OnGeneratedMethod2(ISystemContext context, MethodState method, NodeId objectId, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            Console.WriteLine($"Method Called - Displayed Name: {method.DisplayName}");
-            return ServiceResult.Good;
-        }
-
-
-        private NodeState BindNodeStates(IDictionary<NodeId, IList<IReference>> externalReferences, NodeState nodeState, ref NodeStateCollection bindedNodeStates)
-        {
-            switch (nodeState.NodeClass)
-            {
-                case NodeClass.Object:
-                    if (!(nodeState is BaseObjectState baseObjectState))
-                        return nodeState;
-                    _previousBaseNode = baseObjectState;
-                    //Bind previous method now since it will be cleared
-                    if (_previousMethod != null)
-                    {
-                        int index = bindedNodeStates.FindIndex(x => x.NodeId == _previousMethod.NodeId);
-                        if (index == -1)
-                            bindedNodeStates.Add(_previousMethod);
-                        else
-                            bindedNodeStates[index] = _previousMethod;
-                    }
-
-                    // ensure the process object can be found via the server object. 
-                    if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
-                    {
-                        externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
-                    }
-                    references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, _previousBaseNode.NodeId));
-                    _previousMethod = null;
-                    break;
-                case NodeClass.Method:
-                    if (!(nodeState is MethodState methodState))
-                        return nodeState;
-                    methodState.OnCallMethod = OnGeneratedMethod;
-                    methodState.OnCallMethod2 = OnGeneratedMethod2;
-                    _previousBaseNode?.AddChild(methodState);
-                    if (_previousMethod != null)
-                    {
-                        int index = bindedNodeStates.FindIndex(x => x.NodeId == _previousMethod.NodeId);
-                        if (index == -1)
-                            bindedNodeStates.Add(_previousMethod);
-                        else
-                            bindedNodeStates[index] = _previousMethod;
-                    }
-                    _previousMethod = methodState;
-                    return methodState;
-                case NodeClass.Variable:
-                    if (_previousMethod != null)
-                    {
-                        if (!(nodeState is PropertyState propertyState))
-                            return nodeState;
-                        if (propertyState.DisplayName == BrowseNames.InputArguments)
-                        {
-                            _previousMethod.InputArguments = new PropertyState<Argument[]>(_previousMethod)
-                            {
-                                NodeId = propertyState.NodeId,
-                                BrowseName = propertyState.BrowseName,
-                                DisplayName = propertyState.DisplayName,
-                                TypeDefinitionId = propertyState.TypeDefinitionId,
-                                ReferenceTypeId = propertyState.ReferenceTypeId,
-                                DataType = propertyState.DataType,
-                                ValueRank = propertyState.ValueRank,
-                                Value = ExtensionObject.ToArray(propertyState.Value, typeof(Argument)) as Argument[]
-                            };
-                        }
-                        else if (propertyState.DisplayName == BrowseNames.OutputArguments)
-                        {
-                            _previousMethod.OutputArguments = new PropertyState<Argument[]>(_previousMethod)
-                            {
-                                NodeId = propertyState.NodeId,
-                                BrowseName = propertyState.BrowseName,
-                                DisplayName = propertyState.DisplayName,
-                                TypeDefinitionId = propertyState.TypeDefinitionId,
-                                ReferenceTypeId = propertyState.ReferenceTypeId,
-                                DataType = propertyState.DataType,
-                                ValueRank = propertyState.ValueRank,
-                                Value = ExtensionObject.ToArray(propertyState.Value, typeof(Argument)) as Argument[]
-                            };
-                        }
-                    }
-                    break;
-                default:
-                    if (_previousBaseNode != null)
-                    {
-                        int index = bindedNodeStates.FindIndex(x => x.NodeId == _previousBaseNode.NodeId);
-                        if (index == -1)
-                            bindedNodeStates.Add(_previousBaseNode);
-                        else
-                            bindedNodeStates[index] = _previousBaseNode;
-                    }
-                    if (_previousMethod != null)
-                    {
-                        int index = bindedNodeStates.FindIndex(x => x.NodeId == _previousMethod.NodeId);
-                        if (index == -1)
-                            bindedNodeStates.Add(_previousMethod);
-                        else
-                            bindedNodeStates[index] = _previousMethod;
-                    }
-                    _previousBaseNode = null;
-                    _previousMethod = null;
-                    break;
-            }
-            return nodeState;
-        }
-        public ServiceResult OnWriteValue(ISystemContext context, NodeState node, ref object value)
-        {
-            if (context.UserIdentity == null || context.UserIdentity.TokenType == UserTokenType.Anonymous)
-            {
-                TranslationInfo info = new TranslationInfo(
-                    "BadUserAccessDenied",
-                    "en-US",
-                    "User cannot change value.");
-                return new ServiceResult(StatusCodes.BadUserAccessDenied, new LocalizedText(info));
-            }
-            // attempt to update file system.
-            try
-            {
-                string filePath = value as string;
-                if (node is PropertyState<string> variable && !string.IsNullOrEmpty(variable.Value))
-                {
-                    FileInfo file = new FileInfo(variable.Value);
-                    if (file.Exists)
-                    {
-                        file.Delete();
-                    }
-                }
-                if (!string.IsNullOrEmpty(filePath))
-                {
-                    FileInfo file = new FileInfo(filePath);
-                    using (StreamWriter writer = file.CreateText())
-                    {
-                        writer.WriteLine(System.Security.Principal.WindowsIdentity.GetCurrent().Name);
-                    }
-                }
-                value = filePath;
-            }
-            catch (Exception e)
-            {
-                return ServiceResult.Create(e, StatusCodes.BadUserAccessDenied, "Could not update file system.");
-            }
-            return ServiceResult.Good;
-        }
-        public ServiceResult OnReadUserAccessLevel(ISystemContext context, NodeState node, ref byte value)
-        {
-            if (context.UserIdentity == null || context.UserIdentity.TokenType == UserTokenType.Anonymous)
-            {
-                value = AccessLevels.CurrentRead;
-            }
-            else
-            {
-                value = AccessLevels.CurrentReadOrWrite;
-            }
-            return ServiceResult.Good;
         }
         #endregion
 
@@ -253,7 +46,11 @@ namespace Iso.Opc.ApplicationNodeManager.Server
         {
             lock (Lock)
             {
-                // TBD
+                foreach (AbstractApplicationNodeManagerPlugin abstractApplicationNodeManagerPlugin in _applicationNodeManagerPluginService.PluginBaseNodeManagers)
+                {
+                    abstractApplicationNodeManagerPlugin.DeleteAddressSpace();
+                }
+                base.DeleteAddressSpace();
             }
         }
         /// <summary>
@@ -293,7 +90,6 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             }
             // check if previously validated.
             return handle.Validated ? handle.Node : null;
-            // TBD
         }
         #endregion
     }

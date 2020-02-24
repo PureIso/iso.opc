@@ -20,6 +20,7 @@ namespace Client
         private ApplicationInstanceManager _applicationInstanceManager;
         private readonly StringCollection _globalDiscoveryServerUrls;
         private readonly StringCollection _globalDiscoveryServerWellKnownUrls;
+        private string _selectedServerDiscoveryUrl;
         #endregion
 
         #region Constructor
@@ -31,37 +32,87 @@ namespace Client
         }
         #endregion
 
-        #region Handlers
-        private void CustomConnectionButtonClick(object sender, EventArgs e)
+        #region Private Methods
+        private void Connect(bool connectToServer = false)
         {
-            connectionStatusPanel.BackColor = Color.Red;
-            _applicationInstanceManager = new ApplicationInstanceManager(ApplicationName, ApplicationUri, 
-                null, null, null, null, _globalDiscoveryServerUrls, _globalDiscoveryServerWellKnownUrls, ApplicationType);
-            string gdsUserName = globalDiscoveryServerUseSecurityCheckBox.Checked ? globalDiscoveryServerUserNameTextBox.Text : null;
-            string gdsUserPassword = globalDiscoveryServerUseSecurityCheckBox.Checked ? globalDiscoveryServerPasswordTextBox.Text : null; 
-            bool connectedToGDS = _applicationInstanceManager.ConnectToGlobalDiscoveryServer(globalDiscoveryServerDiscoveryURLTextBox.Text, gdsUserName, gdsUserPassword); 
-            if (connectedToGDS) 
-            { 
-                _applicationInstanceManager.RegisterApplication(); 
-                _applicationInstanceManager.RequestNewCertificatePullMode(); 
-                List<ServerOnNetwork> serversOnNetwork = _applicationInstanceManager.QueryServers();
-                discoveredServersListView.Items.Clear();
-                if (serversOnNetwork != null && serversOnNetwork.Any())
+            try
+            {
+                connectButton.Enabled = false;
+                disconnectButton.Enabled = true;
+                objectTreeView.Nodes.Clear();
+                objectTreeView.Enabled = false;
+                if (!connectToServer)
                 {
+                    _applicationInstanceManager = new ApplicationInstanceManager(ApplicationName, ApplicationUri,
+                        null, null, null, null, _globalDiscoveryServerUrls, _globalDiscoveryServerWellKnownUrls, ApplicationType);
+                }
+                if (globalDiscoveryServerUseCheckBox.Checked && !connectToServer)
+                {
+                    globalDiscoveryServerConnectionStatusPanel.BackColor = Color.Red;
+                    string gdsUserName = globalDiscoveryServerUseSecurityCheckBox.Checked ? globalDiscoveryServerUserNameTextBox.Text : null;
+                    string gdsUserPassword = globalDiscoveryServerUseSecurityCheckBox.Checked ? globalDiscoveryServerPasswordTextBox.Text : null;
+                    bool connectedToGDS = _applicationInstanceManager.ConnectToGlobalDiscoveryServer(globalDiscoveryServerDiscoveryURLTextBox.Text, gdsUserName, gdsUserPassword);
+                    if (!connectedToGDS) 
+                        return;
+                    if(registerApplicationCheckBox.Checked) 
+                        _applicationInstanceManager.RegisterApplication();
+                    if(requestNewCertificateCheckBox.Checked) 
+                        _applicationInstanceManager.RequestNewCertificatePullMode();
+                    List<ServerOnNetwork> serversOnNetwork = _applicationInstanceManager.QueryServers();
+                    discoveredServersListView.Items.Clear();
+                    if (serversOnNetwork == null || !serversOnNetwork.Any()) 
+                        return;
                     ListViewItem[] discoveredServersListViewItems = (from x in serversOnNetwork select new ListViewItem(x.DiscoveryUrl)).ToArray();
                     discoveredServersListView.Items.AddRange(discoveredServersListViewItems);
+                    globalDiscoveryServerConnectionStatusPanel.BackColor = Color.Green;
                 }
-            } 
-            string userName = useSecurityCheckBox.Checked ? serverUserNameTextBox.Text : null; 
-            string userPassword = useSecurityCheckBox.Checked ? serverPasswordTextBox.Text : null; 
-            bool connectedToServer = _applicationInstanceManager.ConnectToServer(serverDiscoveryURLTextBox.Text, userName, userPassword);
-            if (!connectedToServer) 
-                return;
-            connectionStatusPanel.BackColor = Color.Green;
-            TreeNode[] browsedObjects = (from x in _applicationInstanceManager.ReferenceDescriptionDictionary select new TreeNode(x.Value.DisplayName.Text)).ToArray();
+
+                if (!connectToServer && globalDiscoveryServerUseCheckBox.Checked) 
+                    return;
+                connectionStatusPanel.BackColor = Color.Red;
+                string userName = useSecurityCheckBox.Checked ? serverUserNameTextBox.Text : null;
+                string userPassword = useSecurityCheckBox.Checked ? serverPasswordTextBox.Text : null;
+                bool connectedToServer = _applicationInstanceManager.ConnectToServer(serverDiscoveryURLTextBox.Text, userName, userPassword);
+                if (!connectedToServer)
+                    return;
+                TreeNode[] browsedObjects = (from x in _applicationInstanceManager.ReferenceDescriptionDictionary select new TreeNode(x.Value.DisplayName.Text)).ToArray();
+                objectTreeView.Enabled = true;
+                objectTreeView.Nodes.AddRange(browsedObjects);
+                _applicationInstanceManager.GetControllersReferenceDescriptions();
+                connectionStatusPanel.BackColor = Color.Green;
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+                Disconnect();
+            }
+        }
+
+        private void Disconnect()
+        {
+            connectButton.Enabled = true;
+            _applicationInstanceManager?.Session?.Close();
+            disconnectButton.Enabled = false;
             objectTreeView.Nodes.Clear();
-            objectTreeView.Nodes.AddRange(browsedObjects);
-            _applicationInstanceManager.GetControllersReferenceDescriptions();
+            objectTreeView.Enabled = false;
+            connectionStatusPanel.BackColor = Color.Red;
+            globalDiscoveryServerConnectionStatusPanel.BackColor = Color.Red;
+            _applicationInstanceManager = null;
+        }
+        #endregion
+
+        #region Handlers
+        private void DisconnectButtonClick(object sender, EventArgs e)
+        {
+            Disconnect();
+        }
+        private void ConnectButtonClick(object sender, EventArgs e)
+        {
+            Connect();
+        }
+        private void ConnectToolStripMenuItemClick(object sender, EventArgs e)
+        {
+            Connect(true);
         }
         private void GetDiscoveryServerTrustedListButtonClick(object sender, EventArgs e)
         {
@@ -77,9 +128,29 @@ namespace Client
             globalDiscoveryServerUserNameTextBox.Enabled = globalDiscoveryServerUseSecurityCheckBox.Checked;
             globalDiscoveryServerPasswordTextBox.Enabled = globalDiscoveryServerUseSecurityCheckBox.Checked;
         }
-        #endregion
+        private void GlobalDiscoveryServerUseCheckBoxCheckedChanged(object sender, EventArgs e)
+        {
+            globalDiscoveryServerDiscoveryURLTextBox.Enabled = globalDiscoveryServerUseCheckBox.Checked;
+            globalDiscoveryServerUserNameTextBox.Enabled = globalDiscoveryServerUseCheckBox.Checked;
+            globalDiscoveryServerPasswordTextBox.Enabled = globalDiscoveryServerUseCheckBox.Checked;
+            globalDiscoveryServerUseSecurityCheckBox.Enabled = globalDiscoveryServerUseCheckBox.Checked;
 
-
+            serverUserNameTextBox.Enabled = !globalDiscoveryServerUseCheckBox.Checked;
+            serverPasswordTextBox.Enabled = !globalDiscoveryServerUseCheckBox.Checked;
+            serverDiscoveryURLTextBox.Enabled = !globalDiscoveryServerUseCheckBox.Checked;
+            useSecurityCheckBox.Enabled = !globalDiscoveryServerUseCheckBox.Checked;
+        }
+        private void DiscoveredServersListViewMouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Right) 
+                return;
+            ListViewItem selectedItem = (sender as ListView)?.GetItemAt(e.X,e.Y);
+            if (selectedItem == null)
+                return;
+            _selectedServerDiscoveryUrl = selectedItem.Text;
+            Point point = (Point) (sender as ListView)?.PointToScreen(e.Location);
+            serverConnectContextMenuStrip.Show(point);
+        }
         private void button1_Click(object sender, EventArgs e)
         {
             ReferenceDescription objectReference =
@@ -92,7 +163,12 @@ namespace Client
             object[] arguments = new object[2];
             arguments[0] = Convert.ToUInt32(1);
             arguments[1] = Convert.ToUInt32(100);
-            _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, arguments);
+            testOutputTextBox.Clear();
+            IList<object> outputArguments = _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, arguments);
+            foreach (object outputArgument in outputArguments)
+            {
+                testOutputTextBox.Text += $"{outputArgument}\r\n";
+            }
         }
 
         private void ObjectTreeViewMouseDoubleClick(object sender, MouseEventArgs e)
@@ -109,5 +185,6 @@ namespace Client
             parentNode.Nodes.AddRange(browsedObjects);
             parentNode.Expand();
         }
+        #endregion
     }
 }

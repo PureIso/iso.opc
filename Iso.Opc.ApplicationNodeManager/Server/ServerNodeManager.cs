@@ -1,34 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using Iso.Opc.ApplicationNodeManager.Plugin;
 using Opc.Ua;
 using Opc.Ua.Server;
-using Namespaces = Iso.Opc.ApplicationNodeManager.Models.Namespaces;
 
 namespace Iso.Opc.ApplicationNodeManager.Server
 {
     public sealed partial class ServerNodeManager : CustomNodeManager2
     {
         #region Fields
-        private ApplicationConfiguration _applicationConfiguration;
-        private List<BaseDataVariableState> _baseDataVariableStates;
-        #endregion
-
-        #region Properties
-        public string PredefinedXMLNodeDirectory { get; set; }
+        private readonly string _pluginDirectory;
+        private ApplicationNodeManagerPluginService _applicationNodeManagerPluginService;
+        private uint _nextNodeId;
         #endregion
 
         public ServerNodeManager(IServerInternal server, ApplicationConfiguration applicationConfiguration) 
-            : base(server, applicationConfiguration, Namespaces.BasicApplications)
-        {
+            : base(server, applicationConfiguration)
+        { 
+            NamespaceUris = new List<string> { $"http://{Dns.GetHostName()}/UA/Default" };
             SystemContext.NodeIdFactory = this;
-            _applicationConfiguration = applicationConfiguration;
-            _baseDataVariableStates = new List<BaseDataVariableState>();
-            if (!string.IsNullOrEmpty(PredefinedXMLNodeDirectory)) 
+            _nextNodeId = 0;
+            if (!string.IsNullOrEmpty(_pluginDirectory)) 
                 return;
-            PredefinedXMLNodeDirectory = AppDomain.CurrentDomain.BaseDirectory + "predefined_models";
-            if (!Directory.Exists(PredefinedXMLNodeDirectory))
-                Directory.CreateDirectory(PredefinedXMLNodeDirectory);
+            _pluginDirectory = AppDomain.CurrentDomain.BaseDirectory + "plugin";
+            if (!Directory.Exists(_pluginDirectory))
+                Directory.CreateDirectory(_pluginDirectory);
         }
     }
 }
