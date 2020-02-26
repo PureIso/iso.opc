@@ -148,7 +148,7 @@ namespace Client
             if (selectedItem == null)
                 return;
             _selectedServerDiscoveryUrl = selectedItem.Text;
-            Point point = (Point) (sender as ListView)?.PointToScreen(e.Location);
+            Point point = (Point) ((ListView) sender)?.PointToScreen(e.Location);
             serverConnectContextMenuStrip.Show(point);
         }
         private void button1_Click(object sender, EventArgs e)
@@ -159,7 +159,6 @@ namespace Client
                 _applicationInstanceManager.ExtendedReferenceDescriptions[0].MethodReferenceDescriptions[0];
             NodeId objectNodeId = new NodeId(objectReference.NodeId.Identifier, objectReference.NodeId.NamespaceIndex);
             NodeId methodNodeId = new NodeId(methodReference.NodeId.Identifier, methodReference.NodeId.NamespaceIndex);
-
             object[] arguments = new object[2];
             arguments[0] = Convert.ToUInt32(1);
             arguments[1] = Convert.ToUInt32(100);
@@ -178,10 +177,10 @@ namespace Client
                 _applicationInstanceManager.ReferenceDescriptionDictionary[parentNode.Text];
             if (objectReference == null)
                 return;
-            List<ReferenceDescription> referenceDescription =  _applicationInstanceManager.BrowseReferenceDescription(objectReference);
-            if (referenceDescription == null)
+            List<ReferenceDescription> referenceDescriptions =  _applicationInstanceManager.BrowseReferenceDescription(objectReference);
+            if (referenceDescriptions == null)
                 return;
-            TreeNode[] browsedObjects = (from x in referenceDescription select new TreeNode(x.DisplayName.Text)).ToArray();
+            TreeNode[] browsedObjects = (from x in referenceDescriptions select new TreeNode(x.DisplayName.Text)).ToArray();
             parentNode.Nodes.AddRange(browsedObjects);
             parentNode.Expand();
         }

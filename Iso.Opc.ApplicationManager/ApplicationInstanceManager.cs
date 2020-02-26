@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading.Tasks;
 using Iso.Opc.ApplicationManager.Models;
 using Iso.Opc.ApplicationManager.Models.Controllers;
@@ -873,7 +874,7 @@ namespace Iso.Opc.ApplicationManager
             }
             else
             {
-                nodeToBrowse = ExpandedNodeId.ToNodeId(parentReferenceDescription.NodeId, Session.NamespaceUris); 
+                nodeToBrowse = ExpandedNodeId.ToNodeId(parentReferenceDescription.NodeId, Session.NamespaceUris);    
             }
             browseDescription.NodeId = nodeToBrowse;
             browseDescriptionCollection.Add(browseDescription);
@@ -890,6 +891,7 @@ namespace Iso.Opc.ApplicationManager
                 out DiagnosticInfoCollection diagnosticInfoCollection);
             ClientBase.ValidateResponse(browseResultCollection, browseDescriptionCollection);
             ClientBase.ValidateDiagnosticInfos(diagnosticInfoCollection, browseDescriptionCollection);
+
             if (browseResultCollection == null || !browseResultCollection.Any())
                 return null;
             //Flatten the reference descriptions
@@ -947,6 +949,222 @@ namespace Iso.Opc.ApplicationManager
             return referenceDescriptions;
         }
         #endregion
+
+        public void ReadProperties(ReferenceDescription referenceDescription)
+        {
+            NodeId nodeId;
+            if (referenceDescription != null)
+                nodeId = (NodeId)referenceDescription.NodeId;
+            else
+                return;
+            // build list of references to browse.
+            BrowseDescriptionCollection nodesToBrowse = new BrowseDescriptionCollection();
+            BrowseDescription nodeToBrowse = new BrowseDescription();
+            nodeToBrowse.NodeId = nodeId;
+            nodeToBrowse.BrowseDirection = BrowseDirection.Forward;
+            nodeToBrowse.ReferenceTypeId = ReferenceTypeIds.HasProperty;
+            nodeToBrowse.IncludeSubtypes = true;
+            nodeToBrowse.NodeClassMask = (uint)NodeClass.Variable;
+            nodeToBrowse.ResultMask = (uint)BrowseResultMask.All;
+            nodesToBrowse.Add(nodeToBrowse);
+
+            // build list of properties to read.
+            ReadValueIdCollection nodesToRead = new ReadValueIdCollection();
+            // ignore out of server references.
+            if (referenceDescription.NodeId.IsAbsolute)
+                return;
+            ReadValueId nodeToRead = new ReadValueId();
+            nodeToRead.NodeId = (NodeId)referenceDescription.NodeId;
+            nodeToRead.AttributeId = Attributes.Value;
+            nodeToRead.Handle = referenceDescription;
+            nodesToRead.Add(nodeToRead);
+            if (nodesToRead.Count == 0)
+                return;
+            // read the properties.
+            Session.Read(
+                null,
+                0,
+                TimestampsToReturn.Neither,
+                nodesToRead,
+                out DataValueCollection results,
+                out DiagnosticInfoCollection diagnosticInfos);
+            ClientBase.ValidateResponse(results, nodesToRead);
+            ClientBase.ValidateDiagnosticInfos(diagnosticInfos, nodesToRead);
+
+            // add the results to the display.
+            for (int i = 0; i < results.Count; i++)
+            {
+                ReferenceDescription reference = (ReferenceDescription)nodesToRead[i].Handle;
+                TypeInfo typeInfo = TypeInfo.Construct(results[i].Value);
+                // add the metadata for the attribute.
+                string attributeName = reference.ToString();
+                string attributeBuiltInType = typeInfo.BuiltInType.ToString();
+                string valueRank = "";
+                if (typeInfo.ValueRank >= 0)
+                {
+                    valueRank += "[]";
+                }
+                // add the value.
+                string value = StatusCode.IsBad(results[i].StatusCode) ? results[i].StatusCode.ToString() : value = results[i].WrappedValue.ToString();
+                Console.WriteLine($"Property Name: {attributeName} BuiltInType:{attributeBuiltInType} Value: {value} Value Rank: {valueRank}");
+            }
+        }
+        public void ReadAttributes(ReferenceDescription referenceDescription)
+        {
+            NodeId nodeId;
+            if (referenceDescription != null)
+                nodeId = (NodeId)referenceDescription.NodeId;
+            else
+                return;
+            // build list of attributes to read.
+            ReadValueIdCollection nodesToRead = new ReadValueIdCollection();
+            foreach (uint attributeId in Attributes.GetIdentifiers())
+            {
+                ReadValueId nodeToRead = new ReadValueId
+                {
+                    NodeId = nodeId,
+                    AttributeId = attributeId
+                };
+                nodesToRead.Add(nodeToRead);
+            }
+            // read the attributes.
+            Session.Read(
+                null,
+                0,
+                TimestampsToReturn.Neither,
+                nodesToRead,
+                out DataValueCollection results,
+                out DiagnosticInfoCollection diagnosticInfos);
+
+            ClientBase.ValidateResponse(results, nodesToRead);
+            ClientBase.ValidateDiagnosticInfos(diagnosticInfos, nodesToRead);
+
+            // add the results to the display.
+            for (int i = 0; i < results.Count; i++)
+            {
+                DataValue result = results[i];
+                uint attributeId = nodesToRead[i].AttributeId;
+                // check for error.
+                if (StatusCode.IsBad(result.StatusCode) && result.StatusCode == StatusCodes.BadAttributeIdInvalid)
+                    continue;
+                // add the metadata for the attribute.
+                string attributeName = Attributes.GetBrowseName(attributeId);
+                string attributeBuiltInType = Attributes.GetBuiltInType(attributeId).ToString();
+                string valueRank = "";
+                if (Attributes.GetValueRank(attributeId) >= 0)
+                    valueRank += "[]";
+                string statusCode = "";
+                // add the value.
+                if (StatusCode.IsBad(result.StatusCode))
+                {
+                    statusCode = result.StatusCode.ToString();
+                }
+                else
+                {
+                    Variant variant = result.WrappedValue;
+                    if (variant == Variant.Null)
+                        statusCode = "";
+                    else
+                    {
+                        switch (attributeId)
+                        {
+                            case Attributes.AccessLevel:
+                            case Attributes.UserAccessLevel:
+                                if (variant.Value is byte accessLevel)
+                                    statusCode = AccessLevelToString(accessLevel);
+                                break;
+                            case Attributes.EventNotifier:
+                                if (variant.Value is byte eventNotifier)
+                                    statusCode = EventNotifierToString(eventNotifier);
+                                break;
+                            case Attributes.DataType:
+                                statusCode = Session.NodeCache.GetDisplayText(variant.Value as NodeId);
+                                break;
+                            case Attributes.ValueRank:
+                                if (variant.Value is int refValueRank)
+                                    statusCode = ValueRankToString(refValueRank);
+                                break;
+                            case Attributes.NodeClass:
+                                if (variant.Value is int nodeClass)
+                                    statusCode = ((NodeClass)nodeClass).ToString();
+                                break;
+                            case Attributes.NodeId:
+                                if (variant.Value is int variantNodeId)
+                                    statusCode = ((NodeClass)variantNodeId).ToString();
+                                break;
+                            default:
+                                if (variant.Value is byte[] bytes)
+                                {
+                                    statusCode = Utils.ToHexString(bytes);
+                                }
+                                else
+                                {
+                                    statusCode = variant.ToString();
+                                }
+                                break;
+                        }
+                    }
+                }
+                Console.WriteLine($"Attribute Name: {attributeName} BuiltInType:{attributeBuiltInType} Value: {statusCode} Value Rank: {valueRank}");
+            }
+        }
+        private static string AccessLevelToString(byte accessLevel)
+        {
+            StringBuilder buffer = new StringBuilder();
+            if (accessLevel == AccessLevels.None)
+                buffer.Append("None");
+            if ((accessLevel & AccessLevels.CurrentRead) == AccessLevels.CurrentRead)
+                buffer.Append("Read");
+            if ((accessLevel & AccessLevels.CurrentWrite) == AccessLevels.CurrentWrite)
+                if (buffer.Length > 0)
+                    buffer.Append(" | ");
+                buffer.Append("Write");
+            if ((accessLevel & AccessLevels.HistoryRead) == AccessLevels.HistoryRead)
+                if (buffer.Length > 0)
+                    buffer.Append(" | ");
+                buffer.Append("HistoryRead");
+            if ((accessLevel & AccessLevels.HistoryWrite) == AccessLevels.HistoryWrite)
+                if (buffer.Length > 0)
+                    buffer.Append(" | ");
+                buffer.Append("HistoryWrite");
+            if ((accessLevel & AccessLevels.SemanticChange) == AccessLevels.SemanticChange)
+                if (buffer.Length > 0)
+                    buffer.Append(" | ");
+                buffer.Append("SemanticChange");
+            return buffer.ToString();
+        }
+        private static string EventNotifierToString(byte eventNotifier)
+        {
+            StringBuilder buffer = new StringBuilder();
+            if (eventNotifier == EventNotifiers.None)
+                buffer.Append("None");
+            if ((eventNotifier & EventNotifiers.SubscribeToEvents) == EventNotifiers.SubscribeToEvents)
+                buffer.Append("Subscribe");
+            if ((eventNotifier & EventNotifiers.HistoryRead) == EventNotifiers.HistoryRead)
+                if (buffer.Length > 0)
+                    buffer.Append(" | ");
+                buffer.Append("HistoryRead");
+            if ((eventNotifier & EventNotifiers.HistoryWrite) == EventNotifiers.HistoryWrite)
+                if (buffer.Length > 0)
+                    buffer.Append(" | ");
+                buffer.Append("HistoryWrite");
+            return buffer.ToString();
+        }
+        private static string ValueRankToString(int valueRank)
+        {
+            switch (valueRank)
+            {
+                case ValueRanks.Any: return "Any";
+                case ValueRanks.Scalar: return "Scalar";
+                case ValueRanks.ScalarOrOneDimension: return "ScalarOrOneDimension";
+                case ValueRanks.OneOrMoreDimensions: return "OneOrMoreDimensions";
+                case ValueRanks.OneDimension: return "OneDimension";
+                case ValueRanks.TwoDimensions: return "TwoDimensions";
+            }
+            return valueRank.ToString();
+        }
+
+        
 
         #region Public Methods
 

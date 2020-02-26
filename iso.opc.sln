@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GlobalDiscoveryService", "E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.Interface", "Iso.Opc.Interface\Iso.Opc.Interface.csproj", "{EBA60041-B1B0-4313-B9F8-53ADDD272630}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControllerServerNodeManagerPlugin", "ControllerServerNodeManagerPlugin\ControllerServerNodeManagerPlugin.csproj", "{BFC52425-2E7A-440F-9F48-C04136F9666C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControllerServerNodeManagerPlugin", "Examples\ControllerServerNodeManagerPlugin\ControllerServerNodeManagerPlugin.csproj", "{BFC52425-2E7A-440F-9F48-C04136F9666C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -29,7 +29,6 @@ namespace ControllerServerNodeManagerPlugin
         public override void Initialise(CustomNodeManager2 nodeManager, IDictionary<NodeId, IList<IReference>> externalReferences, string resourcePath = null)
         {
             base.ApplicationNodeManager = nodeManager;
-
             /* ***************************************** */
             /* ControllerType                            */
             /* ***************************************** */
