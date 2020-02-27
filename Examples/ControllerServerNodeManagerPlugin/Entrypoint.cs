@@ -57,14 +57,14 @@ namespace ControllerServerNodeManagerPlugin
                 TypeDefinitionId = VariableTypeIds.PropertyType,
                 ReferenceTypeId = ReferenceTypeIds.HasProperty,
                 DataType = DataTypeIds.UInt32,
-                ValueRank = ValueRanks.Scalar
+                ValueRank = ValueRanks.Scalar,
+                AccessLevel = AccessLevels.CurrentReadOrWrite
             };
             lock (ApplicationNodeManager.Lock)
             {
                 _stateNode = state;
             }
             controller.AddChild(state);
-
             //Method
             MethodState start = new MethodState(controller)
             {
@@ -117,7 +117,7 @@ namespace ControllerServerNodeManagerPlugin
                 DataType = DataTypeIds.Argument,
                 ValueRank = ValueRanks.OneDimension,
                 OnReadUserAccessLevel = OnReadUserAccessLevel,
-                OnSimpleWriteValue = OnWriteValue
+                OnSimpleWriteValue = OnWriteValue,
             };
             start.OutputArguments.DisplayName = start.OutputArguments.BrowseName.Name;
 

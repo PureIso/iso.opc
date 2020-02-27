@@ -1,19 +1,18 @@
 ﻿using System.Collections.Generic;
-using Opc.Ua;
 
 namespace Iso.Opc.ApplicationManager.Models
 {
     public class ExtendedReferenceDescription
     {
-        public ReferenceDescription ParentReferenceDescription { get; }
-        public List<ReferenceDescription> VariableReferenceDescriptions { get; set; }
-        public List<ReferenceDescription> MethodReferenceDescriptions { get; set; }
+        public DataDescription ParentReferenceDescription { get; }
+        public List<DataDescription> VariableReferenceDescriptions { get; set; }
+        public List<DataDescription> MethodReferenceDescriptions { get; set; }
 
-        public ExtendedReferenceDescription(ReferenceDescription parent)
+        public ExtendedReferenceDescription(DataDescription parent)
         {
             ParentReferenceDescription = parent;
-            VariableReferenceDescriptions = new List<ReferenceDescription>();
-            MethodReferenceDescriptions = new List<ReferenceDescription>();
+            VariableReferenceDescriptions = new List<DataDescription>();
+            MethodReferenceDescriptions = new List<DataDescription>();
         }
     }
 }

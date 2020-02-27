@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Iso.Opc.ApplicationManager;
+using Iso.Opc.ApplicationManager.Models;
 using Opc.Ua;
 
 namespace Client
@@ -20,7 +21,6 @@ namespace Client
         private ApplicationInstanceManager _applicationInstanceManager;
         private readonly StringCollection _globalDiscoveryServerUrls;
         private readonly StringCollection _globalDiscoveryServerWellKnownUrls;
-        private string _selectedServerDiscoveryUrl;
         #endregion
 
         #region Constructor
@@ -52,16 +52,22 @@ namespace Client
                     string gdsUserName = globalDiscoveryServerUseSecurityCheckBox.Checked ? globalDiscoveryServerUserNameTextBox.Text : null;
                     string gdsUserPassword = globalDiscoveryServerUseSecurityCheckBox.Checked ? globalDiscoveryServerPasswordTextBox.Text : null;
                     bool connectedToGDS = _applicationInstanceManager.ConnectToGlobalDiscoveryServer(globalDiscoveryServerDiscoveryURLTextBox.Text, gdsUserName, gdsUserPassword);
-                    if (!connectedToGDS) 
+                    if (!connectedToGDS)
+                    {
+                        Disconnect();
                         return;
+                    }
                     if(registerApplicationCheckBox.Checked) 
                         _applicationInstanceManager.RegisterApplication();
                     if(requestNewCertificateCheckBox.Checked) 
                         _applicationInstanceManager.RequestNewCertificatePullMode();
                     List<ServerOnNetwork> serversOnNetwork = _applicationInstanceManager.QueryServers();
                     discoveredServersListView.Items.Clear();
-                    if (serversOnNetwork == null || !serversOnNetwork.Any()) 
+                    if (serversOnNetwork == null || !serversOnNetwork.Any())
+                    {
+                        Disconnect();
                         return;
+                    }
                     ListViewItem[] discoveredServersListViewItems = (from x in serversOnNetwork select new ListViewItem(x.DiscoveryUrl)).ToArray();
                     discoveredServersListView.Items.AddRange(discoveredServersListViewItems);
                     globalDiscoveryServerConnectionStatusPanel.BackColor = Color.Green;
@@ -147,18 +153,18 @@ namespace Client
             ListViewItem selectedItem = (sender as ListView)?.GetItemAt(e.X,e.Y);
             if (selectedItem == null)
                 return;
-            _selectedServerDiscoveryUrl = selectedItem.Text;
+            serverDiscoveryURLTextBox.Text = selectedItem.Text;
             Point point = (Point) ((ListView) sender)?.PointToScreen(e.Location);
             serverConnectContextMenuStrip.Show(point);
         }
         private void button1_Click(object sender, EventArgs e)
         {
-            ReferenceDescription objectReference =
+            DataDescription objectReference =
                 _applicationInstanceManager.ExtendedReferenceDescriptions[0].ParentReferenceDescription;
-            ReferenceDescription methodReference =
+            DataDescription methodReference =
                 _applicationInstanceManager.ExtendedReferenceDescriptions[0].MethodReferenceDescriptions[0];
-            NodeId objectNodeId = new NodeId(objectReference.NodeId.Identifier, objectReference.NodeId.NamespaceIndex);
-            NodeId methodNodeId = new NodeId(methodReference.NodeId.Identifier, methodReference.NodeId.NamespaceIndex);
+            NodeId objectNodeId = new NodeId(objectReference.ReferenceDescription.NodeId.Identifier, objectReference.ReferenceDescription.NodeId.NamespaceIndex);
+            NodeId methodNodeId = new NodeId(methodReference.ReferenceDescription.NodeId.Identifier, methodReference.ReferenceDescription.NodeId.NamespaceIndex);
             object[] arguments = new object[2];
             arguments[0] = Convert.ToUInt32(1);
             arguments[1] = Convert.ToUInt32(100);
@@ -177,7 +183,13 @@ namespace Client
                 _applicationInstanceManager.ReferenceDescriptionDictionary[parentNode.Text];
             if (objectReference == null)
                 return;
-            List<ReferenceDescription> referenceDescriptions =  _applicationInstanceManager.BrowseReferenceDescription(objectReference);
+            //TODO: Tidy up
+            DataDescription dataDescription = new DataDescription
+            {
+                AttributeData = null,
+                ReferenceDescription = objectReference
+            };
+            List<ReferenceDescription> referenceDescriptions =  _applicationInstanceManager.BrowseReferenceDescription(dataDescription);
             if (referenceDescriptions == null)
                 return;
             TreeNode[] browsedObjects = (from x in referenceDescriptions select new TreeNode(x.DisplayName.Text)).ToArray();

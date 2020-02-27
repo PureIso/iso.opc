@@ -7,7 +7,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Iso.Opc.ApplicationManager.Models;
-using Iso.Opc.ApplicationManager.Models.Controllers;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Client.ComplexTypes;
@@ -22,24 +21,29 @@ namespace Iso.Opc.ApplicationManager
 {
     public class ApplicationInstanceManager
     {
-        public Dictionary<string, ReferenceDescription> ReferenceDescriptionDictionary;
-        public List<ExtendedReferenceDescription> ExtendedReferenceDescriptions;
-        private List<List<ReferenceDescription>> _referenceDescriptions;
-
-        #region Fields
-        private readonly int _reconnectPeriod = 10;
+        #region Constants
+        private const int ReconnectPeriod = 10;
         #endregion
 
-        #region Properties
-        public SessionReconnectHandler SessionReconnectHandler;
+        #region Fields
+        private List<List<ReferenceDescription>> _referenceDescriptions;
+        #endregion
+
+        #region Delegates and Handlers
         public EventHandler ReconnectStartingHandler;
         public EventHandler ReconnectCompleteHandler;
         public EventHandler KeepAliveCompleteHandler;
+        public SessionReconnectHandler SessionReconnectHandler;
+        #endregion
+
+        #region Properties
         public ApplicationInstance ApplicationInstance { get; set; }
         public GlobalDiscoveryServerClient GlobalDiscoveryServerClient { get; set; }
         public RegisteredApplication RegisteredApplication { get; set; }
         public Session Session { get; set; }
         public EndpointDescription SessionEndpointDescription { get; set; }
+        public Dictionary<string, ReferenceDescription> ReferenceDescriptionDictionary { get; set; }
+        public List<ExtendedReferenceDescription> ExtendedReferenceDescriptions { get; set; }
         #endregion
 
         #region Constructor
@@ -844,15 +848,25 @@ namespace Iso.Opc.ApplicationManager
         }
         public List<ReferenceDescription> GetRootObjectReferenceDescriptions()
         {
-            return BrowseReferenceDescription(ReferenceDescriptionDictionary[Root.NameObjects]);
+            DataDescription dataDescription = new DataDescription
+            {
+                AttributeData = null,
+                ReferenceDescription = ReferenceDescriptionDictionary[Root.NameObjects]
+            };
+            return BrowseReferenceDescription(dataDescription);
         }
         public List<ReferenceDescription> GetControllersReferenceDescriptions()
         {
             //We need to query the parent which will give us the information about the controllers
             GetRootObjectReferenceDescriptions();
-            return BrowseReferenceDescription(ReferenceDescriptionDictionary[NameObject.Controllers]);
+            DataDescription dataDescription = new DataDescription
+            {
+                AttributeData = null,
+                ReferenceDescription = ReferenceDescriptionDictionary[NameObject.Controllers]
+            };
+            return BrowseReferenceDescription(dataDescription);
         }
-        public List<ReferenceDescription> BrowseReferenceDescription(ReferenceDescription parentReferenceDescription = null)
+        public List<ReferenceDescription> BrowseReferenceDescription(DataDescription parentReferenceDescription = null)
         {
             BrowseDescriptionCollection browseDescriptionCollection = new BrowseDescriptionCollection();
             BrowseDescription browseDescription = new BrowseDescription
@@ -874,7 +888,7 @@ namespace Iso.Opc.ApplicationManager
             }
             else
             {
-                nodeToBrowse = ExpandedNodeId.ToNodeId(parentReferenceDescription.NodeId, Session.NamespaceUris);    
+                nodeToBrowse = ExpandedNodeId.ToNodeId(parentReferenceDescription.ReferenceDescription.NodeId, Session.NamespaceUris);    
             }
             browseDescription.NodeId = nodeToBrowse;
             browseDescriptionCollection.Add(browseDescription);
@@ -903,15 +917,15 @@ namespace Iso.Opc.ApplicationManager
             if (ReferenceDescriptionDictionary == null || !ReferenceDescriptionDictionary.Any())
             {
                 //We know that this 3 types / object always exist
-                if (!ReferenceDescriptionDictionary.ContainsKey(Root.NameObjects) || ReferenceDescriptionDictionary[Root.NameObjects] == null)
+                if (ReferenceDescriptionDictionary != null && (!ReferenceDescriptionDictionary.ContainsKey(Root.NameObjects) || ReferenceDescriptionDictionary[Root.NameObjects] == null))
                     ReferenceDescriptionDictionary[Root.NameObjects] = referenceDescriptions.FirstOrDefault(x =>
                     string.Equals(x.BrowseName.Name, Root.NameObjects, StringComparison.CurrentCultureIgnoreCase) &&
                     string.Equals(x.DisplayName.Text, Root.NameObjects, StringComparison.CurrentCultureIgnoreCase));
-                if (!ReferenceDescriptionDictionary.ContainsKey(Root.NameTypes) || ReferenceDescriptionDictionary[Root.NameTypes] == null)
+                if (ReferenceDescriptionDictionary != null && (!ReferenceDescriptionDictionary.ContainsKey(Root.NameTypes) || ReferenceDescriptionDictionary[Root.NameTypes] == null))
                     ReferenceDescriptionDictionary[Root.NameTypes] = referenceDescriptions.FirstOrDefault(x =>
                     string.Equals(x.BrowseName.Name, Root.NameTypes, StringComparison.CurrentCultureIgnoreCase) &&
                     string.Equals(x.DisplayName.Text, Root.NameTypes, StringComparison.CurrentCultureIgnoreCase));
-                if (!ReferenceDescriptionDictionary.ContainsKey(Root.NameViews) || ReferenceDescriptionDictionary[Root.NameViews] == null)
+                if (ReferenceDescriptionDictionary != null && (!ReferenceDescriptionDictionary.ContainsKey(Root.NameViews) || ReferenceDescriptionDictionary[Root.NameViews] == null))
                     ReferenceDescriptionDictionary[Root.NameViews] = referenceDescriptions.FirstOrDefault(x =>
                     string.Equals(x.BrowseName.Name, Root.NameViews, StringComparison.CurrentCultureIgnoreCase) &&
                     string.Equals(x.DisplayName.Text, Root.NameViews, StringComparison.CurrentCultureIgnoreCase));
@@ -922,12 +936,16 @@ namespace Iso.Opc.ApplicationManager
                 //We need to iterate through the list
                 foreach (ReferenceDescription referenceDescription in referenceDescriptions)
                 {
-                    if (referenceDescription.NodeClass == NodeClass.Method ||
-                        referenceDescription.NodeClass == NodeClass.Variable)
+                    AttributeData attributeData = ReadAttributes(referenceDescription);
+                    DataDescription dataDescription = new DataDescription
+                    {
+                        AttributeData = attributeData, ReferenceDescription = referenceDescription
+                    };
+                    if (referenceDescription.NodeClass == NodeClass.Method || referenceDescription.NodeClass == NodeClass.Variable)
                     {
                         ReferenceDescriptionDictionary[referenceDescription.BrowseName.Name] = referenceDescription;
                         ExtendedReferenceDescription extendedReferenceDescription = ExtendedReferenceDescriptions
-                            .FirstOrDefault(x => x.ParentReferenceDescription == parentReferenceDescription);
+                            .FirstOrDefault(x => parentReferenceDescription != null && x.ParentReferenceDescription.ReferenceDescription == parentReferenceDescription.ReferenceDescription);
                         if (extendedReferenceDescription == null)
                         {
                             extendedReferenceDescription = new ExtendedReferenceDescription(parentReferenceDescription);
@@ -936,10 +954,10 @@ namespace Iso.Opc.ApplicationManager
                         switch (referenceDescription.NodeClass)
                         {
                             case NodeClass.Method:
-                                extendedReferenceDescription.MethodReferenceDescriptions.Add(referenceDescription);
+                                extendedReferenceDescription.MethodReferenceDescriptions.Add(dataDescription);
                                 break;
                             case NodeClass.Variable:
-                                extendedReferenceDescription.VariableReferenceDescriptions.Add(referenceDescription);
+                                extendedReferenceDescription.VariableReferenceDescriptions.Add(dataDescription);
                                 break;
                         }                      
                     }
@@ -950,74 +968,17 @@ namespace Iso.Opc.ApplicationManager
         }
         #endregion
 
-        public void ReadProperties(ReferenceDescription referenceDescription)
+        #region Public Methods
+        public AttributeData ReadAttributes(ReferenceDescription referenceDescription)
         {
             NodeId nodeId;
             if (referenceDescription != null)
                 nodeId = (NodeId)referenceDescription.NodeId;
             else
-                return;
-            // build list of references to browse.
-            BrowseDescriptionCollection nodesToBrowse = new BrowseDescriptionCollection();
-            BrowseDescription nodeToBrowse = new BrowseDescription();
-            nodeToBrowse.NodeId = nodeId;
-            nodeToBrowse.BrowseDirection = BrowseDirection.Forward;
-            nodeToBrowse.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-            nodeToBrowse.IncludeSubtypes = true;
-            nodeToBrowse.NodeClassMask = (uint)NodeClass.Variable;
-            nodeToBrowse.ResultMask = (uint)BrowseResultMask.All;
-            nodesToBrowse.Add(nodeToBrowse);
-
-            // build list of properties to read.
+                return null;
+            //build list of attributes to read.
             ReadValueIdCollection nodesToRead = new ReadValueIdCollection();
-            // ignore out of server references.
-            if (referenceDescription.NodeId.IsAbsolute)
-                return;
-            ReadValueId nodeToRead = new ReadValueId();
-            nodeToRead.NodeId = (NodeId)referenceDescription.NodeId;
-            nodeToRead.AttributeId = Attributes.Value;
-            nodeToRead.Handle = referenceDescription;
-            nodesToRead.Add(nodeToRead);
-            if (nodesToRead.Count == 0)
-                return;
-            // read the properties.
-            Session.Read(
-                null,
-                0,
-                TimestampsToReturn.Neither,
-                nodesToRead,
-                out DataValueCollection results,
-                out DiagnosticInfoCollection diagnosticInfos);
-            ClientBase.ValidateResponse(results, nodesToRead);
-            ClientBase.ValidateDiagnosticInfos(diagnosticInfos, nodesToRead);
-
-            // add the results to the display.
-            for (int i = 0; i < results.Count; i++)
-            {
-                ReferenceDescription reference = (ReferenceDescription)nodesToRead[i].Handle;
-                TypeInfo typeInfo = TypeInfo.Construct(results[i].Value);
-                // add the metadata for the attribute.
-                string attributeName = reference.ToString();
-                string attributeBuiltInType = typeInfo.BuiltInType.ToString();
-                string valueRank = "";
-                if (typeInfo.ValueRank >= 0)
-                {
-                    valueRank += "[]";
-                }
-                // add the value.
-                string value = StatusCode.IsBad(results[i].StatusCode) ? results[i].StatusCode.ToString() : value = results[i].WrappedValue.ToString();
-                Console.WriteLine($"Property Name: {attributeName} BuiltInType:{attributeBuiltInType} Value: {value} Value Rank: {valueRank}");
-            }
-        }
-        public void ReadAttributes(ReferenceDescription referenceDescription)
-        {
-            NodeId nodeId;
-            if (referenceDescription != null)
-                nodeId = (NodeId)referenceDescription.NodeId;
-            else
-                return;
-            // build list of attributes to read.
-            ReadValueIdCollection nodesToRead = new ReadValueIdCollection();
+            //This should generate the 27 attributes
             foreach (uint attributeId in Attributes.GetIdentifiers())
             {
                 ReadValueId nodeToRead = new ReadValueId
@@ -1039,135 +1000,10 @@ namespace Iso.Opc.ApplicationManager
             ClientBase.ValidateResponse(results, nodesToRead);
             ClientBase.ValidateDiagnosticInfos(diagnosticInfos, nodesToRead);
 
-            // add the results to the display.
-            for (int i = 0; i < results.Count; i++)
-            {
-                DataValue result = results[i];
-                uint attributeId = nodesToRead[i].AttributeId;
-                // check for error.
-                if (StatusCode.IsBad(result.StatusCode) && result.StatusCode == StatusCodes.BadAttributeIdInvalid)
-                    continue;
-                // add the metadata for the attribute.
-                string attributeName = Attributes.GetBrowseName(attributeId);
-                string attributeBuiltInType = Attributes.GetBuiltInType(attributeId).ToString();
-                string valueRank = "";
-                if (Attributes.GetValueRank(attributeId) >= 0)
-                    valueRank += "[]";
-                string statusCode = "";
-                // add the value.
-                if (StatusCode.IsBad(result.StatusCode))
-                {
-                    statusCode = result.StatusCode.ToString();
-                }
-                else
-                {
-                    Variant variant = result.WrappedValue;
-                    if (variant == Variant.Null)
-                        statusCode = "";
-                    else
-                    {
-                        switch (attributeId)
-                        {
-                            case Attributes.AccessLevel:
-                            case Attributes.UserAccessLevel:
-                                if (variant.Value is byte accessLevel)
-                                    statusCode = AccessLevelToString(accessLevel);
-                                break;
-                            case Attributes.EventNotifier:
-                                if (variant.Value is byte eventNotifier)
-                                    statusCode = EventNotifierToString(eventNotifier);
-                                break;
-                            case Attributes.DataType:
-                                statusCode = Session.NodeCache.GetDisplayText(variant.Value as NodeId);
-                                break;
-                            case Attributes.ValueRank:
-                                if (variant.Value is int refValueRank)
-                                    statusCode = ValueRankToString(refValueRank);
-                                break;
-                            case Attributes.NodeClass:
-                                if (variant.Value is int nodeClass)
-                                    statusCode = ((NodeClass)nodeClass).ToString();
-                                break;
-                            case Attributes.NodeId:
-                                if (variant.Value is int variantNodeId)
-                                    statusCode = ((NodeClass)variantNodeId).ToString();
-                                break;
-                            default:
-                                if (variant.Value is byte[] bytes)
-                                {
-                                    statusCode = Utils.ToHexString(bytes);
-                                }
-                                else
-                                {
-                                    statusCode = variant.ToString();
-                                }
-                                break;
-                        }
-                    }
-                }
-                Console.WriteLine($"Attribute Name: {attributeName} BuiltInType:{attributeBuiltInType} Value: {statusCode} Value Rank: {valueRank}");
-            }
+            AttributeData attributeData = new AttributeData();
+            attributeData.Initialise(results);
+            return attributeData;
         }
-        private static string AccessLevelToString(byte accessLevel)
-        {
-            StringBuilder buffer = new StringBuilder();
-            if (accessLevel == AccessLevels.None)
-                buffer.Append("None");
-            if ((accessLevel & AccessLevels.CurrentRead) == AccessLevels.CurrentRead)
-                buffer.Append("Read");
-            if ((accessLevel & AccessLevels.CurrentWrite) == AccessLevels.CurrentWrite)
-                if (buffer.Length > 0)
-                    buffer.Append(" | ");
-                buffer.Append("Write");
-            if ((accessLevel & AccessLevels.HistoryRead) == AccessLevels.HistoryRead)
-                if (buffer.Length > 0)
-                    buffer.Append(" | ");
-                buffer.Append("HistoryRead");
-            if ((accessLevel & AccessLevels.HistoryWrite) == AccessLevels.HistoryWrite)
-                if (buffer.Length > 0)
-                    buffer.Append(" | ");
-                buffer.Append("HistoryWrite");
-            if ((accessLevel & AccessLevels.SemanticChange) == AccessLevels.SemanticChange)
-                if (buffer.Length > 0)
-                    buffer.Append(" | ");
-                buffer.Append("SemanticChange");
-            return buffer.ToString();
-        }
-        private static string EventNotifierToString(byte eventNotifier)
-        {
-            StringBuilder buffer = new StringBuilder();
-            if (eventNotifier == EventNotifiers.None)
-                buffer.Append("None");
-            if ((eventNotifier & EventNotifiers.SubscribeToEvents) == EventNotifiers.SubscribeToEvents)
-                buffer.Append("Subscribe");
-            if ((eventNotifier & EventNotifiers.HistoryRead) == EventNotifiers.HistoryRead)
-                if (buffer.Length > 0)
-                    buffer.Append(" | ");
-                buffer.Append("HistoryRead");
-            if ((eventNotifier & EventNotifiers.HistoryWrite) == EventNotifiers.HistoryWrite)
-                if (buffer.Length > 0)
-                    buffer.Append(" | ");
-                buffer.Append("HistoryWrite");
-            return buffer.ToString();
-        }
-        private static string ValueRankToString(int valueRank)
-        {
-            switch (valueRank)
-            {
-                case ValueRanks.Any: return "Any";
-                case ValueRanks.Scalar: return "Scalar";
-                case ValueRanks.ScalarOrOneDimension: return "ScalarOrOneDimension";
-                case ValueRanks.OneOrMoreDimensions: return "OneOrMoreDimensions";
-                case ValueRanks.OneDimension: return "OneDimension";
-                case ValueRanks.TwoDimensions: return "TwoDimensions";
-            }
-            return valueRank.ToString();
-        }
-
-        
-
-        #region Public Methods
-
         /// <summary>
         /// Create a session with the GDS.
         /// GlobalDiscoveryServerClient class has encapsulated/wrapped the GDS call services
@@ -1603,17 +1439,12 @@ namespace Iso.Opc.ApplicationManager
                 // start reconnect sequence on communication error.
                 if (ServiceResult.IsBad(e.Status))
                 {
-                    if (_reconnectPeriod <= 0)
-                    {
-                        Console.WriteLine($"{e.CurrentTime} Session communication error: {e.Status}");
-                        return;
-                    }
-                    Console.WriteLine($"{e.CurrentTime} Reconnecting in: {_reconnectPeriod}");
+                    Console.WriteLine($"{e.CurrentTime} Reconnecting in: {ReconnectPeriod}");
                     if (SessionReconnectHandler != null) 
                         return;
                     ReconnectStartingHandler?.Invoke(this, e);
                     SessionReconnectHandler = new SessionReconnectHandler();
-                    SessionReconnectHandler.BeginReconnect(Session, _reconnectPeriod * 1000, ReconnectComplete);
+                    SessionReconnectHandler.BeginReconnect(Session, ReconnectPeriod * 1000, ReconnectComplete);
                     return;
                 }
                 // update status.
