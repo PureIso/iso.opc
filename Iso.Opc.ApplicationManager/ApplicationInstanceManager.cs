@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading.Tasks;
 using Iso.Opc.ApplicationManager.Models;
 using Opc.Ua;
@@ -26,6 +25,7 @@ namespace Iso.Opc.ApplicationManager
         #endregion
 
         #region Fields
+        private X509Certificate2 _certificate;
         private List<List<ReferenceDescription>> _referenceDescriptions;
         #endregion
 
@@ -43,7 +43,8 @@ namespace Iso.Opc.ApplicationManager
         public Session Session { get; set; }
         public EndpointDescription SessionEndpointDescription { get; set; }
         public Dictionary<string, ReferenceDescription> ReferenceDescriptionDictionary { get; set; }
-        public List<ExtendedReferenceDescription> ExtendedReferenceDescriptions { get; set; }
+        public List<ExtendedDataDescription> ExtendedReferenceDescriptions { get; set; }
+        public bool AutomaticallyAddAppCertToTrustStore { get; set; }
         #endregion
 
         #region Constructor
@@ -59,11 +60,13 @@ namespace Iso.Opc.ApplicationManager
         /// <param name="discoveryUrls"></param>
         /// <param name="wellKnownDiscoveryUrls"></param>
         /// <param name="applicationType"></param>
+        /// <param name="addAppCertToTrustedStore"></param>
         public ApplicationInstanceManager(string applicationName, string applicationUri, 
             StringCollection baseAddress, StringCollection serverCapabilities, string endpointUrl, 
             string endpointApplicationUri, StringCollection discoveryUrls, StringCollection wellKnownDiscoveryUrls,
-            ApplicationType applicationType)
+            ApplicationType applicationType, bool addAppCertToTrustedStore = false)
         {
+            AutomaticallyAddAppCertToTrustStore = addAppCertToTrustedStore;
             applicationUri = Utils.ReplaceLocalhost(applicationUri);
             if (discoveryUrls != null)
             {
@@ -178,7 +181,7 @@ namespace Iso.Opc.ApplicationManager
             configuration.TraceConfiguration = GetTraceConfiguration();
             return configuration;
         }
-        private static SecurityConfiguration GetSecurityConfiguration(string applicationName)
+        private SecurityConfiguration GetSecurityConfiguration(string applicationName)
         {
             SecurityConfiguration securityConfiguration = new SecurityConfiguration();
             //ApplicationCertificate
@@ -237,7 +240,7 @@ namespace Iso.Opc.ApplicationManager
                 StoreType = CertificateStoreType.Directory,
                 StorePath = trustedUserCertificateDirectory
             };
-            securityConfiguration.AddAppCertToTrustedStore = true;
+            securityConfiguration.AddAppCertToTrustedStore = AutomaticallyAddAppCertToTrustStore;
             securityConfiguration.AutoAcceptUntrustedCertificates = true;
             securityConfiguration.RejectSHA1SignedCertificates = false;
             securityConfiguration.NonceLength = 32;
@@ -294,63 +297,61 @@ namespace Iso.Opc.ApplicationManager
                     new SamplingRateGroup{Count = 20, Increment = 500, Start = 1000}
                 }
             };
-            ServerSecurityPolicyCollection serverSecurityPolicyCollection = new ServerSecurityPolicyCollection();
-            UserTokenPolicyCollection userTokenPolicyCollection = new UserTokenPolicyCollection();
-            userTokenPolicyCollection = new UserTokenPolicyCollection
+            UserTokenPolicyCollection userTokenPolicyCollection = new UserTokenPolicyCollection
+            {
+                new UserTokenPolicy
                 {
-                    new UserTokenPolicy
-                    {
-                        TokenType = UserTokenType.Anonymous,
-                        SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#None"
-                    },
-                    new UserTokenPolicy
-                    {
-                        TokenType = UserTokenType.UserName,
-                        SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256"
-                    },
-                    new UserTokenPolicy
-                    {
-                        TokenType = UserTokenType.Certificate
-                    }
-                };
-            serverSecurityPolicyCollection = new ServerSecurityPolicyCollection
+                    TokenType = UserTokenType.Anonymous,
+                    SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#None"
+                },
+                new UserTokenPolicy
                 {
-                    new ServerSecurityPolicy
-                    {
-                        SecurityMode = MessageSecurityMode.SignAndEncrypt,
-                        SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256"
-                    },
-                    new ServerSecurityPolicy
-                    {
-                        SecurityMode = MessageSecurityMode.SignAndEncrypt,
-                        SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep"
-                    },
-                    new ServerSecurityPolicy
-                    {
-                        SecurityMode = MessageSecurityMode.SignAndEncrypt,
-                        SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss"
-                    },
-                    new ServerSecurityPolicy
-                    {
-                        SecurityMode = MessageSecurityMode.Sign,
-                        SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256"
-                    },
-                    new ServerSecurityPolicy
-                    {
-                        SecurityMode = MessageSecurityMode.Sign,
-                        SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep"
-                    },
-                    new ServerSecurityPolicy
-                    {
-                        SecurityMode = MessageSecurityMode.Sign,
-                        SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss"
-                    },
-                    new ServerSecurityPolicy
-                    {
-                        SecurityMode = MessageSecurityMode.None,
-                        SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#None"
-                    }
-                };
+                    TokenType = UserTokenType.UserName,
+                    SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256"
+                },
+                new UserTokenPolicy
+                {
+                    TokenType = UserTokenType.Certificate
+                }
+            };
+            ServerSecurityPolicyCollection serverSecurityPolicyCollection = new ServerSecurityPolicyCollection
+            {
+                new ServerSecurityPolicy
+                {
+                    SecurityMode = MessageSecurityMode.SignAndEncrypt,
+                    SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256"
+                },
+                new ServerSecurityPolicy
+                {
+                    SecurityMode = MessageSecurityMode.SignAndEncrypt,
+                    SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep"
+                },
+                new ServerSecurityPolicy
+                {
+                    SecurityMode = MessageSecurityMode.SignAndEncrypt,
+                    SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss"
+                },
+                new ServerSecurityPolicy
+                {
+                    SecurityMode = MessageSecurityMode.Sign,
+                    SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256"
+                },
+                new ServerSecurityPolicy
+                {
+                    SecurityMode = MessageSecurityMode.Sign,
+                    SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep"
+                },
+                new ServerSecurityPolicy
+                {
+                    SecurityMode = MessageSecurityMode.Sign,
+                    SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss"
+                },
+                new ServerSecurityPolicy
+                {
+                    SecurityMode = MessageSecurityMode.None,
+                    SecurityPolicyUri = "http://opcfoundation.org/UA/SecurityPolicy#None"
+                }
+            };
             serverConfiguration.RegistrationEndpoint = registrationEndpoint;
             if (applicationType == ApplicationType.DiscoveryServer)
             {
@@ -469,8 +470,156 @@ namespace Iso.Opc.ApplicationManager
             };
             return traceConfiguration;
         }
-
+        private static string SelectServerUrl(IList<string> discoveryUrls)
+        {
+            if (discoveryUrls == null || discoveryUrls.Count == 0)
+                return null;
+            string url = null;
+            // always use opc.tcp by default.
+            foreach (string discoveryUrl in discoveryUrls)
+            {
+                if (!discoveryUrl.StartsWith("opc.tcp://", StringComparison.Ordinal))
+                    continue;
+                url = discoveryUrl;
+                break;
+            }
+            // try HTTPS if no opc.tcp.
+            if (url == null)
+            {
+                foreach (string discoveryUrl in discoveryUrls)
+                {
+                    if (!discoveryUrl.StartsWith("https://", StringComparison.Ordinal))
+                        continue;
+                    url = discoveryUrl;
+                    break;
+                }
+            }
+            // use the first URL if nothing else.
+            return url ?? discoveryUrls[0];
+        }
+        private ApplicationRecordDataType FindRegisteredApplications()
+        {
+            if (!GlobalDiscoveryServerClient.IsConnected)
+                return null;
+            //Application user access required
+            ApplicationRecordDataType[] records = GlobalDiscoveryServerClient.FindApplication(ApplicationInstance.ApplicationConfiguration.ApplicationUri);
+            if (records != null && records.Length > 0)
+                return records[0];     
+            ApplicationRecordDataType applicationRecordDataType = new ApplicationRecordDataType
+            {
+                ApplicationType = ApplicationInstance.ApplicationConfiguration.ApplicationType,
+                ApplicationNames = new LocalizedText[] { ApplicationInstance.ApplicationConfiguration.ApplicationName },
+                ApplicationUri = ApplicationInstance.ApplicationConfiguration.ApplicationUri,
+                ProductUri = ApplicationInstance.ApplicationConfiguration.ProductUri,
+            };
+            if (ApplicationInstance.ApplicationConfiguration.ApplicationType != ApplicationType.Client)
+            {
+                if (ApplicationInstance.ApplicationConfiguration.ServerConfiguration == null)
+                    return null;
+                if (ApplicationInstance.ApplicationConfiguration.ServerConfiguration.BaseAddresses == null)
+                    return null;
+                applicationRecordDataType.DiscoveryUrls =
+                    ApplicationInstance.ApplicationConfiguration.ServerConfiguration.BaseAddresses;
+                applicationRecordDataType.ServerCapabilities =
+                    ApplicationInstance.ApplicationConfiguration.ServerConfiguration.ServerCapabilities;
+            }
+            NodeId applicationId = GlobalDiscoveryServerClient.RegisterApplication(applicationRecordDataType);
+            if (applicationId == null)
+                return null;
+            applicationRecordDataType.ApplicationId = applicationId;
+            return applicationRecordDataType;
+        }
         #region Certificate Helper
+        private void CertificateRequestChecker()
+        {
+            try
+            {
+                NodeId requestId = NodeId.Parse(RegisteredApplication.CertificateRequestId);
+                byte[] certificate = GlobalDiscoveryServerClient.FinishRequest(
+                    RegisteredApplication.ApplicationId,
+                    requestId,
+                    out byte[] privateKeyPFX,
+                    out byte[][] issuerCertificates);
+
+                if (certificate == null)
+                {
+                    Task.Delay(1000);
+                    CertificateRequestChecker();
+                    return;
+                }
+                X509Certificate2 newCert = new X509Certificate2(certificate);
+                if (!string.IsNullOrEmpty(RegisteredApplication.CertificateStorePath) && !String.IsNullOrEmpty(RegisteredApplication.CertificateSubjectName))
+                {
+                    CertificateIdentifier cid = new CertificateIdentifier()
+                    {
+                        StorePath = RegisteredApplication.CertificateStorePath,
+                        StoreType = global::Opc.Ua.CertificateStoreIdentifier.DetermineStoreType(RegisteredApplication.CertificateStorePath),
+                        SubjectName = RegisteredApplication.CertificateSubjectName.Replace("localhost", Utils.GetHostName())
+                    };
+                    // update store
+                    using (ICertificateStore store = global::Opc.Ua.CertificateStoreIdentifier.OpenStore(RegisteredApplication.CertificateStorePath))
+                    {
+                        // if we used a CSR, we already have a private key and therefore didn't request one from the GDS
+                        // in this case, privateKey is null
+                        if (privateKeyPFX == null)
+                        {
+                            X509Certificate2 oldCertificate = cid.Find(true).Result;
+                            if (oldCertificate != null && oldCertificate.HasPrivateKey)
+                            {
+                                oldCertificate = cid.LoadPrivateKey(string.Empty).Result;
+                                newCert = CertificateFactory.CreateCertificateWithPrivateKey(newCert, oldCertificate);
+                                store.Delete(oldCertificate.Thumbprint);
+                            }
+                            else
+                            {
+                                throw new ServiceResultException("Failed to merge signed certificate with the private key.");
+                            }
+                        }
+                        else
+                        {
+                            newCert = new X509Certificate2(privateKeyPFX, string.Empty, X509KeyStorageFlags.Exportable);
+                            newCert = CertificateFactory.Load(newCert, true);
+                        }
+                        store.Add(newCert);
+                    }
+                }
+                else
+                {
+                    string absoluteCertificatePublicKeyPath = Utils.GetAbsoluteFilePath(RegisteredApplication.CertificatePublicKeyPath, true, false, false) ?? RegisteredApplication.CertificatePublicKeyPath;
+                    FileInfo file = new FileInfo(absoluteCertificatePublicKeyPath);
+                    byte[] exportedCert = string.Compare(file.Extension, ".PEM", StringComparison.OrdinalIgnoreCase) == 0 ?
+                            CertificateFactory.ExportCertificateAsPEM(newCert) :
+                            newCert.Export(X509ContentType.Cert);
+                    File.WriteAllBytes(absoluteCertificatePublicKeyPath, exportedCert);
+                }
+
+                // update trust list.
+                if (!string.IsNullOrEmpty(RegisteredApplication.TrustListStorePath))
+                {
+                    using (ICertificateStore store = global::Opc.Ua.CertificateStoreIdentifier.OpenStore(RegisteredApplication.TrustListStorePath))
+                    {
+                        foreach (byte[] issuerCertificate in issuerCertificates)
+                        {
+                            X509Certificate2 x509 = new X509Certificate2(issuerCertificate);
+                            X509Certificate2Collection certs = store.FindByThumbprint(x509.Thumbprint).Result;
+                            if (certs.Count == 0)
+                            {
+                                store.Add(new X509Certificate2(issuerCertificate)).Wait();
+                            }
+                        }
+                    }
+                }
+
+                _certificate = newCert;
+            }
+            catch (Exception exception)
+            {
+                if (exception is ServiceResultException sre && sre.StatusCode == StatusCodes.BadNothingToDo)
+                {
+                    return;
+                }
+            }
+        }
         private static async Task DeleteApplicationInstanceCertificate(ApplicationConfiguration applicationConfiguration)
         {
             // create a default certificate id none specified.
@@ -580,7 +729,7 @@ namespace Iso.Opc.ApplicationManager
             X509Certificate2 certificate = CertificateFactory.CreateCertificate(
                 applicationCertificate.StoreType,
                 applicationCertificate.StorePath,
-                null,                               
+                null,
                 applicationConfiguration.ApplicationUri,
                 applicationConfiguration.ApplicationName,
                 applicationCertificate.SubjectName,
@@ -601,12 +750,12 @@ namespace Iso.Opc.ApplicationManager
             }
             return certificate;
         }
-        private static ApplicationConfiguration CheckApplicationInstanceCertificate(ApplicationConfiguration applicationConfiguration, 
+        private static ApplicationConfiguration CheckApplicationInstanceCertificate(ApplicationConfiguration applicationConfiguration,
             ushort minimumKeySize = CertificateFactory.defaultKeySize, ushort lifeTimeInMonths = CertificateFactory.defaultLifeTime)
         {
             Console.WriteLine("Checking application instance certificate.");
             if (applicationConfiguration == null)
-                return null; 
+                return null;
             //Find the existing certificate.
             CertificateIdentifier applicationCertificateIdentifier = applicationConfiguration.SecurityConfiguration.ApplicationCertificate;
             if (applicationCertificateIdentifier == null)
@@ -722,68 +871,9 @@ namespace Iso.Opc.ApplicationManager
             return null;
         }
         #endregion
-        private static string SelectServerUrl(IList<string> discoveryUrls)
-        {
-            if (discoveryUrls == null || discoveryUrls.Count == 0)
-                return null;
-            string url = null;
-            // always use opc.tcp by default.
-            foreach (string discoveryUrl in discoveryUrls)
-            {
-                if (!discoveryUrl.StartsWith("opc.tcp://", StringComparison.Ordinal))
-                    continue;
-                url = discoveryUrl;
-                break;
-            }
-            // try HTTPS if no opc.tcp.
-            if (url == null)
-            {
-                foreach (string discoveryUrl in discoveryUrls)
-                {
-                    if (!discoveryUrl.StartsWith("https://", StringComparison.Ordinal))
-                        continue;
-                    url = discoveryUrl;
-                    break;
-                }
-            }
-            // use the first URL if nothing else.
-            return url ?? discoveryUrls[0];
-        }
-        private ApplicationRecordDataType FindRegisteredApplications()
-        {
-            if (!GlobalDiscoveryServerClient.IsConnected)
-                return null;
-            //Application user access required
-            ApplicationRecordDataType[] records = GlobalDiscoveryServerClient.FindApplication(ApplicationInstance.ApplicationConfiguration.ApplicationUri);
-            if (records != null && records.Length > 0)
-                return records[0];     
-            ApplicationRecordDataType applicationRecordDataType = new ApplicationRecordDataType
-            {
-                ApplicationType = ApplicationInstance.ApplicationConfiguration.ApplicationType,
-                ApplicationNames = new LocalizedText[] { ApplicationInstance.ApplicationConfiguration.ApplicationName },
-                ApplicationUri = ApplicationInstance.ApplicationConfiguration.ApplicationUri,
-                ProductUri = ApplicationInstance.ApplicationConfiguration.ProductUri,
-            };
-            if (ApplicationInstance.ApplicationConfiguration.ApplicationType != ApplicationType.Client)
-            {
-                if (ApplicationInstance.ApplicationConfiguration.ServerConfiguration == null)
-                    return null;
-                if (ApplicationInstance.ApplicationConfiguration.ServerConfiguration.BaseAddresses == null)
-                    return null;
-                applicationRecordDataType.DiscoveryUrls =
-                    ApplicationInstance.ApplicationConfiguration.ServerConfiguration.BaseAddresses;
-                applicationRecordDataType.ServerCapabilities =
-                    ApplicationInstance.ApplicationConfiguration.ServerConfiguration.ServerCapabilities;
-            }
-            NodeId applicationId = GlobalDiscoveryServerClient.RegisterApplication(applicationRecordDataType);
-            if (applicationId == null)
-                return null;
-            applicationRecordDataType.ApplicationId = applicationId;
-            return applicationRecordDataType;
-        }
         #endregion
 
-        #region Public Client Methods
+        #region Public Methods
         /// <summary>
         /// The QueryServers Method is similar to the FindServers service except that it
         /// provides more advanced search and filter criteria
@@ -846,27 +936,7 @@ namespace Iso.Opc.ApplicationManager
                 return false;
             }
         }
-        public List<ReferenceDescription> GetRootObjectReferenceDescriptions()
-        {
-            DataDescription dataDescription = new DataDescription
-            {
-                AttributeData = null,
-                ReferenceDescription = ReferenceDescriptionDictionary[Root.NameObjects]
-            };
-            return BrowseReferenceDescription(dataDescription);
-        }
-        public List<ReferenceDescription> GetControllersReferenceDescriptions()
-        {
-            //We need to query the parent which will give us the information about the controllers
-            GetRootObjectReferenceDescriptions();
-            DataDescription dataDescription = new DataDescription
-            {
-                AttributeData = null,
-                ReferenceDescription = ReferenceDescriptionDictionary[NameObject.Controllers]
-            };
-            return BrowseReferenceDescription(dataDescription);
-        }
-        public List<ReferenceDescription> BrowseReferenceDescription(DataDescription parentReferenceDescription = null)
+        public List<ReferenceDescription> BrowseReferenceDescription(DataDescription parentDataDescription = null, bool recursiveCheck = true)
         {
             BrowseDescriptionCollection browseDescriptionCollection = new BrowseDescriptionCollection();
             BrowseDescription browseDescription = new BrowseDescription
@@ -879,16 +949,16 @@ namespace Iso.Opc.ApplicationManager
             };
             //Define the node to browse
             NodeId nodeToBrowse;
-            if (_referenceDescriptions == null || parentReferenceDescription == null)
+            if (_referenceDescriptions == null || parentDataDescription == null)
             {
                 nodeToBrowse = new NodeId(global::Opc.Ua.Objects.RootFolder,0);
-                ExtendedReferenceDescriptions = new List<ExtendedReferenceDescription>();
+                ExtendedReferenceDescriptions = new List<ExtendedDataDescription>();
                 ReferenceDescriptionDictionary = new Dictionary<string, ReferenceDescription>();
                 _referenceDescriptions = new List<List<ReferenceDescription>>();
             }
             else
             {
-                nodeToBrowse = ExpandedNodeId.ToNodeId(parentReferenceDescription.ReferenceDescription.NodeId, Session.NamespaceUris);    
+                nodeToBrowse = ExpandedNodeId.ToNodeId(parentDataDescription.ReferenceDescription.NodeId, Session.NamespaceUris);    
             }
             browseDescription.NodeId = nodeToBrowse;
             browseDescriptionCollection.Add(browseDescription);
@@ -909,24 +979,36 @@ namespace Iso.Opc.ApplicationManager
             if (browseResultCollection == null || !browseResultCollection.Any())
                 return null;
             //Flatten the reference descriptions
-            List<ReferenceDescription> referenceDescriptions = browseResultCollection
+            List<ReferenceDescription> flattenedReferenceDescriptions = browseResultCollection
                 .Where(x => x.References != null)
                 .Select(y => y.References.ToList()).SelectMany(i => i).ToList();
-            if (!referenceDescriptions.Any())
+            if (!flattenedReferenceDescriptions.Any())
                 return null;
             if (ReferenceDescriptionDictionary == null || !ReferenceDescriptionDictionary.Any())
             {
                 //We know that this 3 types / object always exist
-                if (ReferenceDescriptionDictionary != null && (!ReferenceDescriptionDictionary.ContainsKey(Root.NameObjects) || ReferenceDescriptionDictionary[Root.NameObjects] == null))
-                    ReferenceDescriptionDictionary[Root.NameObjects] = referenceDescriptions.FirstOrDefault(x =>
-                    string.Equals(x.BrowseName.Name, Root.NameObjects, StringComparison.CurrentCultureIgnoreCase) &&
-                    string.Equals(x.DisplayName.Text, Root.NameObjects, StringComparison.CurrentCultureIgnoreCase));
+                if (ReferenceDescriptionDictionary != null &&
+                    (!ReferenceDescriptionDictionary.ContainsKey(Root.NameObjects) ||
+                     ReferenceDescriptionDictionary[Root.NameObjects] == null))
+                {
+                    ReferenceDescriptionDictionary[Root.NameObjects] = flattenedReferenceDescriptions.FirstOrDefault(x =>
+                        string.Equals(x.BrowseName.Name, Root.NameObjects, StringComparison.CurrentCultureIgnoreCase) &&
+                        string.Equals(x.DisplayName.Text, Root.NameObjects, StringComparison.CurrentCultureIgnoreCase));
+
+                    AttributeData attributeData = ReadAttributes(ReferenceDescriptionDictionary[Root.NameObjects]);
+                    DataDescription dataDescription = new DataDescription
+                    {
+                        AttributeData = attributeData,
+                        ReferenceDescription = ReferenceDescriptionDictionary[Root.NameObjects]
+                    };
+                    BrowseReferenceDescription(dataDescription);
+                }
                 if (ReferenceDescriptionDictionary != null && (!ReferenceDescriptionDictionary.ContainsKey(Root.NameTypes) || ReferenceDescriptionDictionary[Root.NameTypes] == null))
-                    ReferenceDescriptionDictionary[Root.NameTypes] = referenceDescriptions.FirstOrDefault(x =>
+                    ReferenceDescriptionDictionary[Root.NameTypes] = flattenedReferenceDescriptions.FirstOrDefault(x =>
                     string.Equals(x.BrowseName.Name, Root.NameTypes, StringComparison.CurrentCultureIgnoreCase) &&
                     string.Equals(x.DisplayName.Text, Root.NameTypes, StringComparison.CurrentCultureIgnoreCase));
                 if (ReferenceDescriptionDictionary != null && (!ReferenceDescriptionDictionary.ContainsKey(Root.NameViews) || ReferenceDescriptionDictionary[Root.NameViews] == null))
-                    ReferenceDescriptionDictionary[Root.NameViews] = referenceDescriptions.FirstOrDefault(x =>
+                    ReferenceDescriptionDictionary[Root.NameViews] = flattenedReferenceDescriptions.FirstOrDefault(x =>
                     string.Equals(x.BrowseName.Name, Root.NameViews, StringComparison.CurrentCultureIgnoreCase) &&
                     string.Equals(x.DisplayName.Text, Root.NameViews, StringComparison.CurrentCultureIgnoreCase));
             }
@@ -934,23 +1016,28 @@ namespace Iso.Opc.ApplicationManager
             {
                 //This section contains only dynamic types / objects
                 //We need to iterate through the list
-                foreach (ReferenceDescription referenceDescription in referenceDescriptions)
+                foreach (ReferenceDescription referenceDescription in flattenedReferenceDescriptions)
                 {
                     AttributeData attributeData = ReadAttributes(referenceDescription);
                     DataDescription dataDescription = new DataDescription
                     {
                         AttributeData = attributeData, ReferenceDescription = referenceDescription
                     };
+
                     if (referenceDescription.NodeClass == NodeClass.Method || referenceDescription.NodeClass == NodeClass.Variable)
                     {
-                        ReferenceDescriptionDictionary[referenceDescription.BrowseName.Name] = referenceDescription;
-                        ExtendedReferenceDescription extendedReferenceDescription = ExtendedReferenceDescriptions
-                            .FirstOrDefault(x => parentReferenceDescription != null && x.ParentReferenceDescription.ReferenceDescription == parentReferenceDescription.ReferenceDescription);
+                        //Get current extended data description to modify
+                        ExtendedDataDescription extendedReferenceDescription = ExtendedReferenceDescriptions
+                            .FirstOrDefault(x =>
+                                parentDataDescription != null && x.ParentReferenceDescription.ReferenceDescription ==
+                                parentDataDescription.ReferenceDescription);
+                        //If non exist then create a new extended data description and add to master list
                         if (extendedReferenceDescription == null)
                         {
-                            extendedReferenceDescription = new ExtendedReferenceDescription(parentReferenceDescription);
+                            extendedReferenceDescription = new ExtendedDataDescription(parentDataDescription);
                             ExtendedReferenceDescriptions.Add(extendedReferenceDescription);
                         }
+                        //If current reference description is a variable or a method, add to parent extended data description
                         switch (referenceDescription.NodeClass)
                         {
                             case NodeClass.Method:
@@ -959,16 +1046,19 @@ namespace Iso.Opc.ApplicationManager
                             case NodeClass.Variable:
                                 extendedReferenceDescription.VariableReferenceDescriptions.Add(dataDescription);
                                 break;
-                        }                      
+                        }
                     }
-                    ReferenceDescriptionDictionary[referenceDescription.BrowseName.Name] = referenceDescription;
+                    else if (referenceDescription.NodeClass == NodeClass.Object && parentDataDescription != null)
+                    {
+                        //Since we only want Node class of objects to be parent nodes in the master reference description
+                        ReferenceDescriptionDictionary[referenceDescription.BrowseName.Name] = referenceDescription;
+                        if (recursiveCheck) 
+                            BrowseReferenceDescription(dataDescription);
+                    }
                 }
             }
-            return referenceDescriptions;
+            return flattenedReferenceDescriptions;
         }
-        #endregion
-
-        #region Public Methods
         public AttributeData ReadAttributes(ReferenceDescription referenceDescription)
         {
             NodeId nodeId;
@@ -1043,9 +1133,6 @@ namespace Iso.Opc.ApplicationManager
                 return false;
             }
         }
-
-        private X509Certificate2 _certificate;
-
         public bool RequestNewCertificatePullMode()
         {
             //The person asking for this certificate has to be authorized
@@ -1107,100 +1194,7 @@ namespace Iso.Opc.ApplicationManager
             }
             return true;
         }
-
-        private void CertificateRequestChecker()
-        {
-            try
-            {
-                NodeId requestId = NodeId.Parse(RegisteredApplication.CertificateRequestId);
-                byte[] privateKeyPFX = null;
-                byte[][] issuerCertificates = null;
-                byte[] certificate = GlobalDiscoveryServerClient.FinishRequest(
-                    RegisteredApplication.ApplicationId,
-                    requestId,
-                    out privateKeyPFX,
-                    out issuerCertificates);
-
-                if (certificate == null)
-                {
-                    Task.Delay(1000);
-                    CertificateRequestChecker();
-                    return;
-                }
-                X509Certificate2 newCert = new X509Certificate2(certificate);
-                if (!string.IsNullOrEmpty(RegisteredApplication.CertificateStorePath) && !String.IsNullOrEmpty(RegisteredApplication.CertificateSubjectName))
-                {
-                    CertificateIdentifier cid = new CertificateIdentifier()
-                    {
-                        StorePath = RegisteredApplication.CertificateStorePath,
-                        StoreType = global::Opc.Ua.CertificateStoreIdentifier.DetermineStoreType(RegisteredApplication.CertificateStorePath),
-                        SubjectName = RegisteredApplication.CertificateSubjectName.Replace("localhost", Utils.GetHostName())
-                    };
-                    // update store
-                    using (var store = global::Opc.Ua.CertificateStoreIdentifier.OpenStore(RegisteredApplication.CertificateStorePath))
-                    {
-                        // if we used a CSR, we already have a private key and therefore didn't request one from the GDS
-                        // in this case, privateKey is null
-                        if (privateKeyPFX == null)
-                        {
-                            X509Certificate2 oldCertificate = cid.Find(true).Result;
-                            if (oldCertificate != null && oldCertificate.HasPrivateKey)
-                            {
-                                oldCertificate = cid.LoadPrivateKey(string.Empty).Result;
-                                newCert = CertificateFactory.CreateCertificateWithPrivateKey(newCert, oldCertificate);
-                                store.Delete(oldCertificate.Thumbprint);
-                            }
-                            else
-                            {
-                                throw new ServiceResultException("Failed to merge signed certificate with the private key.");
-                            }
-                        }
-                        else
-                        {
-                            newCert = new X509Certificate2(privateKeyPFX, string.Empty, X509KeyStorageFlags.Exportable);
-                            newCert = CertificateFactory.Load(newCert, true);
-                        }
-                        store.Add(newCert);
-                    }
-                }
-                else
-                {
-                    string absoluteCertificatePublicKeyPath = Utils.GetAbsoluteFilePath(RegisteredApplication.CertificatePublicKeyPath, true, false, false) ?? RegisteredApplication.CertificatePublicKeyPath;
-                    FileInfo file = new FileInfo(absoluteCertificatePublicKeyPath);
-                    byte[] exportedCert = string.Compare(file.Extension, ".PEM", StringComparison.OrdinalIgnoreCase) == 0 ? 
-                            CertificateFactory.ExportCertificateAsPEM(newCert) : 
-                            newCert.Export(X509ContentType.Cert);
-                        File.WriteAllBytes(absoluteCertificatePublicKeyPath, exportedCert);
-                }
-
-                // update trust list.
-                if (!string.IsNullOrEmpty(RegisteredApplication.TrustListStorePath))
-                {
-                    using (ICertificateStore store = global::Opc.Ua.CertificateStoreIdentifier.OpenStore(RegisteredApplication.TrustListStorePath))
-                    {
-                        foreach (byte[] issuerCertificate in issuerCertificates)
-                        {
-                            X509Certificate2 x509 = new X509Certificate2(issuerCertificate);
-                            X509Certificate2Collection certs = store.FindByThumbprint(x509.Thumbprint).Result;
-                            if (certs.Count == 0)
-                            {
-                                store.Add(new X509Certificate2(issuerCertificate)).Wait();
-                            }
-                        }
-                    }
-                }
-
-                _certificate = newCert;
-            }
-            catch (Exception exception)
-            {
-                if (exception is ServiceResultException sre && sre.StatusCode == StatusCodes.BadNothingToDo)
-                {
-                    return;
-                }
-            }
-        }
-
+       
         public bool RegisterApplication()
         {
             if (!GlobalDiscoveryServerClient.IsConnected)
@@ -1406,21 +1400,28 @@ namespace Iso.Opc.ApplicationManager
                     e.Error == null || 
                     e.Error.Code != StatusCodes.BadCertificateUntrusted)
                 {
-                    Console.WriteLine($"Certificate not accepted: { e.Certificate.Subject} \r\n { e.Error.Code}");
+                    if (e.Error != null)
+                        Console.WriteLine($"Certificate not accepted: {e.Certificate.Subject} \r\n {e.Error.Code}");
+                    else
+                    {
+                        Console.WriteLine($"Certificate not accepted: {e.Certificate.Subject}");
+                    }
                     return;
                 }
                 e.Accept = true;
-                //Experiment
-                //TODO
-                //if (ApplicationInstance.ApplicationConfiguration.SecurityConfiguration.AddAppCertToTrustedStore)
-                //{
-                //     AddToTrustedStore(ApplicationInstance.ApplicationConfiguration,e.Certificate).Wait();
-                //}
-                Console.WriteLine($"Automatically accepted certificate: {e.Certificate.Subject}");
+                if (ApplicationInstance.ApplicationConfiguration.SecurityConfiguration.AddAppCertToTrustedStore)
+                {
+                    AddToTrustedStore(ApplicationInstance.ApplicationConfiguration, e.Certificate).Wait();
+                    Console.WriteLine($"Automatically accepted certificate and added to TrustStore: {e.Certificate.Subject}");
+                }
+                else
+                {
+                    Console.WriteLine($"Automatically accepted certificate: {e.Certificate.Subject}");
+                }
             }
-            catch
+            catch(Exception ex)
             {
-                Console.WriteLine("Error accepting certificate.");
+                Console.WriteLine($"Error accepting certificate.\r\nException:\r\n{ex.StackTrace}");
             }
         }
         private static void MonitoredItemStatusNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)

@@ -267,7 +267,7 @@
     <Compile Include="Models\AttributeData.cs" />
     <Compile Include="Models\Controllers\Process.cs" />
     <Compile Include="Models\DataDescription.cs" />
-    <Compile Include="Models\ExtendedReferenceDescription.cs" />
+    <Compile Include="Models\ExtendedDataDescription.cs" />
     <Compile Include="Models\NameObject.cs" />
     <Compile Include="Models\Root.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

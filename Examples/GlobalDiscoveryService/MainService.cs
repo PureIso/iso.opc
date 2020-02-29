@@ -51,7 +51,7 @@ namespace LocalDiscoveryService
             string endpointApplicationUri = "urn:localhost:OPCFoundation:BasicLocalDiscoveryServer";
             //Initialise
             _applicationInstanceManager = new ApplicationInstanceManager(ApplicationName, ApplicationUri,
-                baseAddress, serverCapabilities, endpointUrl, endpointApplicationUri, _globalDiscoveryServerUrls, null, ApplicationType);
+                baseAddress, serverCapabilities, endpointUrl, endpointApplicationUri, _globalDiscoveryServerUrls, null, ApplicationType, true);
             string databaseDirectory = AppDomain.CurrentDomain.BaseDirectory + "\\gds\\database";
             if (!Directory.Exists(databaseDirectory))
                 Directory.CreateDirectory(databaseDirectory);

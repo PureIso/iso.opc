@@ -54,7 +54,7 @@ namespace Server
             };
             //Initialise
             _applicationInstanceManager = new ApplicationInstanceManager(ApplicationName, ApplicationUri,
-                baseAddress, serverCapabilities, DiscoveryEndpointUrl, DiscoveryEndpointApplicationUri, discoveryUrls, null, ApplicationType);
+                baseAddress, serverCapabilities, DiscoveryEndpointUrl, DiscoveryEndpointApplicationUri, discoveryUrls, null, ApplicationType, true);
             _mainServer = new MainServer(_applicationInstanceManager);
             _mainServer.Start(_applicationInstanceManager.ApplicationInstance.ApplicationConfiguration);
             bool connected = _applicationInstanceManager.ConnectToGlobalDiscoveryServer("opc.tcp://localhost:58810/UADiscovery","appadmin", "demo");

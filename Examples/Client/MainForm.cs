@@ -44,7 +44,7 @@ namespace Client
                 if (!connectToServer)
                 {
                     _applicationInstanceManager = new ApplicationInstanceManager(ApplicationName, ApplicationUri,
-                        null, null, null, null, _globalDiscoveryServerUrls, _globalDiscoveryServerWellKnownUrls, ApplicationType);
+                        null, null, null, null, _globalDiscoveryServerUrls, _globalDiscoveryServerWellKnownUrls, ApplicationType, true);
                 }
                 if (globalDiscoveryServerUseCheckBox.Checked && !connectToServer)
                 {
@@ -81,10 +81,10 @@ namespace Client
                 bool connectedToServer = _applicationInstanceManager.ConnectToServer(serverDiscoveryURLTextBox.Text, userName, userPassword);
                 if (!connectedToServer)
                     return;
-                TreeNode[] browsedObjects = (from x in _applicationInstanceManager.ReferenceDescriptionDictionary select new TreeNode(x.Value.DisplayName.Text)).ToArray();
+
+                TreeNode[] browsedObjects = { new TreeNode(Root.NameObjects), new TreeNode(Root.NameTypes) , new TreeNode(Root.NameViews) };
                 objectTreeView.Enabled = true;
                 objectTreeView.Nodes.AddRange(browsedObjects);
-                _applicationInstanceManager.GetControllersReferenceDescriptions();
                 connectionStatusPanel.BackColor = Color.Green;
             }
             catch (Exception exception)
@@ -179,8 +179,12 @@ namespace Client
         private void ObjectTreeViewMouseDoubleClick(object sender, MouseEventArgs e)
         {
             TreeNode parentNode = objectTreeView.SelectedNode;
-            ReferenceDescription objectReference =
-                _applicationInstanceManager.ReferenceDescriptionDictionary[parentNode.Text];
+            ReferenceDescription objectReference = null;
+            if (_applicationInstanceManager.ReferenceDescriptionDictionary.ContainsKey(parentNode.Text))
+            { 
+                objectReference = _applicationInstanceManager.ReferenceDescriptionDictionary[parentNode.Text];
+            }
+
             if (objectReference == null)
                 return;
             //TODO: Tidy up
