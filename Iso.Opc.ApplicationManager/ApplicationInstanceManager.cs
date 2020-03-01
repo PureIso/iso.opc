@@ -26,7 +26,6 @@ namespace Iso.Opc.ApplicationManager
 
         #region Fields
         private X509Certificate2 _certificate;
-        private List<List<ReferenceDescription>> _referenceDescriptions;
         #endregion
 
         #region Delegates and Handlers
@@ -42,8 +41,8 @@ namespace Iso.Opc.ApplicationManager
         public RegisteredApplication RegisteredApplication { get; set; }
         public Session Session { get; set; }
         public EndpointDescription SessionEndpointDescription { get; set; }
-        public Dictionary<string, ReferenceDescription> ReferenceDescriptionDictionary { get; set; }
-        public List<ExtendedDataDescription> ExtendedReferenceDescriptions { get; set; }
+        public Dictionary<string, ExtendedDataDescription> ExtendedDataDescriptionDictionary { get; set; }
+        public Dictionary<string, ExtendedDataDescription> FlatExtendedDataDescriptionDictionary { get; set; }
         public bool AutomaticallyAddAppCertToTrustStore { get; set; }
         #endregion
 
@@ -923,7 +922,17 @@ namespace Iso.Opc.ApplicationManager
                 if (Session.Connected)
                 {
                     Session.KeepAlive += SessionKeepAlive;
-                    BrowseReferenceDescription();
+                    FlatExtendedDataDescriptionDictionary = new Dictionary<string, ExtendedDataDescription>();
+                    ExtendedDataDescriptionDictionary = new Dictionary<string, ExtendedDataDescription>();
+                    List<ExtendedDataDescription> extendedDataDescriptions = GetRootExtendedDataDescriptions();
+                    foreach (ExtendedDataDescription extendedDataDescription in extendedDataDescriptions)
+                    {
+                        if (ExtendedDataDescriptionDictionary.ContainsKey(extendedDataDescription.DataDescription
+                            .ReferenceDescription.BrowseName.Name))
+                            continue;
+                        ExtendedDataDescriptionDictionary[extendedDataDescription.DataDescription
+                            .ReferenceDescription.BrowseName.Name] = extendedDataDescription;
+                    }
                     ComplexTypeSystem typeSystemLoader = new ComplexTypeSystem(Session);
                     typeSystemLoader.Load();
                     return true;
@@ -936,7 +945,7 @@ namespace Iso.Opc.ApplicationManager
                 return false;
             }
         }
-        public List<ReferenceDescription> BrowseReferenceDescription(DataDescription parentDataDescription = null, bool recursiveCheck = true)
+        public List<ReferenceDescription> BrowseReferenceDescription(ReferenceDescription parentReferenceDescription = null)
         {
             BrowseDescriptionCollection browseDescriptionCollection = new BrowseDescriptionCollection();
             BrowseDescription browseDescription = new BrowseDescription
@@ -949,16 +958,13 @@ namespace Iso.Opc.ApplicationManager
             };
             //Define the node to browse
             NodeId nodeToBrowse;
-            if (_referenceDescriptions == null || parentDataDescription == null)
+            if (parentReferenceDescription == null)
             {
-                nodeToBrowse = new NodeId(global::Opc.Ua.Objects.RootFolder,0);
-                ExtendedReferenceDescriptions = new List<ExtendedDataDescription>();
-                ReferenceDescriptionDictionary = new Dictionary<string, ReferenceDescription>();
-                _referenceDescriptions = new List<List<ReferenceDescription>>();
+                nodeToBrowse = new NodeId(global::Opc.Ua.Objects.RootFolder, 0);
             }
             else
             {
-                nodeToBrowse = ExpandedNodeId.ToNodeId(parentDataDescription.ReferenceDescription.NodeId, Session.NamespaceUris);    
+                nodeToBrowse = ExpandedNodeId.ToNodeId(parentReferenceDescription.NodeId, Session.NamespaceUris);
             }
             browseDescription.NodeId = nodeToBrowse;
             browseDescriptionCollection.Add(browseDescription);
@@ -979,85 +985,118 @@ namespace Iso.Opc.ApplicationManager
             if (browseResultCollection == null || !browseResultCollection.Any())
                 return null;
             //Flatten the reference descriptions
-            List<ReferenceDescription> flattenedReferenceDescriptions = browseResultCollection
+            return browseResultCollection
                 .Where(x => x.References != null)
                 .Select(y => y.References.ToList()).SelectMany(i => i).ToList();
-            if (!flattenedReferenceDescriptions.Any())
+        }
+        public List<DataDescription> GetVariablesDataDescriptions(DataDescription parentDataDescription)
+        {
+            List<DataDescription> dataDescriptions = new List<DataDescription>();
+            List<ReferenceDescription> referenceDescriptions = BrowseReferenceDescription(parentDataDescription.ReferenceDescription);
+            if (!referenceDescriptions.Any())
                 return null;
-            if (ReferenceDescriptionDictionary == null || !ReferenceDescriptionDictionary.Any())
+            //We need to iterate through the list
+            foreach (ReferenceDescription referenceDescription in referenceDescriptions)
             {
-                //We know that this 3 types / object always exist
-                if (ReferenceDescriptionDictionary != null &&
-                    (!ReferenceDescriptionDictionary.ContainsKey(Root.NameObjects) ||
-                     ReferenceDescriptionDictionary[Root.NameObjects] == null))
+                if (referenceDescription.NodeClass != NodeClass.Variable)
+                    continue;
+                DataDescription dataDescription = new DataDescription
                 {
-                    ReferenceDescriptionDictionary[Root.NameObjects] = flattenedReferenceDescriptions.FirstOrDefault(x =>
-                        string.Equals(x.BrowseName.Name, Root.NameObjects, StringComparison.CurrentCultureIgnoreCase) &&
-                        string.Equals(x.DisplayName.Text, Root.NameObjects, StringComparison.CurrentCultureIgnoreCase));
-
-                    AttributeData attributeData = ReadAttributes(ReferenceDescriptionDictionary[Root.NameObjects]);
-                    DataDescription dataDescription = new DataDescription
-                    {
-                        AttributeData = attributeData,
-                        ReferenceDescription = ReferenceDescriptionDictionary[Root.NameObjects]
-                    };
-                    BrowseReferenceDescription(dataDescription);
-                }
-                if (ReferenceDescriptionDictionary != null && (!ReferenceDescriptionDictionary.ContainsKey(Root.NameTypes) || ReferenceDescriptionDictionary[Root.NameTypes] == null))
-                    ReferenceDescriptionDictionary[Root.NameTypes] = flattenedReferenceDescriptions.FirstOrDefault(x =>
-                    string.Equals(x.BrowseName.Name, Root.NameTypes, StringComparison.CurrentCultureIgnoreCase) &&
-                    string.Equals(x.DisplayName.Text, Root.NameTypes, StringComparison.CurrentCultureIgnoreCase));
-                if (ReferenceDescriptionDictionary != null && (!ReferenceDescriptionDictionary.ContainsKey(Root.NameViews) || ReferenceDescriptionDictionary[Root.NameViews] == null))
-                    ReferenceDescriptionDictionary[Root.NameViews] = flattenedReferenceDescriptions.FirstOrDefault(x =>
-                    string.Equals(x.BrowseName.Name, Root.NameViews, StringComparison.CurrentCultureIgnoreCase) &&
-                    string.Equals(x.DisplayName.Text, Root.NameViews, StringComparison.CurrentCultureIgnoreCase));
+                    AttributeData = ReadAttributes(referenceDescription),
+                    ReferenceDescription = referenceDescription
+                };
+                dataDescriptions.Add(dataDescription);
+                //if (!DataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
+                //    DataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = dataDescription;
+                //if (!FlatExtendedDataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
+                //    FlatExtendedDataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = methodDataDescription;
             }
-            else
+            return dataDescriptions;
+        }
+        public List<ExtendedDataDescription> GetMethodsExtendedDescriptions(DataDescription parentDataDescription)
+        {
+            List<ExtendedDataDescription> extendedDataDescriptions = new List<ExtendedDataDescription>();
+            List<ReferenceDescription> referenceDescriptions = BrowseReferenceDescription(parentDataDescription.ReferenceDescription);
+            if (!referenceDescriptions.Any())
+                return null;
+            //We need to iterate through the list
+            foreach (ReferenceDescription referenceDescription in referenceDescriptions)
             {
-                //This section contains only dynamic types / objects
-                //We need to iterate through the list
-                foreach (ReferenceDescription referenceDescription in flattenedReferenceDescriptions)
+                if (referenceDescription.NodeClass != NodeClass.Method) 
+                    continue;
+                DataDescription dataDescription = new DataDescription
                 {
-                    AttributeData attributeData = ReadAttributes(referenceDescription);
-                    DataDescription dataDescription = new DataDescription
-                    {
-                        AttributeData = attributeData, ReferenceDescription = referenceDescription
-                    };
-
-                    if (referenceDescription.NodeClass == NodeClass.Method || referenceDescription.NodeClass == NodeClass.Variable)
-                    {
-                        //Get current extended data description to modify
-                        ExtendedDataDescription extendedReferenceDescription = ExtendedReferenceDescriptions
-                            .FirstOrDefault(x =>
-                                parentDataDescription != null && x.ParentReferenceDescription.ReferenceDescription ==
-                                parentDataDescription.ReferenceDescription);
-                        //If non exist then create a new extended data description and add to master list
-                        if (extendedReferenceDescription == null)
-                        {
-                            extendedReferenceDescription = new ExtendedDataDescription(parentDataDescription);
-                            ExtendedReferenceDescriptions.Add(extendedReferenceDescription);
-                        }
-                        //If current reference description is a variable or a method, add to parent extended data description
-                        switch (referenceDescription.NodeClass)
-                        {
-                            case NodeClass.Method:
-                                extendedReferenceDescription.MethodReferenceDescriptions.Add(dataDescription);
-                                break;
-                            case NodeClass.Variable:
-                                extendedReferenceDescription.VariableReferenceDescriptions.Add(dataDescription);
-                                break;
-                        }
-                    }
-                    else if (referenceDescription.NodeClass == NodeClass.Object && parentDataDescription != null)
-                    {
-                        //Since we only want Node class of objects to be parent nodes in the master reference description
-                        ReferenceDescriptionDictionary[referenceDescription.BrowseName.Name] = referenceDescription;
-                        if (recursiveCheck) 
-                            BrowseReferenceDescription(dataDescription);
-                    }
-                }
+                    AttributeData = ReadAttributes(referenceDescription),
+                    ReferenceDescription = referenceDescription
+                };
+                ExtendedDataDescription methodDataDescription = new ExtendedDataDescription
+                {
+                    DataDescription = dataDescription,
+                    VariableDataDescriptions = GetVariablesDataDescriptions(dataDescription)
+                };
+                extendedDataDescriptions.Add(methodDataDescription);
+                if (!FlatExtendedDataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
+                    FlatExtendedDataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = methodDataDescription;
             }
-            return flattenedReferenceDescriptions;
+            return extendedDataDescriptions;
+        }
+        public List<ExtendedDataDescription> GetObjectExtendedDataDescription(DataDescription parentDataDescription)
+        {
+            List<ExtendedDataDescription> extendedDataDescriptions = new List<ExtendedDataDescription>();
+            List<ReferenceDescription> referenceDescriptions = BrowseReferenceDescription(parentDataDescription.ReferenceDescription);
+            if (!referenceDescriptions.Any())
+                return null;
+            //We need to iterate through the list
+            foreach (ReferenceDescription referenceDescription in referenceDescriptions)
+            {
+                if (referenceDescription.NodeClass != NodeClass.Object)
+                    continue;
+                DataDescription dataDescription = new DataDescription
+                {
+                    AttributeData = ReadAttributes(referenceDescription),
+                    ReferenceDescription = referenceDescription
+                };
+                ExtendedDataDescription objectDataDescription = new ExtendedDataDescription
+                {
+                    DataDescription = dataDescription,
+                    VariableDataDescriptions = GetVariablesDataDescriptions(dataDescription),
+                    MethodDataDescriptions = GetMethodsExtendedDescriptions(dataDescription)
+                };
+                extendedDataDescriptions.Add(objectDataDescription);
+                if (!FlatExtendedDataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
+                    FlatExtendedDataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = objectDataDescription;
+            }
+            return extendedDataDescriptions;
+        }
+        public List<ExtendedDataDescription> GetRootExtendedDataDescriptions()
+        {
+            //Initialise the extended data descriptions
+            List<ExtendedDataDescription> extendedDataDescriptions = new List<ExtendedDataDescription>();
+            //Flatten the reference descriptions
+            //This should be the root
+            List<ReferenceDescription> referenceDescriptions = BrowseReferenceDescription();
+            if (!referenceDescriptions.Any())
+                return null;
+            //We need to iterate through the list
+            foreach (ReferenceDescription referenceDescription in referenceDescriptions)
+            {
+                DataDescription dataDescription = new DataDescription
+                {
+                    AttributeData = ReadAttributes(referenceDescription), //retrieve attributes
+                    ReferenceDescription = referenceDescription
+                };
+                ExtendedDataDescription extendedDataDescription = new ExtendedDataDescription
+                {
+                    DataDescription = dataDescription,
+                    VariableDataDescriptions = GetVariablesDataDescriptions(dataDescription),
+                    MethodDataDescriptions = GetMethodsExtendedDescriptions(dataDescription),
+                    ObjectDataDescriptions = GetObjectExtendedDataDescription(dataDescription)
+                };
+                extendedDataDescriptions.Add(extendedDataDescription);
+                if (!FlatExtendedDataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
+                    FlatExtendedDataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = extendedDataDescription;
+            }
+            return extendedDataDescriptions;
         }
         public AttributeData ReadAttributes(ReferenceDescription referenceDescription)
         {
@@ -1194,7 +1233,6 @@ namespace Iso.Opc.ApplicationManager
             }
             return true;
         }
-       
         public bool RegisterApplication()
         {
             if (!GlobalDiscoveryServerClient.IsConnected)

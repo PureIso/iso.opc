@@ -4,15 +4,24 @@ namespace Iso.Opc.ApplicationManager.Models
 {
     public class ExtendedDataDescription
     {
-        public DataDescription ParentReferenceDescription { get; }
-        public List<DataDescription> VariableReferenceDescriptions { get; set; }
-        public List<DataDescription> MethodReferenceDescriptions { get; set; }
+        public DataDescription DataDescription { get; set; }
+        public List<DataDescription> VariableDataDescriptions { get; set; }
+        public List<ExtendedDataDescription> MethodDataDescriptions { get; set; }
+        public List<ExtendedDataDescription> ObjectDataDescriptions { get; set; }
 
-        public ExtendedDataDescription(DataDescription parent)
+        public ExtendedDataDescription()
         {
-            ParentReferenceDescription = parent;
-            VariableReferenceDescriptions = new List<DataDescription>();
-            MethodReferenceDescriptions = new List<DataDescription>();
+            DataDescription = new DataDescription();
+            VariableDataDescriptions = new List<DataDescription>();
+            MethodDataDescriptions = new List<ExtendedDataDescription>();
+            ObjectDataDescriptions = new List<ExtendedDataDescription>();
+        }
+        public ExtendedDataDescription(DataDescription dataDescription)
+        {
+            DataDescription = dataDescription;
+            VariableDataDescriptions = new List<DataDescription>();
+            MethodDataDescriptions = new List<ExtendedDataDescription>();
+            ObjectDataDescriptions = new List<ExtendedDataDescription>();
         }
     }
 }

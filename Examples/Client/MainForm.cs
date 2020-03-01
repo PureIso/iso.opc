@@ -159,44 +159,43 @@ namespace Client
         }
         private void button1_Click(object sender, EventArgs e)
         {
-            DataDescription objectReference =
-                _applicationInstanceManager.ExtendedReferenceDescriptions[0].ParentReferenceDescription;
-            DataDescription methodReference =
-                _applicationInstanceManager.ExtendedReferenceDescriptions[0].MethodReferenceDescriptions[0];
-            NodeId objectNodeId = new NodeId(objectReference.ReferenceDescription.NodeId.Identifier, objectReference.ReferenceDescription.NodeId.NamespaceIndex);
-            NodeId methodNodeId = new NodeId(methodReference.ReferenceDescription.NodeId.Identifier, methodReference.ReferenceDescription.NodeId.NamespaceIndex);
-            object[] arguments = new object[2];
-            arguments[0] = Convert.ToUInt32(1);
-            arguments[1] = Convert.ToUInt32(100);
-            testOutputTextBox.Clear();
-            IList<object> outputArguments = _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, arguments);
-            foreach (object outputArgument in outputArguments)
-            {
-                testOutputTextBox.Text += $"{outputArgument}\r\n";
-            }
+            //DataDescription objectReference =
+            //    _applicationInstanceManager.ExtendedReferenceDescriptions[0].DataDescription;
+            //DataDescription methodReference =
+            //    _applicationInstanceManager.ExtendedReferenceDescriptions[0].MethodDataDescriptions[0];
+            //NodeId objectNodeId = new NodeId(objectReference.ReferenceDescription.NodeId.Identifier, objectReference.ReferenceDescription.NodeId.NamespaceIndex);
+            //NodeId methodNodeId = new NodeId(methodReference.ReferenceDescription.NodeId.Identifier, methodReference.ReferenceDescription.NodeId.NamespaceIndex);
+            //object[] arguments = new object[2];
+            //arguments[0] = Convert.ToUInt32(1);
+            //arguments[1] = Convert.ToUInt32(100);
+            //testOutputTextBox.Clear();
+            //IList<object> outputArguments = _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, arguments);
+            //foreach (object outputArgument in outputArguments)
+            //{
+            //    testOutputTextBox.Text += $"{outputArgument}\r\n";
+            //}
         }
 
         private void ObjectTreeViewMouseDoubleClick(object sender, MouseEventArgs e)
         {
             TreeNode parentNode = objectTreeView.SelectedNode;
-            ReferenceDescription objectReference = null;
-            if (_applicationInstanceManager.ReferenceDescriptionDictionary.ContainsKey(parentNode.Text))
-            { 
-                objectReference = _applicationInstanceManager.ReferenceDescriptionDictionary[parentNode.Text];
+            ExtendedDataDescription objectReference = null;
+            if (_applicationInstanceManager.FlatExtendedDataDescriptionDictionary.ContainsKey(parentNode.Text))
+            {
+                objectReference = _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[parentNode.Text];
             }
-
             if (objectReference == null)
                 return;
-            //TODO: Tidy up
-            DataDescription dataDescription = new DataDescription
-            {
-                AttributeData = null,
-                ReferenceDescription = objectReference
-            };
-            List<ReferenceDescription> referenceDescriptions =  _applicationInstanceManager.BrowseReferenceDescription(dataDescription);
-            if (referenceDescriptions == null)
-                return;
-            TreeNode[] browsedObjects = (from x in referenceDescriptions select new TreeNode(x.DisplayName.Text)).ToArray();
+
+            TreeNode[] browsedObjects = (from x in objectReference.MethodDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name)).ToArray();
+            parentNode.Nodes.AddRange(browsedObjects);
+            parentNode.Expand();
+
+            browsedObjects = (from x in objectReference.VariableDataDescriptions select new TreeNode(x.ReferenceDescription.BrowseName.Name)).ToArray();
+            parentNode.Nodes.AddRange(browsedObjects);
+            parentNode.Expand();
+
+            browsedObjects = (from x in objectReference.ObjectDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name)).ToArray();
             parentNode.Nodes.AddRange(browsedObjects);
             parentNode.Expand();
         }
