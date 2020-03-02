@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using Client.Properties;
 using Iso.Opc.ApplicationManager;
 using Iso.Opc.ApplicationManager.Models;
 using Opc.Ua;
@@ -18,6 +19,8 @@ namespace Client
         #endregion
 
         #region Fields
+
+        private ImageList _imageList;
         private ApplicationInstanceManager _applicationInstanceManager;
         private readonly StringCollection _globalDiscoveryServerUrls;
         private readonly StringCollection _globalDiscoveryServerWellKnownUrls;
@@ -29,6 +32,14 @@ namespace Client
             InitializeComponent();
             _globalDiscoveryServerUrls = new StringCollection {"opc.tcp://localhost:58810/UADiscovery"}; 
             _globalDiscoveryServerWellKnownUrls = new StringCollection {"opc.tcp://localhost:58810/UADiscovery"};
+
+            // Load the images in an ImageList.
+            _imageList = new ImageList();
+            _imageList.Images.Add(Resources.folder_cog);
+            _imageList.Images.Add(Resources.folder_create);
+            _imageList.Images.Add(Resources.folder_magnifier);
+            // Assign the ImageList to the TreeView.
+            objectTreeView.ImageList = _imageList;
         }
         #endregion
 
@@ -187,15 +198,24 @@ namespace Client
             if (objectReference == null)
                 return;
 
-            TreeNode[] browsedObjects = (from x in objectReference.MethodDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name)).ToArray();
-            parentNode.Nodes.AddRange(browsedObjects);
-            parentNode.Expand();
+            TreeNode[] browsedObjects;
+            if (objectReference.MethodDataDescriptions != null)
+            {
+                browsedObjects = (from x in objectReference.MethodDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name, 0, 0)).ToArray();
+                parentNode.Nodes.AddRange(browsedObjects);
+                parentNode.Expand();
+            }
 
-            browsedObjects = (from x in objectReference.VariableDataDescriptions select new TreeNode(x.ReferenceDescription.BrowseName.Name)).ToArray();
-            parentNode.Nodes.AddRange(browsedObjects);
-            parentNode.Expand();
+            if (objectReference.VariableDataDescriptions != null)
+            {
+                browsedObjects = (from x in objectReference.VariableDataDescriptions select new TreeNode(x.ReferenceDescription.BrowseName.Name, 1, 1)).ToArray();
+                parentNode.Nodes.AddRange(browsedObjects);
+                parentNode.Expand();
+            }
 
-            browsedObjects = (from x in objectReference.ObjectDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name)).ToArray();
+            if (objectReference.ObjectDataDescriptions == null) 
+                return;
+            browsedObjects = (from x in objectReference.ObjectDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name, 2, 2)).ToArray();
             parentNode.Nodes.AddRange(browsedObjects);
             parentNode.Expand();
         }

@@ -59,5 +59,35 @@ namespace Client.Properties {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon folder_cog {
+            get {
+                object obj = ResourceManager.GetObject("folder_cog", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon folder_create {
+            get {
+                object obj = ResourceManager.GetObject("folder_create", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon folder_magnifier {
+            get {
+                object obj = ResourceManager.GetObject("folder_magnifier", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
     }
 }
