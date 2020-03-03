@@ -255,12 +255,6 @@ namespace Iso.Opc.ApplicationManager.Models
             if(NodeClass == NodeClass.Variable || NodeClass == NodeClass.VariableType)
             {
                 Value = new Variant(dataValueCollection[12].Value);
-                //Value = dataValueCollection[12].Value == null ? "" : dataValueCollection[12].Value.ToString();
-                //if (!string.IsNullOrEmpty(Value))
-                //{
-                //    ExtensionObject[] extensionObjectCollection = dataValueCollection[12].Value as ExtensionObject[];
-                //    //ParseArgument(Value);
-                //}
                 DataType = dataValueCollection[13].Value as NodeId;
                 ValueRank = (int?)dataValueCollection[14].Value ?? 0;
                 ValueRankString = ValueRankToString(ValueRank);

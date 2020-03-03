@@ -19,8 +19,6 @@ namespace Client
         #endregion
 
         #region Fields
-
-        private ImageList _imageList;
         private ApplicationInstanceManager _applicationInstanceManager;
         private readonly StringCollection _globalDiscoveryServerUrls;
         private readonly StringCollection _globalDiscoveryServerWellKnownUrls;
@@ -34,12 +32,12 @@ namespace Client
             _globalDiscoveryServerWellKnownUrls = new StringCollection {"opc.tcp://localhost:58810/UADiscovery"};
 
             // Load the images in an ImageList.
-            _imageList = new ImageList();
-            _imageList.Images.Add(Resources.folder_cog);
-            _imageList.Images.Add(Resources.folder_create);
-            _imageList.Images.Add(Resources.folder_magnifier);
+            ImageList imageList = new ImageList();
+            imageList.Images.Add(Resources.folder_cog);
+            imageList.Images.Add(Resources.folder_create);
+            imageList.Images.Add(Resources.folder_magnifier);
             // Assign the ImageList to the TreeView.
-            objectTreeView.ImageList = _imageList;
+            objectTreeView.ImageList = imageList;
         }
         #endregion
 
@@ -189,6 +187,7 @@ namespace Client
 
         private void ObjectTreeViewMouseDoubleClick(object sender, MouseEventArgs e)
         {
+            //TODO fix a lot of bugs
             TreeNode parentNode = objectTreeView.SelectedNode;
             ExtendedDataDescription objectReference = null;
             if (_applicationInstanceManager.FlatExtendedDataDescriptionDictionary.ContainsKey(parentNode.Text))
@@ -197,7 +196,37 @@ namespace Client
             }
             if (objectReference == null)
                 return;
-
+            AttributeData attributeData = objectReference.DataDescription.AttributeData;
+            ListViewItem[] items = {
+                new ListViewItem("NodeId") {SubItems = {Convert.ToString(attributeData.NodeId)}},
+                new ListViewItem("NodeClass") {SubItems = {Convert.ToString(attributeData.NodeClass)}},
+                new ListViewItem("BrowseName") {SubItems = {Convert.ToString(attributeData.BrowseName)}},
+                new ListViewItem("DisplayName") {SubItems = {Convert.ToString(attributeData.DisplayName)}},
+                new ListViewItem("Description"){SubItems = {Convert.ToString(attributeData.Description)}},
+                new ListViewItem("WriteMask"){SubItems = {Convert.ToString(attributeData.WriteMask)}},
+                new ListViewItem("UserWriteMask"){SubItems = {Convert.ToString(attributeData.UserWriteMask)}},
+                new ListViewItem("IsAbstract"){SubItems = {Convert.ToString(attributeData.IsAbstract)}},
+                new ListViewItem("Symmetric"){SubItems = {Convert.ToString(attributeData.Symmetric)}},
+                new ListViewItem("InverseName"){SubItems = {Convert.ToString(attributeData.InverseName)}},
+                new ListViewItem("ContainsNoLoops"){SubItems = {Convert.ToString(attributeData.ContainsNoLoops)}},
+                new ListViewItem("EventNotifier"){SubItems = {Convert.ToString(attributeData.EventNotifierString)}},
+                new ListViewItem("Value"){SubItems = {Convert.ToString(attributeData.Value)}},
+                new ListViewItem("DataType"){SubItems = {Convert.ToString(attributeData.DataType)}},
+                new ListViewItem("ValueRank"){SubItems = {Convert.ToString(attributeData.ValueRankString)}},
+                new ListViewItem("ArrayDimensions"){SubItems = {Convert.ToString(attributeData.ArrayDimensions)}},
+                new ListViewItem("AccessLevel"){SubItems = {Convert.ToString(attributeData.AccessLevelString)}},
+                new ListViewItem("UserAccessLevel"){SubItems = {Convert.ToString(attributeData.UserAccessLevelString)}},
+                new ListViewItem("MinimumSamplingInterval"){SubItems = {Convert.ToString(attributeData.MinimumSamplingInterval)}},
+                new ListViewItem("Historizing"){SubItems = {Convert.ToString(attributeData.Historizing)}},
+                new ListViewItem("Executable"){SubItems = {Convert.ToString(attributeData.Executable)}},
+                new ListViewItem("UserExecutable"){SubItems = {Convert.ToString(attributeData.UserExecutable)}},
+                new ListViewItem("DataTypeDefinition"){SubItems = {Convert.ToString(attributeData.DataTypeDefinition)}},
+                new ListViewItem("RolePermissions"){SubItems = {Convert.ToString(attributeData.RolePermissions)}},
+                new ListViewItem("UserRolePermissions"){SubItems = {Convert.ToString(attributeData.UserRolePermissions)}},
+                new ListViewItem("AccessRestrictions"){SubItems = {Convert.ToString(attributeData.AccessRestrictions)}},
+                new ListViewItem("AccessLevelEx"){SubItems = {Convert.ToString(attributeData.AccessLevelEx)}}
+            };
+            attributesListView.Items.AddRange(items);
             TreeNode[] browsedObjects;
             if (objectReference.MethodDataDescriptions != null)
             {
@@ -215,6 +244,7 @@ namespace Client
 
             if (objectReference.ObjectDataDescriptions == null) 
                 return;
+
             browsedObjects = (from x in objectReference.ObjectDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name, 2, 2)).ToArray();
             parentNode.Nodes.AddRange(browsedObjects);
             parentNode.Expand();

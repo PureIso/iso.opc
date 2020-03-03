@@ -61,7 +61,7 @@
             this.serverConnectContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.connectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.attributeGroupBox = new System.Windows.Forms.GroupBox();
-            this.listView1 = new System.Windows.Forms.ListView();
+            this.attributesListView = new System.Windows.Forms.ListView();
             this.attributeColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.valueColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.groupBox1.SuspendLayout();
@@ -148,7 +148,7 @@
             // 
             this.globalDiscoveryServerConnectionStatusPanel.BackColor = System.Drawing.Color.Red;
             this.globalDiscoveryServerConnectionStatusPanel.Location = new System.Drawing.Point(394, 24);
-            this.globalDiscoveryServerConnectionStatusPanel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.globalDiscoveryServerConnectionStatusPanel.Margin = new System.Windows.Forms.Padding(2);
             this.globalDiscoveryServerConnectionStatusPanel.Name = "globalDiscoveryServerConnectionStatusPanel";
             this.globalDiscoveryServerConnectionStatusPanel.Size = new System.Drawing.Size(11, 10);
             this.globalDiscoveryServerConnectionStatusPanel.TabIndex = 17;
@@ -182,7 +182,7 @@
             // 
             this.connectionStatusPanel.BackColor = System.Drawing.Color.Red;
             this.connectionStatusPanel.Location = new System.Drawing.Point(393, 96);
-            this.connectionStatusPanel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.connectionStatusPanel.Margin = new System.Windows.Forms.Padding(2);
             this.connectionStatusPanel.Name = "connectionStatusPanel";
             this.connectionStatusPanel.Size = new System.Drawing.Size(11, 10);
             this.connectionStatusPanel.TabIndex = 14;
@@ -362,7 +362,7 @@
             // 
             this.objectTreeView.Enabled = false;
             this.objectTreeView.Location = new System.Drawing.Point(7, 18);
-            this.objectTreeView.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.objectTreeView.Margin = new System.Windows.Forms.Padding(2);
             this.objectTreeView.Name = "objectTreeView";
             this.objectTreeView.Size = new System.Drawing.Size(215, 246);
             this.objectTreeView.TabIndex = 2;
@@ -371,7 +371,7 @@
             // button1
             // 
             this.button1.Location = new System.Drawing.Point(226, 18);
-            this.button1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.button1.Margin = new System.Windows.Forms.Padding(2);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(253, 25);
             this.button1.TabIndex = 1;
@@ -417,7 +417,7 @@
             // 
             // attributeGroupBox
             // 
-            this.attributeGroupBox.Controls.Add(this.listView1);
+            this.attributeGroupBox.Controls.Add(this.attributesListView);
             this.attributeGroupBox.Location = new System.Drawing.Point(578, 8);
             this.attributeGroupBox.Name = "attributeGroupBox";
             this.attributeGroupBox.Size = new System.Drawing.Size(354, 538);
@@ -425,21 +425,21 @@
             this.attributeGroupBox.TabStop = false;
             this.attributeGroupBox.Text = "Attributes";
             // 
-            // listView1
+            // attributesListView
             // 
-            this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.attributesListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.attributeColumnHeader,
             this.valueColumnHeader});
-            this.listView1.FullRowSelect = true;
-            this.listView1.GridLines = true;
-            this.listView1.HideSelection = false;
-            this.listView1.Location = new System.Drawing.Point(5, 21);
-            this.listView1.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
-            this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(343, 511);
-            this.listView1.TabIndex = 6;
-            this.listView1.UseCompatibleStateImageBehavior = false;
-            this.listView1.View = System.Windows.Forms.View.Details;
+            this.attributesListView.FullRowSelect = true;
+            this.attributesListView.GridLines = true;
+            this.attributesListView.HideSelection = false;
+            this.attributesListView.Location = new System.Drawing.Point(5, 21);
+            this.attributesListView.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
+            this.attributesListView.Name = "attributesListView";
+            this.attributesListView.Size = new System.Drawing.Size(343, 511);
+            this.attributesListView.TabIndex = 6;
+            this.attributesListView.UseCompatibleStateImageBehavior = false;
+            this.attributesListView.View = System.Windows.Forms.View.Details;
             // 
             // attributeColumnHeader
             // 
@@ -505,7 +505,7 @@
         private System.Windows.Forms.CheckBox requestNewCertificateCheckBox;
         private System.Windows.Forms.TextBox testOutputTextBox;
         private System.Windows.Forms.GroupBox attributeGroupBox;
-        private System.Windows.Forms.ListView listView1;
+        private System.Windows.Forms.ListView attributesListView;
         private System.Windows.Forms.ColumnHeader attributeColumnHeader;
         private System.Windows.Forms.ColumnHeader valueColumnHeader;
     }
