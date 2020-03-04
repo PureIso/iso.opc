@@ -1006,10 +1006,12 @@ namespace Iso.Opc.ApplicationManager
                     ReferenceDescription = referenceDescription
                 };
                 dataDescriptions.Add(dataDescription);
-                //if (!DataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
-                //    DataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = dataDescription;
-                //if (!FlatExtendedDataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
-                //    FlatExtendedDataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = methodDataDescription;
+                ExtendedDataDescription variableDataDescription = new ExtendedDataDescription
+                {
+                    DataDescription = dataDescription
+                };
+                if (!FlatExtendedDataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
+                    FlatExtendedDataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = variableDataDescription;
             }
             return dataDescriptions;
         }
