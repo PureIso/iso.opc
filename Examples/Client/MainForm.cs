@@ -19,6 +19,8 @@ namespace Client
         #endregion
 
         #region Fields
+
+        private ExtendedDataDescription _selectedExtendedDataDescription;
         private ApplicationInstanceManager _applicationInstanceManager;
         private readonly StringCollection _globalDiscoveryServerUrls;
         private readonly StringCollection _globalDiscoveryServerWellKnownUrls;
@@ -208,25 +210,32 @@ namespace Client
             Point point = (Point) ((ListView) sender)?.PointToScreen(e.Location);
             serverConnectContextMenuStrip.Show(point);
         }
-        private void button1_Click(object sender, EventArgs e)
+        private void ObjectTreeViewMouseDown(object sender, MouseEventArgs e)
         {
-            //DataDescription objectReference =
-            //    _applicationInstanceManager.ExtendedReferenceDescriptions[0].DataDescription;
-            //DataDescription methodReference =
-            //    _applicationInstanceManager.ExtendedReferenceDescriptions[0].MethodDataDescriptions[0];
-            //NodeId objectNodeId = new NodeId(objectReference.ReferenceDescription.NodeId.Identifier, objectReference.ReferenceDescription.NodeId.NamespaceIndex);
-            //NodeId methodNodeId = new NodeId(methodReference.ReferenceDescription.NodeId.Identifier, methodReference.ReferenceDescription.NodeId.NamespaceIndex);
-            //object[] arguments = new object[2];
-            //arguments[0] = Convert.ToUInt32(1);
-            //arguments[1] = Convert.ToUInt32(100);
-            //testOutputTextBox.Clear();
-            //IList<object> outputArguments = _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, arguments);
-            //foreach (object outputArgument in outputArguments)
-            //{
-            //    testOutputTextBox.Text += $"{outputArgument}\r\n";
-            //}
+            _selectedExtendedDataDescription = null;
+            if (e.Button != MouseButtons.Right)
+                return;
+            TreeNode selectedItem = (sender as TreeView)?.GetNodeAt(e.X, e.Y);
+            if (selectedItem == null)
+                return;
+            _selectedExtendedDataDescription = selectedItem.Tag as ExtendedDataDescription;
+            Point point = (Point)((TreeView)sender)?.PointToScreen(e.Location);
+            referenceDescriptionContextMenuStrip.Show(point);
         }
-
+        private void MonitorToolStripMenuItemClick(object sender, EventArgs e)
+        {
+            NodeId variableNodeId = _selectedExtendedDataDescription.VariableDataDescriptions[0].AttributeData.NodeId;
+            _applicationInstanceManager.SubscribeToNode(variableNodeId);
+        }
+        private void CallToolStripMenuItemClick(object sender, EventArgs e)
+        {
+            NodeId objectNodeId = _selectedExtendedDataDescription.DataDescription.AttributeData.NodeId;
+            NodeId methodNodeId = _selectedExtendedDataDescription.MethodDataDescriptions[0].DataDescription.AttributeData.NodeId;
+            object[] arguments = new object[2];
+            arguments[0] = Convert.ToUInt32(1);
+            arguments[1] = Convert.ToUInt32(100);
+            IList<object> outputArguments = _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, arguments);
+        }
         private void ObjectTreeViewMouseDoubleClick(object sender, MouseEventArgs e)
         {
             attributesListView.Items.Clear();
@@ -244,7 +253,8 @@ namespace Client
             {
                 browsedObjects = (from x in objectReference.MethodDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name, 0, 0)
                 {
-                    Name = x.DataDescription.ReferenceDescription.BrowseName.Name
+                    Name = x.DataDescription.ReferenceDescription.BrowseName.Name,
+                    Tag = objectReference
                 }).ToArray();
                 PopulateTreeNode(parentNode, browsedObjects);
             }
@@ -252,7 +262,8 @@ namespace Client
             {
                 browsedObjects = (from x in objectReference.VariableDataDescriptions select new TreeNode(x.ReferenceDescription.BrowseName.Name, 1, 1)
                 {
-                    Name = x.ReferenceDescription.BrowseName.Name
+                    Name = x.ReferenceDescription.BrowseName.Name,
+                    Tag = objectReference
                 }).ToArray();
                 PopulateTreeNode(parentNode, browsedObjects);
             }
@@ -260,10 +271,14 @@ namespace Client
                 return;
             browsedObjects = (from x in objectReference.ObjectDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name, 2, 2)
             {
-                Name = x.DataDescription.ReferenceDescription.BrowseName.Name
+                Name = x.DataDescription.ReferenceDescription.BrowseName.Name,
+                Tag = objectReference
             }).ToArray();
             PopulateTreeNode(parentNode, browsedObjects);
         }
+
         #endregion
+
+        
     }
 }

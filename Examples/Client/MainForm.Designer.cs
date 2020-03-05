@@ -53,9 +53,7 @@
             this.useSecurityCheckBox = new System.Windows.Forms.CheckBox();
             this.globalDiscoveryServerDiscoveryURLTextBox = new System.Windows.Forms.TextBox();
             this.referenceGroupBox = new System.Windows.Forms.GroupBox();
-            this.testOutputTextBox = new System.Windows.Forms.TextBox();
             this.objectTreeView = new System.Windows.Forms.TreeView();
-            this.button1 = new System.Windows.Forms.Button();
             this.discoveredServersListView = new System.Windows.Forms.ListView();
             this.discoveredServersColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.serverConnectContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -66,11 +64,15 @@
             this.valueColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.mainMenuStrip = new System.Windows.Forms.MenuStrip();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.referenceDescriptionContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.monitorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.callToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.groupBox1.SuspendLayout();
             this.referenceGroupBox.SuspendLayout();
             this.serverConnectContextMenuStrip.SuspendLayout();
             this.attributeGroupBox.SuspendLayout();
             this.mainMenuStrip.SuspendLayout();
+            this.referenceDescriptionContextMenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // getDiscoveryServerTrustedListButton
@@ -335,9 +337,7 @@
             // 
             // referenceGroupBox
             // 
-            this.referenceGroupBox.Controls.Add(this.testOutputTextBox);
             this.referenceGroupBox.Controls.Add(this.objectTreeView);
-            this.referenceGroupBox.Controls.Add(this.button1);
             this.referenceGroupBox.Controls.Add(this.getDiscoveryServerTrustedListButton);
             this.referenceGroupBox.Location = new System.Drawing.Point(12, 448);
             this.referenceGroupBox.Margin = new System.Windows.Forms.Padding(3, 5, 3, 5);
@@ -348,15 +348,6 @@
             this.referenceGroupBox.TabStop = false;
             this.referenceGroupBox.Text = "Reference Descriptions";
             // 
-            // testOutputTextBox
-            // 
-            this.testOutputTextBox.Location = new System.Drawing.Point(342, 75);
-            this.testOutputTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.testOutputTextBox.Multiline = true;
-            this.testOutputTextBox.Name = "testOutputTextBox";
-            this.testOutputTextBox.Size = new System.Drawing.Size(374, 77);
-            this.testOutputTextBox.TabIndex = 3;
-            // 
             // objectTreeView
             // 
             this.objectTreeView.Enabled = false;
@@ -365,16 +356,7 @@
             this.objectTreeView.Size = new System.Drawing.Size(320, 314);
             this.objectTreeView.TabIndex = 2;
             this.objectTreeView.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.ObjectTreeViewMouseDoubleClick);
-            // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(339, 28);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(380, 38);
-            this.button1.TabIndex = 1;
-            this.button1.Text = "Test";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.objectTreeView.MouseDown += new System.Windows.Forms.MouseEventHandler(this.ObjectTreeViewMouseDown);
             // 
             // discoveredServersListView
             // 
@@ -475,6 +457,29 @@
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(78, 29);
             this.aboutToolStripMenuItem.Text = "About";
             // 
+            // referenceDescriptionContextMenuStrip
+            // 
+            this.referenceDescriptionContextMenuStrip.ImageScalingSize = new System.Drawing.Size(24, 24);
+            this.referenceDescriptionContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.monitorToolStripMenuItem,
+            this.callToolStripMenuItem});
+            this.referenceDescriptionContextMenuStrip.Name = "referenceDescriptionContextMenuStrip";
+            this.referenceDescriptionContextMenuStrip.Size = new System.Drawing.Size(149, 68);
+            // 
+            // monitorToolStripMenuItem
+            // 
+            this.monitorToolStripMenuItem.Name = "monitorToolStripMenuItem";
+            this.monitorToolStripMenuItem.Size = new System.Drawing.Size(148, 32);
+            this.monitorToolStripMenuItem.Text = "Monitor";
+            this.monitorToolStripMenuItem.Click += new System.EventHandler(this.MonitorToolStripMenuItemClick);
+            // 
+            // callToolStripMenuItem
+            // 
+            this.callToolStripMenuItem.Name = "callToolStripMenuItem";
+            this.callToolStripMenuItem.Size = new System.Drawing.Size(148, 32);
+            this.callToolStripMenuItem.Text = "Call";
+            this.callToolStripMenuItem.Click += new System.EventHandler(this.CallToolStripMenuItemClick);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
@@ -492,11 +497,11 @@
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.referenceGroupBox.ResumeLayout(false);
-            this.referenceGroupBox.PerformLayout();
             this.serverConnectContextMenuStrip.ResumeLayout(false);
             this.attributeGroupBox.ResumeLayout(false);
             this.mainMenuStrip.ResumeLayout(false);
             this.mainMenuStrip.PerformLayout();
+            this.referenceDescriptionContextMenuStrip.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -525,7 +530,6 @@
         private System.Windows.Forms.ColumnHeader discoveredServersColumnHeader;
         private System.Windows.Forms.ContextMenuStrip serverConnectContextMenuStrip;
         private System.Windows.Forms.ToolStripMenuItem connectToolStripMenuItem;
-        private System.Windows.Forms.Button button1;
         private System.Windows.Forms.TreeView objectTreeView;
         private System.Windows.Forms.Panel connectionStatusPanel;
         private System.Windows.Forms.CheckBox globalDiscoveryServerUseCheckBox;
@@ -533,13 +537,15 @@
         private System.Windows.Forms.Panel globalDiscoveryServerConnectionStatusPanel;
         private System.Windows.Forms.CheckBox registerApplicationCheckBox;
         private System.Windows.Forms.CheckBox requestNewCertificateCheckBox;
-        private System.Windows.Forms.TextBox testOutputTextBox;
         private System.Windows.Forms.GroupBox attributeGroupBox;
         private System.Windows.Forms.ListView attributesListView;
         private System.Windows.Forms.ColumnHeader attributeColumnHeader;
         private System.Windows.Forms.ColumnHeader valueColumnHeader;
         private System.Windows.Forms.MenuStrip mainMenuStrip;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
+        private System.Windows.Forms.ContextMenuStrip referenceDescriptionContextMenuStrip;
+        private System.Windows.Forms.ToolStripMenuItem monitorToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem callToolStripMenuItem;
     }
 }
 

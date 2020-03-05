@@ -957,15 +957,9 @@ namespace Iso.Opc.ApplicationManager
                 ResultMask = (uint)BrowseResultMask.All
             };
             //Define the node to browse
-            NodeId nodeToBrowse;
-            if (parentReferenceDescription == null)
-            {
-                nodeToBrowse = new NodeId(global::Opc.Ua.Objects.RootFolder, 0);
-            }
-            else
-            {
-                nodeToBrowse = ExpandedNodeId.ToNodeId(parentReferenceDescription.NodeId, Session.NamespaceUris);
-            }
+            NodeId nodeToBrowse = parentReferenceDescription == null ? 
+                new NodeId(global::Opc.Ua.Objects.RootFolder, 0) : 
+                ExpandedNodeId.ToNodeId(parentReferenceDescription.NodeId, Session.NamespaceUris);
             browseDescription.NodeId = nodeToBrowse;
             browseDescriptionCollection.Add(browseDescription);
             RequestHeader requestHeader = null;
@@ -1135,6 +1129,58 @@ namespace Iso.Opc.ApplicationManager
             attributeData.Initialise(results);
             return attributeData;
         }
+
+        public Subscription Subscription { get; set; }
+        public bool SubscribeToNode(NodeId nodeId, MonitoredItemNotificationEventHandler callback=null, int publishingInterval = 1000)
+        {
+            if (Session == null)
+                return false;
+            if (Subscription == null)
+            {
+                Subscription = new Subscription
+                {
+                    PublishingEnabled = true,
+                    PublishingInterval = publishingInterval,
+                    Priority = 1,
+                    KeepAliveCount = 10,
+                    LifetimeCount = 20,
+                    MaxNotificationsPerPublish = 1000
+                };
+                Session.AddSubscription(Subscription);
+                Subscription.Create();
+            }
+
+            if (callback == null)
+                callback = MonitoredItemNotification;
+            MonitoredItem monitoredItem = new MonitoredItem {StartNodeId = nodeId, AttributeId = Attributes.Value};
+            monitoredItem.Notification += callback;
+            Subscription.AddItem(monitoredItem);
+            Subscription.ApplyChanges();
+            /**
+             *
+             * // save the object/method
+                if (nodes.Count > 2)
+                {
+                    m_objectNode = nodes[1];
+                    m_methodNode = nodes[2];
+                }
+             */
+            return true;
+        }
+        private static void MonitoredItemNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
+        {
+            try
+            {
+                if (!(e.NotificationValue is MonitoredItemNotification monitoredItemNotification))
+                    return; 
+                Console.WriteLine($"Monitored value: {monitoredItemNotification.Value.WrappedValue.ToString()}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Monitored Item Notification exception: {ex.StackTrace}");
+            }
+        }
+
         /// <summary>
         /// Create a session with the GDS.
         /// GlobalDiscoveryServerClient class has encapsulated/wrapped the GDS call services
