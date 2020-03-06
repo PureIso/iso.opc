@@ -268,7 +268,8 @@
     <Compile Include="Models\Controllers\Process.cs" />
     <Compile Include="Models\DataDescription.cs" />
     <Compile Include="Models\ExtendedDataDescription.cs" />
-    <Compile Include="Models\NameObject.cs" />
+    <Compile Include="Models\NameObjects.cs" />
+    <Compile Include="Models\NameVariables.cs" />
     <Compile Include="Models\Root.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ApplicationInstanceManager.cs" />

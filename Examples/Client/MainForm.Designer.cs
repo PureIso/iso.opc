@@ -67,6 +67,8 @@
             this.referenceDescriptionContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.monitorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.callToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.informationRichTextBox = new System.Windows.Forms.RichTextBox();
+            this.inputArgumentsPanel = new System.Windows.Forms.Panel();
             this.groupBox1.SuspendLayout();
             this.referenceGroupBox.SuspendLayout();
             this.serverConnectContextMenuStrip.SuspendLayout();
@@ -77,10 +79,10 @@
             // 
             // getDiscoveryServerTrustedListButton
             // 
-            this.getDiscoveryServerTrustedListButton.Location = new System.Drawing.Point(339, 366);
+            this.getDiscoveryServerTrustedListButton.Location = new System.Drawing.Point(340, 28);
             this.getDiscoveryServerTrustedListButton.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.getDiscoveryServerTrustedListButton.Name = "getDiscoveryServerTrustedListButton";
-            this.getDiscoveryServerTrustedListButton.Size = new System.Drawing.Size(378, 38);
+            this.getDiscoveryServerTrustedListButton.Size = new System.Drawing.Size(481, 38);
             this.getDiscoveryServerTrustedListButton.TabIndex = 1;
             this.getDiscoveryServerTrustedListButton.Text = "Get Discovery Server Trusted List";
             this.getDiscoveryServerTrustedListButton.UseVisualStyleBackColor = true;
@@ -124,7 +126,7 @@
             this.groupBox1.Margin = new System.Windows.Forms.Padding(3, 5, 3, 5);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Padding = new System.Windows.Forms.Padding(3, 5, 3, 5);
-            this.groupBox1.Size = new System.Drawing.Size(846, 263);
+            this.groupBox1.Size = new System.Drawing.Size(830, 263);
             this.groupBox1.TabIndex = 3;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Custom Connection";
@@ -337,13 +339,14 @@
             // 
             // referenceGroupBox
             // 
+            this.referenceGroupBox.Controls.Add(this.inputArgumentsPanel);
             this.referenceGroupBox.Controls.Add(this.objectTreeView);
             this.referenceGroupBox.Controls.Add(this.getDiscoveryServerTrustedListButton);
             this.referenceGroupBox.Location = new System.Drawing.Point(12, 448);
             this.referenceGroupBox.Margin = new System.Windows.Forms.Padding(3, 5, 3, 5);
             this.referenceGroupBox.Name = "referenceGroupBox";
             this.referenceGroupBox.Padding = new System.Windows.Forms.Padding(3, 5, 3, 5);
-            this.referenceGroupBox.Size = new System.Drawing.Size(846, 350);
+            this.referenceGroupBox.Size = new System.Drawing.Size(830, 370);
             this.referenceGroupBox.TabIndex = 4;
             this.referenceGroupBox.TabStop = false;
             this.referenceGroupBox.Text = "Reference Descriptions";
@@ -353,7 +356,7 @@
             this.objectTreeView.Enabled = false;
             this.objectTreeView.Location = new System.Drawing.Point(13, 28);
             this.objectTreeView.Name = "objectTreeView";
-            this.objectTreeView.Size = new System.Drawing.Size(320, 314);
+            this.objectTreeView.Size = new System.Drawing.Size(320, 334);
             this.objectTreeView.TabIndex = 2;
             this.objectTreeView.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.ObjectTreeViewMouseDoubleClick);
             this.objectTreeView.MouseDown += new System.Windows.Forms.MouseEventHandler(this.ObjectTreeViewMouseDown);
@@ -368,7 +371,7 @@
             this.discoveredServersListView.Location = new System.Drawing.Point(12, 311);
             this.discoveredServersListView.Margin = new System.Windows.Forms.Padding(3, 5, 3, 5);
             this.discoveredServersListView.Name = "discoveredServersListView";
-            this.discoveredServersListView.Size = new System.Drawing.Size(846, 130);
+            this.discoveredServersListView.Size = new System.Drawing.Size(830, 130);
             this.discoveredServersListView.TabIndex = 5;
             this.discoveredServersListView.UseCompatibleStateImageBehavior = false;
             this.discoveredServersListView.View = System.Windows.Forms.View.Details;
@@ -400,11 +403,11 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.attributeGroupBox.Controls.Add(this.attributesListView);
-            this.attributeGroupBox.Location = new System.Drawing.Point(865, 38);
+            this.attributeGroupBox.Location = new System.Drawing.Point(849, 38);
             this.attributeGroupBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.attributeGroupBox.Name = "attributeGroupBox";
             this.attributeGroupBox.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.attributeGroupBox.Size = new System.Drawing.Size(374, 760);
+            this.attributeGroupBox.Size = new System.Drawing.Size(390, 780);
             this.attributeGroupBox.TabIndex = 6;
             this.attributeGroupBox.TabStop = false;
             this.attributeGroupBox.Text = "Attributes";
@@ -424,7 +427,7 @@
             this.attributesListView.Location = new System.Drawing.Point(8, 28);
             this.attributesListView.Margin = new System.Windows.Forms.Padding(3, 5, 3, 5);
             this.attributesListView.Name = "attributesListView";
-            this.attributesListView.Size = new System.Drawing.Size(355, 722);
+            this.attributesListView.Size = new System.Drawing.Size(371, 742);
             this.attributesListView.TabIndex = 6;
             this.attributesListView.UseCompatibleStateImageBehavior = false;
             this.attributesListView.View = System.Windows.Forms.View.Details;
@@ -480,11 +483,30 @@
             this.callToolStripMenuItem.Text = "Call";
             this.callToolStripMenuItem.Click += new System.EventHandler(this.CallToolStripMenuItemClick);
             // 
+            // informationRichTextBox
+            // 
+            this.informationRichTextBox.BackColor = System.Drawing.SystemColors.InfoText;
+            this.informationRichTextBox.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.informationRichTextBox.ForeColor = System.Drawing.Color.White;
+            this.informationRichTextBox.Location = new System.Drawing.Point(0, 826);
+            this.informationRichTextBox.Name = "informationRichTextBox";
+            this.informationRichTextBox.Size = new System.Drawing.Size(1239, 96);
+            this.informationRichTextBox.TabIndex = 3;
+            this.informationRichTextBox.Text = "";
+            // 
+            // inputArgumentsPanel
+            // 
+            this.inputArgumentsPanel.Location = new System.Drawing.Point(340, 75);
+            this.inputArgumentsPanel.Name = "inputArgumentsPanel";
+            this.inputArgumentsPanel.Size = new System.Drawing.Size(481, 287);
+            this.inputArgumentsPanel.TabIndex = 3;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1239, 802);
+            this.ClientSize = new System.Drawing.Size(1239, 922);
+            this.Controls.Add(this.informationRichTextBox);
             this.Controls.Add(this.mainMenuStrip);
             this.Controls.Add(this.attributeGroupBox);
             this.Controls.Add(this.discoveredServersListView);
@@ -546,6 +568,8 @@
         private System.Windows.Forms.ContextMenuStrip referenceDescriptionContextMenuStrip;
         private System.Windows.Forms.ToolStripMenuItem monitorToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem callToolStripMenuItem;
+        private System.Windows.Forms.RichTextBox informationRichTextBox;
+        private System.Windows.Forms.Panel inputArgumentsPanel;
     }
 }
 

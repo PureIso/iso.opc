@@ -20,7 +20,7 @@ namespace Client
 
         #region Fields
 
-        private ExtendedDataDescription _selectedExtendedDataDescription;
+        private TreeNode _selectedTreeNode;
         private ApplicationInstanceManager _applicationInstanceManager;
         private readonly StringCollection _globalDiscoveryServerUrls;
         private readonly StringCollection _globalDiscoveryServerWellKnownUrls;
@@ -212,29 +212,81 @@ namespace Client
         }
         private void ObjectTreeViewMouseDown(object sender, MouseEventArgs e)
         {
-            _selectedExtendedDataDescription = null;
+            _selectedTreeNode = null;
             if (e.Button != MouseButtons.Right)
                 return;
-            TreeNode selectedItem = (sender as TreeView)?.GetNodeAt(e.X, e.Y);
-            if (selectedItem == null)
+            //get selected node using pattern matching and null propagation
+            _selectedTreeNode = (sender as TreeView)?.SelectedNode;
+            if (!(_selectedTreeNode?.Tag is AttributeData attributeData))
                 return;
-            _selectedExtendedDataDescription = selectedItem.Tag as ExtendedDataDescription;
+            switch (attributeData.NodeClass)
+            {
+                case NodeClass.Variable:
+                    monitorToolStripMenuItem.Enabled = true;
+                    callToolStripMenuItem.Enabled = false;
+                    break;
+                case NodeClass.Method:
+                {
+                    monitorToolStripMenuItem.Enabled = false;
+                    callToolStripMenuItem.Enabled = true;
+                    break;
+                }
+                default:
+                    _selectedTreeNode = null;
+                    return;
+            }
+            if (sender == null) 
+                return;
             Point point = (Point)((TreeView)sender)?.PointToScreen(e.Location);
             referenceDescriptionContextMenuStrip.Show(point);
         }
         private void MonitorToolStripMenuItemClick(object sender, EventArgs e)
         {
-            NodeId variableNodeId = _selectedExtendedDataDescription.VariableDataDescriptions[0].AttributeData.NodeId;
-            _applicationInstanceManager.SubscribeToNode(variableNodeId);
+            if (!(_selectedTreeNode?.Tag is AttributeData attributeData))
+                return;
+            _applicationInstanceManager.SubscribeToNode(attributeData.NodeId);
         }
         private void CallToolStripMenuItemClick(object sender, EventArgs e)
         {
-            NodeId objectNodeId = _selectedExtendedDataDescription.DataDescription.AttributeData.NodeId;
-            NodeId methodNodeId = _selectedExtendedDataDescription.MethodDataDescriptions[0].DataDescription.AttributeData.NodeId;
-            object[] arguments = new object[2];
-            arguments[0] = Convert.ToUInt32(1);
-            arguments[1] = Convert.ToUInt32(100);
-            IList<object> outputArguments = _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, arguments);
+            if (!(_selectedTreeNode?.Tag is AttributeData attributeData))
+                return;
+            //since we have a method we need to validate the arguments and object
+            //get parent attribute data
+            TreeNode selectedParentNode = _selectedTreeNode.Parent;
+            if (!(selectedParentNode?.Tag is AttributeData parentAttributeData))
+                return;
+            NodeId objectNodeId = parentAttributeData.NodeId;
+            NodeId methodNodeId = attributeData.NodeId;
+            ExtendedDataDescription methodReference =
+                _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[attributeData.BrowseName.Name];
+            //extract input arguments
+            DataDescription dataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
+                x.AttributeData.BrowseName.Name == NameVariables.InputArguments);
+            List<object> arguments = new List<object>();
+            //casting to extension objects # 1
+            //get all argument information
+            ExtensionObject[] extensionObjects = (ExtensionObject[])dataDescription?.AttributeData.Value.Value;
+            inputArgumentsPanel.Controls.Clear();
+            if (extensionObjects != null)
+            {
+                foreach (ExtensionObject extensionObject in extensionObjects)
+                {
+                    Argument argument = (Argument)extensionObject.Body;
+                    if (argument == null)
+                        continue;
+                    AddInputArgumentUserControl(argument);
+                    arguments.Add(argument);
+                }
+            }
+            //arguments[0] = Convert.ToUInt32(1);
+            //arguments[1] = Convert.ToUInt32(100);
+            //IList<object> outputArguments = _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, arguments.ToArray());
+        }
+
+        public void AddInputArgumentUserControl(Argument argument)
+        {
+            InputArgumentUserControl inputArgumentUserControl = new InputArgumentUserControl(argument) {Dock = DockStyle.Top};
+            inputArgumentsPanel.Controls.Add(inputArgumentUserControl);
         }
         private void ObjectTreeViewMouseDoubleClick(object sender, MouseEventArgs e)
         {
@@ -254,7 +306,7 @@ namespace Client
                 browsedObjects = (from x in objectReference.MethodDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name, 0, 0)
                 {
                     Name = x.DataDescription.ReferenceDescription.BrowseName.Name,
-                    Tag = objectReference
+                    Tag = x.DataDescription.AttributeData
                 }).ToArray();
                 PopulateTreeNode(parentNode, browsedObjects);
             }
@@ -263,7 +315,7 @@ namespace Client
                 browsedObjects = (from x in objectReference.VariableDataDescriptions select new TreeNode(x.ReferenceDescription.BrowseName.Name, 1, 1)
                 {
                     Name = x.ReferenceDescription.BrowseName.Name,
-                    Tag = objectReference
+                    Tag = x.AttributeData
                 }).ToArray();
                 PopulateTreeNode(parentNode, browsedObjects);
             }
@@ -272,13 +324,11 @@ namespace Client
             browsedObjects = (from x in objectReference.ObjectDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name, 2, 2)
             {
                 Name = x.DataDescription.ReferenceDescription.BrowseName.Name,
-                Tag = objectReference
+                Tag = x.DataDescription.AttributeData
             }).ToArray();
             PopulateTreeNode(parentNode, browsedObjects);
         }
 
         #endregion
-
-        
     }
 }

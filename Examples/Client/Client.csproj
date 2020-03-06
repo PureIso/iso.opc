@@ -34,14 +34,29 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="InputArgumentUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="InputArgumentUserControl.Designer.cs">
+      <DependentUpon>InputArgumentUserControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="OutputArgumentUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="OutputArgumentUserControl.Designer.cs">
+      <DependentUpon>OutputArgumentUserControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="InputArgumentUserControl.resx">
+      <DependentUpon>InputArgumentUserControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -73,6 +88,9 @@
     <Reference Include="BouncyCastle.Crypto, Version=1.8.5.0, Culture=neutral, PublicKeyToken=0e99375e54769942, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Portable.BouncyCastle.1.8.5\lib\net40\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
+    <Reference Include="Client">
+      <HintPath>obj\Debug\Client.exe</HintPath>
+    </Reference>
     <Reference Include="Opc.Ua.Client, Version=1.4.359.0, Culture=neutral, PublicKeyToken=bfa7a73c5cf4b6e8, processorArchitecture=MSIL">
       <HintPath>..\..\packages\OPCFoundation.NetStandard.Opc.Ua.1.4.359.31\lib\net46\Opc.Ua.Client.dll</HintPath>
     </Reference>
@@ -92,8 +110,10 @@
       <HintPath>..\..\packages\OPCFoundation.NetStandard.Opc.Ua.1.4.359.31\lib\net46\Opc.Ua.Server.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Iso.Opc.ApplicationManager\Iso.Opc.ApplicationInstanceManager.csproj">
