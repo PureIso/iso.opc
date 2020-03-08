@@ -7,6 +7,7 @@ using Client.Properties;
 using Iso.Opc.ApplicationManager;
 using Iso.Opc.ApplicationManager.Models;
 using Opc.Ua;
+using Opc.Ua.Client;
 
 namespace Client
 {
@@ -21,6 +22,8 @@ namespace Client
         #region Fields
 
         private TreeNode _selectedTreeNode;
+        private NodeId _selectedObjectId;
+        private NodeId _selectedMethodId;
         private ApplicationInstanceManager _applicationInstanceManager;
         private readonly StringCollection _globalDiscoveryServerUrls;
         private readonly StringCollection _globalDiscoveryServerWellKnownUrls;
@@ -158,6 +161,46 @@ namespace Client
             }
             parentNode.Expand();
         }
+        private void AddInputArgumentUserControl(Argument argument)
+        {
+            InputArgumentUserControl inputArgumentUserControl = new InputArgumentUserControl(argument) { Dock = DockStyle.Top };
+            inputArgumentsPanel.Controls.Add(inputArgumentUserControl);
+        }
+        private List<object> GetInputArgumentFromUserControl()
+        {
+            List<object> arguments = new List<object>();
+            foreach(InputArgumentUserControl inputArgumentUserControl in inputArgumentsPanel.Controls)
+            {
+                arguments.Add(Convert.ToUInt32(inputArgumentUserControl.ValueInput));
+            }
+            return arguments;
+        }
+        private void MonitoredItemNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
+        {
+            try
+            {
+                if (!(e.NotificationValue is MonitoredItemNotification monitoredItemNotification))
+                    return;
+                InformationDisplay($"Monitored {monitoredItemNotification.Value.StatusCode} value: {monitoredItemNotification.Value.WrappedValue.ToString()}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Monitored Item Notification exception: {ex.StackTrace}");
+            }
+        }
+        private void InformationDisplay(string message)
+        {
+            if (informationRichTextBox.InvokeRequired)
+                informationRichTextBox.Invoke(
+                    new MethodInvoker(delegate {
+                        InformationDisplay(message);
+                    }));
+            else
+            {
+                informationRichTextBox.AppendText($"[{DateTime.Now.ToString("dd/MM/yyyy hh:mm:ss")}] {message}\n");
+                informationRichTextBox.ScrollToCaret();
+            }  
+        }
         #endregion
 
         #region Handlers
@@ -213,6 +256,8 @@ namespace Client
         private void ObjectTreeViewMouseDown(object sender, MouseEventArgs e)
         {
             _selectedTreeNode = null;
+            _selectedObjectId = null;
+            _selectedMethodId = null;
             if (e.Button != MouseButtons.Right)
                 return;
             //get selected node using pattern matching and null propagation
@@ -244,7 +289,7 @@ namespace Client
         {
             if (!(_selectedTreeNode?.Tag is AttributeData attributeData))
                 return;
-            _applicationInstanceManager.SubscribeToNode(attributeData.NodeId);
+            _applicationInstanceManager.SubscribeToNode(attributeData.NodeId, MonitoredItemNotification, 500);
         }
         private void CallToolStripMenuItemClick(object sender, EventArgs e)
         {
@@ -255,14 +300,13 @@ namespace Client
             TreeNode selectedParentNode = _selectedTreeNode.Parent;
             if (!(selectedParentNode?.Tag is AttributeData parentAttributeData))
                 return;
-            NodeId objectNodeId = parentAttributeData.NodeId;
-            NodeId methodNodeId = attributeData.NodeId;
+            _selectedObjectId = parentAttributeData.NodeId;
+            _selectedMethodId = attributeData.NodeId;
             ExtendedDataDescription methodReference =
                 _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[attributeData.BrowseName.Name];
             //extract input arguments
             DataDescription dataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
                 x.AttributeData.BrowseName.Name == NameVariables.InputArguments);
-            List<object> arguments = new List<object>();
             //casting to extension objects # 1
             //get all argument information
             ExtensionObject[] extensionObjects = (ExtensionObject[])dataDescription?.AttributeData.Value.Value;
@@ -275,23 +319,16 @@ namespace Client
                     if (argument == null)
                         continue;
                     AddInputArgumentUserControl(argument);
-                    arguments.Add(argument);
                 }
             }
-            //arguments[0] = Convert.ToUInt32(1);
-            //arguments[1] = Convert.ToUInt32(100);
-            //IList<object> outputArguments = _applicationInstanceManager.Session.Call(objectNodeId, methodNodeId, arguments.ToArray());
-        }
-
-        public void AddInputArgumentUserControl(Argument argument)
-        {
-            InputArgumentUserControl inputArgumentUserControl = new InputArgumentUserControl(argument) {Dock = DockStyle.Top};
-            inputArgumentsPanel.Controls.Add(inputArgumentUserControl);
+            callMethodButton.Enabled = true;
         }
         private void ObjectTreeViewMouseDoubleClick(object sender, MouseEventArgs e)
         {
             attributesListView.Items.Clear();
             TreeNode parentNode = objectTreeView.SelectedNode;
+            if (parentNode == null)
+                return;
             ExtendedDataDescription objectReference = null;
             if (_applicationInstanceManager.FlatExtendedDataDescriptionDictionary.ContainsKey(parentNode.Text))
             {
@@ -328,7 +365,15 @@ namespace Client
             }).ToArray();
             PopulateTreeNode(parentNode, browsedObjects);
         }
-
+        private void CallMethodButtonClick(object sender, EventArgs e)
+        {
+            List<object> arguments = GetInputArgumentFromUserControl();
+            IList<object> outputArguments = _applicationInstanceManager.Session.Call(_selectedObjectId, _selectedMethodId, arguments.ToArray());
+            foreach(object output in outputArguments)
+            {
+                InformationDisplay($"Output: {output.ToString()}");
+            }
+        }
         #endregion
     }
 }

@@ -6,13 +6,13 @@ namespace Client
     public partial class InputArgumentUserControl : UserControl
     {
         #region Properties
-    	public Argument Argument { get; set;}
+        public object ValueInput => valueInputTextBox.Text;
     	#endregion
 
         public InputArgumentUserControl(Argument argument)
         {
             InitializeComponent();
-            Argument = argument;
+            valueInputTextBox.Text = "0";
             inputArgumentDescriptionLabel.Text = $"Description: {argument.Description.Text}";
             inputArgumentNameLabel.Text = $"Name: {argument.Name}";
             inputArgumentTypeLabel.Text = $"Name: {argument.DataType}";
