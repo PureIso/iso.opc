@@ -161,17 +161,19 @@ namespace Client
             }
             parentNode.Expand();
         }
-        private void AddInputArgumentUserControl(Argument argument)
+        private void AddInputArgumentUserControl(string value, string description, string name, TypeInfo typeInfo)
         {
-            InputArgumentUserControl inputArgumentUserControl = new InputArgumentUserControl(argument) { Dock = DockStyle.Top };
+            InputArgumentUserControl inputArgumentUserControl = new InputArgumentUserControl() { Dock = DockStyle.Top };
+            inputArgumentUserControl.Initialise(value, description, name, typeInfo);
             inputArgumentsPanel.Controls.Add(inputArgumentUserControl);
         }
         private List<object> GetInputArgumentFromUserControl()
         {
             List<object> arguments = new List<object>();
-            foreach(InputArgumentUserControl inputArgumentUserControl in inputArgumentsPanel.Controls)
+            foreach (InputArgumentUserControl inputArgumentUserControl in inputArgumentsPanel.Controls)
             {
-                arguments.Add(Convert.ToUInt32(inputArgumentUserControl.ValueInput));
+                //Variant variant = new Variant(inputArgumentUserControl.ValueInput, inputArgumentUserControl.TypeInfo);
+                arguments.Add(inputArgumentUserControl.ValueInput);
             }
             return arguments;
         }
@@ -316,9 +318,10 @@ namespace Client
                 foreach (ExtensionObject extensionObject in extensionObjects)
                 {
                     Argument argument = (Argument)extensionObject.Body;
+                    Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(argument.DataType, argument.ValueRank));
                     if (argument == null)
                         continue;
-                    AddInputArgumentUserControl(argument);
+                    AddInputArgumentUserControl(defaultValue.Value.ToString(), argument.Description.Text, argument.Name, defaultValue.TypeInfo);
                 }
             }
             callMethodButton.Enabled = true;
