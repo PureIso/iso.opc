@@ -34,28 +34,23 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="InputArgumentUserControl.cs">
+    <Compile Include="ArgumentUserControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="InputArgumentUserControl.Designer.cs">
-      <DependentUpon>InputArgumentUserControl.cs</DependentUpon>
+    <Compile Include="ArgumentUserControl.Designer.cs">
+      <DependentUpon>ArgumentUserControl.cs</DependentUpon>
     </Compile>
+    <Compile Include="Extensions.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="OutputArgumentUserControl.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="OutputArgumentUserControl.Designer.cs">
-      <DependentUpon>OutputArgumentUserControl.cs</DependentUpon>
-    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="InputArgumentUserControl.resx">
-      <DependentUpon>InputArgumentUserControl.cs</DependentUpon>
+    <EmbeddedResource Include="ArgumentUserControl.resx">
+      <DependentUpon>ArgumentUserControl.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>

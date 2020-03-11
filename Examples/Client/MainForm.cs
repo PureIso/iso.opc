@@ -14,28 +14,33 @@ namespace Client
     public partial class MainForm : Form
     {
         #region Constants
+
         private const string ApplicationName = "Basic Client";
         private const string ApplicationUri = "urn:localhost:UA:BasicClient";
         private readonly ApplicationType ApplicationType = ApplicationType.Client;
+
         #endregion
 
         #region Fields
 
+        private List<TreeNode> _monitoredTreeNodes;
         private TreeNode _selectedTreeNode;
         private NodeId _selectedObjectId;
         private NodeId _selectedMethodId;
         private ApplicationInstanceManager _applicationInstanceManager;
         private readonly StringCollection _globalDiscoveryServerUrls;
         private readonly StringCollection _globalDiscoveryServerWellKnownUrls;
+
         #endregion
 
         #region Constructor
+
         public MainForm()
         {
             InitializeComponent();
-            _globalDiscoveryServerUrls = new StringCollection {"opc.tcp://localhost:58810/UADiscovery"}; 
+            _globalDiscoveryServerUrls = new StringCollection {"opc.tcp://localhost:58810/UADiscovery"};
             _globalDiscoveryServerWellKnownUrls = new StringCollection {"opc.tcp://localhost:58810/UADiscovery"};
-
+            _monitoredTreeNodes = new List<TreeNode>();
             // Load the images in an ImageList.
             ImageList imageList = new ImageList();
             imageList.Images.Add(Resources.folder_cog);
@@ -44,9 +49,11 @@ namespace Client
             // Assign the ImageList to the TreeView.
             objectTreeView.ImageList = imageList;
         }
+
         #endregion
 
         #region Private Methods
+
         private void Connect(bool connectToServer = false)
         {
             try
@@ -58,22 +65,31 @@ namespace Client
                 if (!connectToServer)
                 {
                     _applicationInstanceManager = new ApplicationInstanceManager(ApplicationName, ApplicationUri,
-                        null, null, null, null, _globalDiscoveryServerUrls, _globalDiscoveryServerWellKnownUrls, ApplicationType, true);
+                        null, null, null, null, _globalDiscoveryServerUrls, _globalDiscoveryServerWellKnownUrls,
+                        ApplicationType, true);
                 }
+
                 if (globalDiscoveryServerUseCheckBox.Checked && !connectToServer)
                 {
                     globalDiscoveryServerConnectionStatusPanel.BackColor = Color.Red;
-                    string gdsUserName = globalDiscoveryServerUseSecurityCheckBox.Checked ? globalDiscoveryServerUserNameTextBox.Text : null;
-                    string gdsUserPassword = globalDiscoveryServerUseSecurityCheckBox.Checked ? globalDiscoveryServerPasswordTextBox.Text : null;
-                    bool connectedToGDS = _applicationInstanceManager.ConnectToGlobalDiscoveryServer(globalDiscoveryServerDiscoveryURLTextBox.Text, gdsUserName, gdsUserPassword);
+                    string gdsUserName = globalDiscoveryServerUseSecurityCheckBox.Checked
+                        ? globalDiscoveryServerUserNameTextBox.Text
+                        : null;
+                    string gdsUserPassword = globalDiscoveryServerUseSecurityCheckBox.Checked
+                        ? globalDiscoveryServerPasswordTextBox.Text
+                        : null;
+                    bool connectedToGDS =
+                        _applicationInstanceManager.ConnectToGlobalDiscoveryServer(
+                            globalDiscoveryServerDiscoveryURLTextBox.Text, gdsUserName, gdsUserPassword);
                     if (!connectedToGDS)
                     {
                         Disconnect();
                         return;
                     }
-                    if(registerApplicationCheckBox.Checked) 
+
+                    if (registerApplicationCheckBox.Checked)
                         _applicationInstanceManager.RegisterApplication();
-                    if(requestNewCertificateCheckBox.Checked) 
+                    if (requestNewCertificateCheckBox.Checked)
                         _applicationInstanceManager.RequestNewCertificatePullMode();
                     List<ServerOnNetwork> serversOnNetwork = _applicationInstanceManager.QueryServers();
                     discoveredServersListView.Items.Clear();
@@ -82,21 +98,25 @@ namespace Client
                         Disconnect();
                         return;
                     }
-                    ListViewItem[] discoveredServersListViewItems = (from x in serversOnNetwork select new ListViewItem(x.DiscoveryUrl)).ToArray();
+
+                    ListViewItem[] discoveredServersListViewItems =
+                        (from x in serversOnNetwork select new ListViewItem(x.DiscoveryUrl)).ToArray();
                     discoveredServersListView.Items.AddRange(discoveredServersListViewItems);
                     globalDiscoveryServerConnectionStatusPanel.BackColor = Color.Green;
                 }
 
-                if (!connectToServer && globalDiscoveryServerUseCheckBox.Checked) 
+                if (!connectToServer && globalDiscoveryServerUseCheckBox.Checked)
                     return;
                 connectionStatusPanel.BackColor = Color.Red;
                 string userName = useSecurityCheckBox.Checked ? serverUserNameTextBox.Text : null;
                 string userPassword = useSecurityCheckBox.Checked ? serverPasswordTextBox.Text : null;
-                bool connectedToServer = _applicationInstanceManager.ConnectToServer(serverDiscoveryURLTextBox.Text, userName, userPassword);
+                bool connectedToServer =
+                    _applicationInstanceManager.ConnectToServer(serverDiscoveryURLTextBox.Text, userName, userPassword);
                 if (!connectedToServer)
                     return;
 
-                TreeNode[] browsedObjects = { new TreeNode(Root.NameObjects), new TreeNode(Root.NameTypes) , new TreeNode(Root.NameViews) };
+                TreeNode[] browsedObjects =
+                    {new TreeNode(Root.NameObjects), new TreeNode(Root.NameTypes), new TreeNode(Root.NameViews)};
                 objectTreeView.Enabled = true;
                 objectTreeView.Nodes.AddRange(browsedObjects);
                 connectionStatusPanel.BackColor = Color.Green;
@@ -107,6 +127,7 @@ namespace Client
                 Disconnect();
             }
         }
+
         private void Disconnect()
         {
             connectButton.Enabled = true;
@@ -118,39 +139,47 @@ namespace Client
             globalDiscoveryServerConnectionStatusPanel.BackColor = Color.Red;
             _applicationInstanceManager = null;
         }
+
         private void PopulateAttributeListView(AttributeData attributeData)
         {
-            ListViewItem[] items = {
+            ListViewItem[] items =
+            {
                 new ListViewItem("NodeId") {SubItems = {Convert.ToString(attributeData.NodeId)}},
                 new ListViewItem("NodeClass") {SubItems = {Convert.ToString(attributeData.NodeClass)}},
                 new ListViewItem("BrowseName") {SubItems = {Convert.ToString(attributeData.BrowseName)}},
                 new ListViewItem("DisplayName") {SubItems = {Convert.ToString(attributeData.DisplayName)}},
-                new ListViewItem("Description"){SubItems = {Convert.ToString(attributeData.Description)}},
-                new ListViewItem("WriteMask"){SubItems = {Convert.ToString(attributeData.WriteMask)}},
-                new ListViewItem("UserWriteMask"){SubItems = {Convert.ToString(attributeData.UserWriteMask)}},
-                new ListViewItem("IsAbstract"){SubItems = {Convert.ToString(attributeData.IsAbstract)}},
-                new ListViewItem("Symmetric"){SubItems = {Convert.ToString(attributeData.Symmetric)}},
-                new ListViewItem("InverseName"){SubItems = {Convert.ToString(attributeData.InverseName)}},
-                new ListViewItem("ContainsNoLoops"){SubItems = {Convert.ToString(attributeData.ContainsNoLoops)}},
-                new ListViewItem("EventNotifier"){SubItems = {Convert.ToString(attributeData.EventNotifierString)}},
-                new ListViewItem("Value"){SubItems = {Convert.ToString(attributeData.Value)}},
-                new ListViewItem("DataType"){SubItems = {Convert.ToString(attributeData.DataType)}},
-                new ListViewItem("ValueRank"){SubItems = {Convert.ToString(attributeData.ValueRankString)}},
-                new ListViewItem("ArrayDimensions"){SubItems = {Convert.ToString(attributeData.ArrayDimensions)}},
-                new ListViewItem("AccessLevel"){SubItems = {Convert.ToString(attributeData.AccessLevelString)}},
-                new ListViewItem("UserAccessLevel"){SubItems = {Convert.ToString(attributeData.UserAccessLevelString)}},
-                new ListViewItem("MinimumSamplingInterval"){SubItems = {Convert.ToString(attributeData.MinimumSamplingInterval)}},
-                new ListViewItem("Historizing"){SubItems = {Convert.ToString(attributeData.Historizing)}},
-                new ListViewItem("Executable"){SubItems = {Convert.ToString(attributeData.Executable)}},
-                new ListViewItem("UserExecutable"){SubItems = {Convert.ToString(attributeData.UserExecutable)}},
-                new ListViewItem("DataTypeDefinition"){SubItems = {Convert.ToString(attributeData.DataTypeDefinition)}},
-                new ListViewItem("RolePermissions"){SubItems = {Convert.ToString(attributeData.RolePermissions)}},
-                new ListViewItem("UserRolePermissions"){SubItems = {Convert.ToString(attributeData.UserRolePermissions)}},
-                new ListViewItem("AccessRestrictions"){SubItems = {Convert.ToString(attributeData.AccessRestrictions)}},
-                new ListViewItem("AccessLevelEx"){SubItems = {Convert.ToString(attributeData.AccessLevelEx)}}
+                new ListViewItem("Description") {SubItems = {Convert.ToString(attributeData.Description)}},
+                new ListViewItem("WriteMask") {SubItems = {Convert.ToString(attributeData.WriteMask)}},
+                new ListViewItem("UserWriteMask") {SubItems = {Convert.ToString(attributeData.UserWriteMask)}},
+                new ListViewItem("IsAbstract") {SubItems = {Convert.ToString(attributeData.IsAbstract)}},
+                new ListViewItem("Symmetric") {SubItems = {Convert.ToString(attributeData.Symmetric)}},
+                new ListViewItem("InverseName") {SubItems = {Convert.ToString(attributeData.InverseName)}},
+                new ListViewItem("ContainsNoLoops") {SubItems = {Convert.ToString(attributeData.ContainsNoLoops)}},
+                new ListViewItem("EventNotifier") {SubItems = {Convert.ToString(attributeData.EventNotifierString)}},
+                new ListViewItem("Value") {SubItems = {Convert.ToString(attributeData.Value)}},
+                new ListViewItem("DataType") {SubItems = {Convert.ToString(attributeData.DataType)}},
+                new ListViewItem("ValueRank") {SubItems = {Convert.ToString(attributeData.ValueRankString)}},
+                new ListViewItem("ArrayDimensions") {SubItems = {Convert.ToString(attributeData.ArrayDimensions)}},
+                new ListViewItem("AccessLevel") {SubItems = {Convert.ToString(attributeData.AccessLevelString)}},
+                new ListViewItem("UserAccessLevel")
+                    {SubItems = {Convert.ToString(attributeData.UserAccessLevelString)}},
+                new ListViewItem("MinimumSamplingInterval")
+                    {SubItems = {Convert.ToString(attributeData.MinimumSamplingInterval)}},
+                new ListViewItem("Historizing") {SubItems = {Convert.ToString(attributeData.Historizing)}},
+                new ListViewItem("Executable") {SubItems = {Convert.ToString(attributeData.Executable)}},
+                new ListViewItem("UserExecutable") {SubItems = {Convert.ToString(attributeData.UserExecutable)}},
+                new ListViewItem("DataTypeDefinition")
+                    {SubItems = {Convert.ToString(attributeData.DataTypeDefinition)}},
+                new ListViewItem("RolePermissions") {SubItems = {Convert.ToString(attributeData.RolePermissions)}},
+                new ListViewItem("UserRolePermissions")
+                    {SubItems = {Convert.ToString(attributeData.UserRolePermissions)}},
+                new ListViewItem("AccessRestrictions")
+                    {SubItems = {Convert.ToString(attributeData.AccessRestrictions)}},
+                new ListViewItem("AccessLevelEx") {SubItems = {Convert.ToString(attributeData.AccessLevelEx)}}
             };
             attributesListView.Items.AddRange(items);
         }
+
         private static void PopulateTreeNode(TreeNode parentNode, IEnumerable<TreeNode> children)
         {
             foreach (TreeNode child in children)
@@ -159,79 +188,121 @@ namespace Client
                     continue;
                 parentNode.Nodes.Add(child);
             }
+
             parentNode.Expand();
         }
+
         private void AddInputArgumentUserControl(string value, string description, string name, TypeInfo typeInfo)
         {
-            InputArgumentUserControl inputArgumentUserControl = new InputArgumentUserControl() { Dock = DockStyle.Top };
-            inputArgumentUserControl.Initialise(value, description, name, typeInfo);
-            inputArgumentsPanel.Controls.Add(inputArgumentUserControl);
+            ArgumentUserControl argumentUserControl = new ArgumentUserControl {Dock = DockStyle.Top};
+            argumentUserControl.Initialise(value, description, name, typeInfo);
+            inputArgumentsPanel.Controls.Add(argumentUserControl);
+        }
+
+        private void AddOutputArgumentUserControl(string value, string description, string name, TypeInfo typeInfo)
+        {
+            ArgumentUserControl argumentUserControl = new ArgumentUserControl {Dock = DockStyle.Top};
+            argumentUserControl.Initialise(value, description, name, typeInfo);
+            outputArgumentsPanel.Controls.Add(argumentUserControl);
+        }
+        private void AddMonitoredVariableUserControl(string value, string description, string name, TypeInfo typeInfo, NodeId nodeId)
+        {
+            ArgumentUserControl argumentUserControl = new ArgumentUserControl { Dock = DockStyle.Top };
+            argumentUserControl.Initialise(value, description, name, typeInfo);
+            argumentUserControl.Name = nodeId.ToString();
+            monitoredVariablePanel.Controls.Add(argumentUserControl);
+        }
+
+        private void SetOutputArgumentValueForUserControl(List<object> values)
+        {
+            if (values.Count != outputArgumentsPanel.Controls.Count)
+                return;
+            for (int index = 0; index < outputArgumentsPanel.Controls.Count; index++)
+            {
+                ArgumentUserControl inputArgumentUserControl =
+                    (ArgumentUserControl) outputArgumentsPanel.Controls[index];
+                inputArgumentUserControl.ValueInput = values[index];
+            }
         }
         private List<object> GetInputArgumentFromUserControl()
         {
             List<object> arguments = new List<object>();
-            foreach (InputArgumentUserControl inputArgumentUserControl in inputArgumentsPanel.Controls)
+            foreach (ArgumentUserControl inputArgumentUserControl in inputArgumentsPanel.Controls)
             {
-                //Variant variant = new Variant(inputArgumentUserControl.ValueInput, inputArgumentUserControl.TypeInfo);
                 arguments.Add(inputArgumentUserControl.ValueInput);
             }
             return arguments;
         }
+
         private void MonitoredItemNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
         {
             try
             {
                 if (!(e.NotificationValue is MonitoredItemNotification monitoredItemNotification))
                     return;
-                InformationDisplay($"Monitored {monitoredItemNotification.Value.StatusCode} value: {monitoredItemNotification.Value.WrappedValue.ToString()}");
+                for (int index = 0; index < monitoredVariablePanel.Controls.Count; index++)
+                {
+                    if(monitoredVariablePanel.Controls[index].Name != monitoredItem.ResolvedNodeId.ToString())
+                        continue;
+                    ArgumentUserControl argumentUserControl =
+                        (ArgumentUserControl)monitoredVariablePanel.Controls[index];
+                    argumentUserControl.ValueInput = monitoredItemNotification.Value.WrappedValue.ToString();
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Monitored Item Notification exception: {ex.StackTrace}");
+                InformationDisplay($"Monitored Item Notification exception: {ex.StackTrace}");
             }
         }
+
         private void InformationDisplay(string message)
         {
             if (informationRichTextBox.InvokeRequired)
                 informationRichTextBox.Invoke(
-                    new MethodInvoker(delegate {
-                        InformationDisplay(message);
-                    }));
+                    new MethodInvoker(delegate { InformationDisplay(message); }));
             else
             {
-                informationRichTextBox.AppendText($"[{DateTime.Now.ToString("dd/MM/yyyy hh:mm:ss")}] {message}\n");
+                informationRichTextBox.AppendText($"[{DateTime.Now:dd/MM/yyyy hh:mm:ss}] {message}\n");
                 informationRichTextBox.ScrollToCaret();
-            }  
+            }
         }
+
         #endregion
 
         #region Handlers
+
         private void DisconnectButtonClick(object sender, EventArgs e)
         {
             Disconnect();
         }
+
         private void ConnectButtonClick(object sender, EventArgs e)
         {
             Connect();
         }
+
         private void ConnectToolStripMenuItemClick(object sender, EventArgs e)
         {
             Connect(true);
         }
+
         private void GetDiscoveryServerTrustedListButtonClick(object sender, EventArgs e)
         {
             _applicationInstanceManager.GetAndMergeWithGlobalDiscoveryTrustedList();
         }
+
         private void UseSecurityCheckBoxCheckedChanged(object sender, EventArgs e)
         {
             serverUserNameTextBox.Enabled = useSecurityCheckBox.Checked;
             serverPasswordTextBox.Enabled = useSecurityCheckBox.Checked;
         }
+
         private void GlobalDiscoveryServerUseSecurityCheckBoxCheckedChanged(object sender, EventArgs e)
         {
             globalDiscoveryServerUserNameTextBox.Enabled = globalDiscoveryServerUseSecurityCheckBox.Checked;
             globalDiscoveryServerPasswordTextBox.Enabled = globalDiscoveryServerUseSecurityCheckBox.Checked;
         }
+
         private void GlobalDiscoveryServerUseCheckBoxCheckedChanged(object sender, EventArgs e)
         {
             globalDiscoveryServerDiscoveryURLTextBox.Enabled = globalDiscoveryServerUseCheckBox.Checked;
@@ -244,17 +315,19 @@ namespace Client
             serverDiscoveryURLTextBox.Enabled = !globalDiscoveryServerUseCheckBox.Checked;
             useSecurityCheckBox.Enabled = !globalDiscoveryServerUseCheckBox.Checked;
         }
+
         private void DiscoveredServersListViewMouseDown(object sender, MouseEventArgs e)
         {
-            if (e.Button != MouseButtons.Right) 
+            if (e.Button != MouseButtons.Right)
                 return;
-            ListViewItem selectedItem = (sender as ListView)?.GetItemAt(e.X,e.Y);
+            ListViewItem selectedItem = (sender as ListView)?.GetItemAt(e.X, e.Y);
             if (selectedItem == null)
                 return;
             serverDiscoveryURLTextBox.Text = selectedItem.Text;
             Point point = (Point) ((ListView) sender)?.PointToScreen(e.Location);
             serverConnectContextMenuStrip.Show(point);
         }
+
         private void ObjectTreeViewMouseDown(object sender, MouseEventArgs e)
         {
             _selectedTreeNode = null;
@@ -282,17 +355,27 @@ namespace Client
                     _selectedTreeNode = null;
                     return;
             }
-            if (sender == null) 
+
+            if (sender == null)
                 return;
-            Point point = (Point)((TreeView)sender)?.PointToScreen(e.Location);
+            Point point = (Point) ((TreeView) sender)?.PointToScreen(e.Location);
             referenceDescriptionContextMenuStrip.Show(point);
         }
+
         private void MonitorToolStripMenuItemClick(object sender, EventArgs e)
         {
             if (!(_selectedTreeNode?.Tag is AttributeData attributeData))
                 return;
+            if (_monitoredTreeNodes.Contains(_selectedTreeNode)) 
+                return;
+            _monitoredTreeNodes.Add(_selectedTreeNode);
+            Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(attributeData.DataType, attributeData.ValueRank));
+            AddMonitoredVariableUserControl(defaultValue.Value.ToString(), attributeData.Description.Text,
+                attributeData.DisplayName.Text, defaultValue.TypeInfo, attributeData.NodeId);
             _applicationInstanceManager.SubscribeToNode(attributeData.NodeId, MonitoredItemNotification, 500);
+
         }
+
         private void CallToolStripMenuItemClick(object sender, EventArgs e)
         {
             if (!(_selectedTreeNode?.Tag is AttributeData attributeData))
@@ -307,25 +390,39 @@ namespace Client
             ExtendedDataDescription methodReference =
                 _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[attributeData.BrowseName.Name];
             //extract input arguments
-            DataDescription dataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
+            DataDescription inputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
                 x.AttributeData.BrowseName.Name == NameVariables.InputArguments);
-            //casting to extension objects # 1
+            DataDescription outputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
+                x.AttributeData.BrowseName.Name == NameVariables.OutputArguments);
             //get all argument information
-            ExtensionObject[] extensionObjects = (ExtensionObject[])dataDescription?.AttributeData.Value.Value;
+            ExtensionObject[] inputExtensionObjects =
+                (ExtensionObject[]) inputDataDescription?.AttributeData.Value.Value;
+            ExtensionObject[] outputExtensionObjects =
+                (ExtensionObject[]) outputDataDescription?.AttributeData.Value.Value;
             inputArgumentsPanel.Controls.Clear();
-            if (extensionObjects != null)
+            outputArgumentsPanel.Controls.Clear();
+            if (inputExtensionObjects != null)
             {
-                foreach (ExtensionObject extensionObject in extensionObjects)
+                foreach (ExtensionObject extensionObject in inputExtensionObjects)
                 {
-                    Argument argument = (Argument)extensionObject.Body;
+                    Argument argument = (Argument) extensionObject.Body;
                     Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(argument.DataType, argument.ValueRank));
-                    if (argument == null)
-                        continue;
-                    AddInputArgumentUserControl(defaultValue.Value.ToString(), argument.Description.Text, argument.Name, defaultValue.TypeInfo);
+                    AddInputArgumentUserControl(defaultValue.Value.ToString(), argument.Description.Text, argument.Name,
+                        defaultValue.TypeInfo);
                 }
+                callMethodButton.Enabled = true;
             }
-            callMethodButton.Enabled = true;
+            if (outputExtensionObjects == null)
+                return;
+            foreach (ExtensionObject extensionObject in outputExtensionObjects)
+            {
+                Argument argument = (Argument) extensionObject.Body;
+                Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(argument.DataType, argument.ValueRank));
+                AddOutputArgumentUserControl(defaultValue.Value.ToString(), argument.Description.Text, argument.Name,
+                    defaultValue.TypeInfo);
+            }
         }
+
         private void ObjectTreeViewMouseDoubleClick(object sender, MouseEventArgs e)
         {
             attributesListView.Items.Clear();
@@ -337,45 +434,50 @@ namespace Client
             {
                 objectReference = _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[parentNode.Text];
             }
+
             if (objectReference == null)
                 return;
             PopulateAttributeListView(objectReference.DataDescription.AttributeData);
             TreeNode[] browsedObjects;
             if (objectReference.MethodDataDescriptions != null)
             {
-                browsedObjects = (from x in objectReference.MethodDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name, 0, 0)
+                browsedObjects = (from x in objectReference.MethodDataDescriptions
+                    select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name, 0, 0)
+                    {
+                        Name = x.DataDescription.ReferenceDescription.BrowseName.Name,
+                        Tag = x.DataDescription.AttributeData
+                    }).ToArray();
+                PopulateTreeNode(parentNode, browsedObjects);
+            }
+
+            if (objectReference.VariableDataDescriptions != null)
+            {
+                browsedObjects = (from x in objectReference.VariableDataDescriptions
+                    select new TreeNode(x.ReferenceDescription.BrowseName.Name, 1, 1)
+                    {
+                        Name = x.ReferenceDescription.BrowseName.Name,
+                        Tag = x.AttributeData
+                    }).ToArray();
+                PopulateTreeNode(parentNode, browsedObjects);
+            }
+
+            if (objectReference.ObjectDataDescriptions == null)
+                return;
+            browsedObjects = (from x in objectReference.ObjectDataDescriptions
+                select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name, 2, 2)
                 {
                     Name = x.DataDescription.ReferenceDescription.BrowseName.Name,
                     Tag = x.DataDescription.AttributeData
                 }).ToArray();
-                PopulateTreeNode(parentNode, browsedObjects);
-            }
-            if (objectReference.VariableDataDescriptions != null)
-            {
-                browsedObjects = (from x in objectReference.VariableDataDescriptions select new TreeNode(x.ReferenceDescription.BrowseName.Name, 1, 1)
-                {
-                    Name = x.ReferenceDescription.BrowseName.Name,
-                    Tag = x.AttributeData
-                }).ToArray();
-                PopulateTreeNode(parentNode, browsedObjects);
-            }
-            if (objectReference.ObjectDataDescriptions == null) 
-                return;
-            browsedObjects = (from x in objectReference.ObjectDataDescriptions select new TreeNode(x.DataDescription.ReferenceDescription.BrowseName.Name, 2, 2)
-            {
-                Name = x.DataDescription.ReferenceDescription.BrowseName.Name,
-                Tag = x.DataDescription.AttributeData
-            }).ToArray();
             PopulateTreeNode(parentNode, browsedObjects);
         }
+
         private void CallMethodButtonClick(object sender, EventArgs e)
         {
             List<object> arguments = GetInputArgumentFromUserControl();
-            IList<object> outputArguments = _applicationInstanceManager.Session.Call(_selectedObjectId, _selectedMethodId, arguments.ToArray());
-            foreach(object output in outputArguments)
-            {
-                InformationDisplay($"Output: {output.ToString()}");
-            }
+            IList<object> outputArguments =
+                _applicationInstanceManager.Session.Call(_selectedObjectId, _selectedMethodId, arguments.ToArray());
+            SetOutputArgumentValueForUserControl(outputArguments.ToList());
         }
         #endregion
     }

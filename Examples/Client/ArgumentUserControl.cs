@@ -3,17 +3,23 @@ using System.Windows.Forms;
 
 namespace Client
 {
-    public partial class InputArgumentUserControl : UserControl
+    public partial class ArgumentUserControl : UserControl
     {
         #region Properties
         /// <summary>
         /// Casts a value to the specified target type and return the object value
         /// </summary>
-        public object ValueInput => string.IsNullOrEmpty(valueInputTextBox.Text) ? TypeInfo.Cast("0", TypeInfo.BuiltInType) : TypeInfo.Cast(valueInputTextBox.Text,TypeInfo.BuiltInType);
+        public object ValueInput
+        {
+            get => string.IsNullOrEmpty(valueInputTextBox.Text)
+                ? TypeInfo.Cast("0", TypeInfo.BuiltInType)
+                : TypeInfo.Cast(valueInputTextBox.Text, TypeInfo.BuiltInType);
+            set => valueInputTextBox.SetTextThreadSafe(value.ToString());
+        }
         public TypeInfo TypeInfo { get; private set; }
         #endregion
 
-        public InputArgumentUserControl()
+        public ArgumentUserControl()
         {
             InitializeComponent();
         }

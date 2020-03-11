@@ -52,9 +52,9 @@
             this.useSecurityCheckBox = new System.Windows.Forms.CheckBox();
             this.globalDiscoveryServerDiscoveryURLTextBox = new System.Windows.Forms.TextBox();
             this.referenceGroupBox = new System.Windows.Forms.GroupBox();
+            this.objectTreeView = new System.Windows.Forms.TreeView();
             this.callMethodButton = new System.Windows.Forms.Button();
             this.inputArgumentsPanel = new System.Windows.Forms.Panel();
-            this.objectTreeView = new System.Windows.Forms.TreeView();
             this.discoveredServersListView = new System.Windows.Forms.ListView();
             this.discoveredServersColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.serverConnectContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -72,6 +72,8 @@
             this.outputArgumentsPanel = new System.Windows.Forms.Panel();
             this.inputGroupBox = new System.Windows.Forms.GroupBox();
             this.outputGroupBox = new System.Windows.Forms.GroupBox();
+            this.monitorGroupBox = new System.Windows.Forms.GroupBox();
+            this.monitoredVariablePanel = new System.Windows.Forms.Panel();
             this.groupBox1.SuspendLayout();
             this.referenceGroupBox.SuspendLayout();
             this.serverConnectContextMenuStrip.SuspendLayout();
@@ -80,6 +82,7 @@
             this.referenceDescriptionContextMenuStrip.SuspendLayout();
             this.inputGroupBox.SuspendLayout();
             this.outputGroupBox.SuspendLayout();
+            this.monitorGroupBox.SuspendLayout();
             this.SuspendLayout();
             // 
             // connectButton
@@ -349,6 +352,17 @@
             this.referenceGroupBox.TabStop = false;
             this.referenceGroupBox.Text = "Reference Descriptions";
             // 
+            // objectTreeView
+            // 
+            this.objectTreeView.Enabled = false;
+            this.objectTreeView.Location = new System.Drawing.Point(9, 18);
+            this.objectTreeView.Margin = new System.Windows.Forms.Padding(2);
+            this.objectTreeView.Name = "objectTreeView";
+            this.objectTreeView.Size = new System.Drawing.Size(215, 234);
+            this.objectTreeView.TabIndex = 2;
+            this.objectTreeView.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.ObjectTreeViewMouseDoubleClick);
+            this.objectTreeView.MouseDown += new System.Windows.Forms.MouseEventHandler(this.ObjectTreeViewMouseDown);
+            // 
             // callMethodButton
             // 
             this.callMethodButton.Enabled = false;
@@ -367,17 +381,6 @@
             this.inputArgumentsPanel.Name = "inputArgumentsPanel";
             this.inputArgumentsPanel.Size = new System.Drawing.Size(310, 209);
             this.inputArgumentsPanel.TabIndex = 3;
-            // 
-            // objectTreeView
-            // 
-            this.objectTreeView.Enabled = false;
-            this.objectTreeView.Location = new System.Drawing.Point(9, 18);
-            this.objectTreeView.Margin = new System.Windows.Forms.Padding(2);
-            this.objectTreeView.Name = "objectTreeView";
-            this.objectTreeView.Size = new System.Drawing.Size(215, 234);
-            this.objectTreeView.TabIndex = 2;
-            this.objectTreeView.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.ObjectTreeViewMouseDoubleClick);
-            this.objectTreeView.MouseDown += new System.Windows.Forms.MouseEventHandler(this.ObjectTreeViewMouseDown);
             // 
             // discoveredServersListView
             // 
@@ -423,7 +426,7 @@
             this.attributeGroupBox.Controls.Add(this.attributesListView);
             this.attributeGroupBox.Location = new System.Drawing.Point(886, 24);
             this.attributeGroupBox.Name = "attributeGroupBox";
-            this.attributeGroupBox.Size = new System.Drawing.Size(343, 522);
+            this.attributeGroupBox.Size = new System.Drawing.Size(426, 539);
             this.attributeGroupBox.TabIndex = 6;
             this.attributeGroupBox.TabStop = false;
             this.attributeGroupBox.Text = "Attributes";
@@ -443,7 +446,7 @@
             this.attributesListView.Location = new System.Drawing.Point(5, 18);
             this.attributesListView.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.attributesListView.Name = "attributesListView";
-            this.attributesListView.Size = new System.Drawing.Size(331, 501);
+            this.attributesListView.Size = new System.Drawing.Size(414, 518);
             this.attributesListView.TabIndex = 6;
             this.attributesListView.UseCompatibleStateImageBehavior = false;
             this.attributesListView.View = System.Windows.Forms.View.Details;
@@ -466,7 +469,7 @@
             this.mainMenuStrip.Location = new System.Drawing.Point(0, 0);
             this.mainMenuStrip.Name = "mainMenuStrip";
             this.mainMenuStrip.Padding = new System.Windows.Forms.Padding(4, 2, 0, 2);
-            this.mainMenuStrip.Size = new System.Drawing.Size(1236, 24);
+            this.mainMenuStrip.Size = new System.Drawing.Size(1226, 24);
             this.mainMenuStrip.TabIndex = 7;
             this.mainMenuStrip.Text = "menuStrip1";
             // 
@@ -504,31 +507,32 @@
             this.informationRichTextBox.BackColor = System.Drawing.SystemColors.InfoText;
             this.informationRichTextBox.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.informationRichTextBox.ForeColor = System.Drawing.Color.White;
-            this.informationRichTextBox.Location = new System.Drawing.Point(0, 551);
+            this.informationRichTextBox.Location = new System.Drawing.Point(0, 553);
             this.informationRichTextBox.Margin = new System.Windows.Forms.Padding(2);
             this.informationRichTextBox.Name = "informationRichTextBox";
             this.informationRichTextBox.ReadOnly = true;
-            this.informationRichTextBox.Size = new System.Drawing.Size(1236, 76);
-            this.informationRichTextBox.TabIndex = 3;
+            this.informationRichTextBox.Size = new System.Drawing.Size(1226, 76);
+            this.informationRichTextBox.TabIndex = 12;
             this.informationRichTextBox.Text = "";
             // 
             // outputArgumentsPanel
             // 
+            this.outputArgumentsPanel.Enabled = false;
             this.outputArgumentsPanel.Location = new System.Drawing.Point(4, 15);
             this.outputArgumentsPanel.Margin = new System.Windows.Forms.Padding(2);
             this.outputArgumentsPanel.Name = "outputArgumentsPanel";
-            this.outputArgumentsPanel.Size = new System.Drawing.Size(307, 504);
+            this.outputArgumentsPanel.Size = new System.Drawing.Size(307, 242);
             this.outputArgumentsPanel.TabIndex = 8;
             // 
             // inputGroupBox
             // 
             this.inputGroupBox.Controls.Add(this.callMethodButton);
             this.inputGroupBox.Controls.Add(this.inputArgumentsPanel);
-            this.inputGroupBox.Location = new System.Drawing.Point(241, 294);
+            this.inputGroupBox.Location = new System.Drawing.Point(241, 291);
             this.inputGroupBox.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.inputGroupBox.Name = "inputGroupBox";
             this.inputGroupBox.Padding = new System.Windows.Forms.Padding(2, 3, 2, 3);
-            this.inputGroupBox.Size = new System.Drawing.Size(321, 252);
+            this.inputGroupBox.Size = new System.Drawing.Size(321, 255);
             this.inputGroupBox.TabIndex = 9;
             this.inputGroupBox.TabStop = false;
             this.inputGroupBox.Text = "Input";
@@ -540,26 +544,48 @@
             this.outputGroupBox.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.outputGroupBox.Name = "outputGroupBox";
             this.outputGroupBox.Padding = new System.Windows.Forms.Padding(2, 3, 2, 3);
-            this.outputGroupBox.Size = new System.Drawing.Size(315, 522);
+            this.outputGroupBox.Size = new System.Drawing.Size(315, 263);
             this.outputGroupBox.TabIndex = 10;
             this.outputGroupBox.TabStop = false;
             this.outputGroupBox.Text = "Output";
+            // 
+            // monitorGroupBox
+            // 
+            this.monitorGroupBox.Controls.Add(this.monitoredVariablePanel);
+            this.monitorGroupBox.Location = new System.Drawing.Point(566, 291);
+            this.monitorGroupBox.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
+            this.monitorGroupBox.Name = "monitorGroupBox";
+            this.monitorGroupBox.Padding = new System.Windows.Forms.Padding(2, 3, 2, 3);
+            this.monitorGroupBox.Size = new System.Drawing.Size(321, 255);
+            this.monitorGroupBox.TabIndex = 11;
+            this.monitorGroupBox.TabStop = false;
+            this.monitorGroupBox.Text = "Monitored";
+            // 
+            // monitoredVariablePanel
+            // 
+            this.monitoredVariablePanel.Enabled = false;
+            this.monitoredVariablePanel.Location = new System.Drawing.Point(5, 15);
+            this.monitoredVariablePanel.Margin = new System.Windows.Forms.Padding(2);
+            this.monitoredVariablePanel.Name = "monitoredVariablePanel";
+            this.monitoredVariablePanel.Size = new System.Drawing.Size(310, 234);
+            this.monitoredVariablePanel.TabIndex = 3;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1236, 627);
-            this.Controls.Add(this.outputGroupBox);
-            this.Controls.Add(this.inputGroupBox);
+            this.ClientSize = new System.Drawing.Size(1226, 629);
             this.Controls.Add(this.informationRichTextBox);
+            this.Controls.Add(this.outputGroupBox);
             this.Controls.Add(this.mainMenuStrip);
             this.Controls.Add(this.attributeGroupBox);
             this.Controls.Add(this.discoveredServersListView);
             this.Controls.Add(this.referenceGroupBox);
             this.Controls.Add(this.groupBox1);
+            this.Controls.Add(this.inputGroupBox);
+            this.Controls.Add(this.monitorGroupBox);
             this.MainMenuStrip = this.mainMenuStrip;
-            this.MinimumSize = new System.Drawing.Size(843, 645);
+            this.MinimumSize = new System.Drawing.Size(1242, 668);
             this.Name = "MainForm";
             this.Text = "Client";
             this.groupBox1.ResumeLayout(false);
@@ -572,6 +598,7 @@
             this.referenceDescriptionContextMenuStrip.ResumeLayout(false);
             this.inputGroupBox.ResumeLayout(false);
             this.outputGroupBox.ResumeLayout(false);
+            this.monitorGroupBox.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -621,6 +648,8 @@
         private System.Windows.Forms.Panel outputArgumentsPanel;
         private System.Windows.Forms.GroupBox inputGroupBox;
         private System.Windows.Forms.GroupBox outputGroupBox;
+        private System.Windows.Forms.GroupBox monitorGroupBox;
+        private System.Windows.Forms.Panel monitoredVariablePanel;
     }
 }
 

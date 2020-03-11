@@ -1,6 +1,6 @@
 ﻿namespace Client
 {
-    partial class InputArgumentUserControl
+    partial class ArgumentUserControl
     {
         /// <summary> 
         /// Required designer variable.
@@ -36,54 +36,49 @@
             // 
             // inputArgumentNameLabel
             // 
-            this.inputArgumentNameLabel.Location = new System.Drawing.Point(2, 6);
-            this.inputArgumentNameLabel.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.inputArgumentNameLabel.Location = new System.Drawing.Point(3, 9);
             this.inputArgumentNameLabel.Name = "inputArgumentNameLabel";
-            this.inputArgumentNameLabel.Size = new System.Drawing.Size(100, 15);
+            this.inputArgumentNameLabel.Size = new System.Drawing.Size(150, 23);
             this.inputArgumentNameLabel.TabIndex = 0;
             this.inputArgumentNameLabel.Text = "Name";
             this.inputArgumentNameLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // valueInputTextBox
             // 
-            this.valueInputTextBox.Location = new System.Drawing.Point(106, 3);
-            this.valueInputTextBox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.valueInputTextBox.Location = new System.Drawing.Point(159, 5);
             this.valueInputTextBox.Name = "valueInputTextBox";
-            this.valueInputTextBox.Size = new System.Drawing.Size(76, 20);
+            this.valueInputTextBox.Size = new System.Drawing.Size(112, 26);
             this.valueInputTextBox.TabIndex = 1;
             // 
             // inputArgumentTypeLabel
             // 
-            this.inputArgumentTypeLabel.Location = new System.Drawing.Point(186, 6);
-            this.inputArgumentTypeLabel.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.inputArgumentTypeLabel.Location = new System.Drawing.Point(279, 9);
             this.inputArgumentTypeLabel.Name = "inputArgumentTypeLabel";
-            this.inputArgumentTypeLabel.Size = new System.Drawing.Size(100, 15);
+            this.inputArgumentTypeLabel.Size = new System.Drawing.Size(150, 23);
             this.inputArgumentTypeLabel.TabIndex = 2;
             this.inputArgumentTypeLabel.Text = "Type";
             this.inputArgumentTypeLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // inputArgumentDescriptionLabel
             // 
-            this.inputArgumentDescriptionLabel.Location = new System.Drawing.Point(5, 32);
-            this.inputArgumentDescriptionLabel.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.inputArgumentDescriptionLabel.Location = new System.Drawing.Point(8, 49);
             this.inputArgumentDescriptionLabel.Name = "inputArgumentDescriptionLabel";
-            this.inputArgumentDescriptionLabel.Size = new System.Drawing.Size(281, 18);
+            this.inputArgumentDescriptionLabel.Size = new System.Drawing.Size(422, 28);
             this.inputArgumentDescriptionLabel.TabIndex = 1;
-            this.inputArgumentDescriptionLabel.Text = "Input Argument Description";
+            this.inputArgumentDescriptionLabel.Text = "Argument Description";
             // 
-            // InputArgumentUserControl
+            // ArgumentUserControl
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.inputArgumentDescriptionLabel);
             this.Controls.Add(this.inputArgumentTypeLabel);
             this.Controls.Add(this.valueInputTextBox);
             this.Controls.Add(this.inputArgumentNameLabel);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
-            this.MaximumSize = new System.Drawing.Size(290, 55);
-            this.MinimumSize = new System.Drawing.Size(290, 55);
-            this.Name = "InputArgumentUserControl";
-            this.Size = new System.Drawing.Size(290, 55);
+            this.MaximumSize = new System.Drawing.Size(435, 85);
+            this.MinimumSize = new System.Drawing.Size(435, 85);
+            this.Name = "ArgumentUserControl";
+            this.Size = new System.Drawing.Size(435, 85);
             this.ResumeLayout(false);
             this.PerformLayout();
 
