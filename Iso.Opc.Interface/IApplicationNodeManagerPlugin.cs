@@ -27,6 +27,8 @@ namespace Iso.Opc.Interface
         /// </summary>
         string Version { get; set; }
 
+        string ResourcePath { get; set; }
+
         CustomNodeManager2 ApplicationNodeManager { get; set; }
 
         List<string> NamespaceUris { get; set; }

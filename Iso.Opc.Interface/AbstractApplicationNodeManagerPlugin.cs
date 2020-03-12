@@ -15,6 +15,7 @@ namespace Iso.Opc.Interface
         public virtual string Description { get; set; }
         public virtual string Author { get; set; }
         public virtual string Version { get; set; }
+        public virtual string ResourcePath { get; set; }
         public virtual CustomNodeManager2 ApplicationNodeManager { get; set; }
         public virtual List<string> NamespaceUris { get; set; }
         public virtual List<string> ServerUris { get; set; }
@@ -31,7 +32,15 @@ namespace Iso.Opc.Interface
         {
             try
             {
-                if (string.IsNullOrEmpty(resourcePath))
+                if (!string.IsNullOrEmpty(ResourcePath))
+                {
+                    if (!File.Exists(ResourcePath))
+                        ResourcePath = AppDomain.CurrentDomain.BaseDirectory + "plugin\\" + ResourcePath;
+                    if (!File.Exists(ResourcePath))
+                        throw new Exception($"Cannot find file: {ResourcePath}");
+                    resourcePath = ResourcePath;
+                }
+                if (string.IsNullOrEmpty(resourcePath) )
                     return;
                 NamespaceUris = new List<string>();
                 NodeStateCollection predefinedNodeStateCollection = new NodeStateCollection();
