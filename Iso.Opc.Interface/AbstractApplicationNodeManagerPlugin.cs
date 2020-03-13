@@ -71,6 +71,9 @@ namespace Iso.Opc.Interface
                     NodeState bindNodeState = BindNodeStates(externalReferences, nodeState, ref parsedNodeState);
                     parsedNodeState.Add(bindNodeState);
                 }
+
+                if (NodeStateCollection == null)
+                    NodeStateCollection = parsedNodeState;
             }
             catch (Exception e)
             {

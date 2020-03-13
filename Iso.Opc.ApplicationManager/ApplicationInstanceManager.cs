@@ -245,8 +245,8 @@ namespace Iso.Opc.ApplicationManager
             securityConfiguration.NonceLength = 32;
             //false for server
             securityConfiguration.RejectUnknownRevocationStatus = false;
-            /** For CA signed certificates, this flag controls whether the server shall send the complete certificate chain instead of just sending the certificate. 
-             * This affects the GetEndpoints and CreateSession service.**/
+            //For CA signed certificates, this flag controls whether the server shall send the complete certificate chain instead of just sending the certificate. 
+            //This affects the GetEndpoints and CreateSession service.**/
             securityConfiguration.SendCertificateChain = true;
             securityConfiguration.MinimumCertificateKeySize = CertificateFactory.defaultKeySize;
             securityConfiguration.Validate();
@@ -483,15 +483,14 @@ namespace Iso.Opc.ApplicationManager
                 break;
             }
             // try HTTPS if no opc.tcp.
-            if (url == null)
+            if (url != null) 
+                return url ?? discoveryUrls[0];
+            foreach (string discoveryUrl in discoveryUrls)
             {
-                foreach (string discoveryUrl in discoveryUrls)
-                {
-                    if (!discoveryUrl.StartsWith("https://", StringComparison.Ordinal))
-                        continue;
-                    url = discoveryUrl;
-                    break;
-                }
+                if (!discoveryUrl.StartsWith("https://", StringComparison.Ordinal))
+                    continue;
+                url = discoveryUrl;
+                break;
             }
             // use the first URL if nothing else.
             return url ?? discoveryUrls[0];
@@ -957,11 +956,42 @@ namespace Iso.Opc.ApplicationManager
                 ResultMask = (uint)BrowseResultMask.All
             };
             //Define the node to browse
-            NodeId nodeToBrowse = parentReferenceDescription == null ? 
-                new NodeId(global::Opc.Ua.Objects.RootFolder, 0) : 
-                ExpandedNodeId.ToNodeId(parentReferenceDescription.NodeId, Session.NamespaceUris);
-            browseDescription.NodeId = nodeToBrowse;
-            browseDescriptionCollection.Add(browseDescription);
+            if (parentReferenceDescription == null)
+            {
+                foreach (string sessionNamespaceUri in Session.NamespaceUris.ToArray())
+                {
+                    ushort namespaceIndex = Session.SystemContext.NamespaceUris.GetIndexOrAppend(sessionNamespaceUri);
+                    browseDescription = new BrowseDescription
+                    {
+                        BrowseDirection = BrowseDirection.Forward,
+                        ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences,
+                        IncludeSubtypes = true,
+                        NodeClassMask = (uint)NodeClass.Unspecified,
+                        ResultMask = (uint)BrowseResultMask.All
+                    };
+                    NodeId nodeToBrowse = new NodeId(global::Opc.Ua.Objects.RootFolder, namespaceIndex);
+                    browseDescription.NodeId = nodeToBrowse;
+                    browseDescriptionCollection.Add(browseDescription);
+                }
+            }
+            else
+            {
+                foreach (string sessionNamespaceUri in Session.NamespaceUris.ToArray())
+                {
+                    ushort namespaceIndex = Session.SystemContext.NamespaceUris.GetIndexOrAppend(sessionNamespaceUri);
+                    browseDescription = new BrowseDescription
+                    {
+                        BrowseDirection = BrowseDirection.Forward,
+                        ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences,
+                        IncludeSubtypes = true,
+                        NodeClassMask = (uint)NodeClass.Unspecified,
+                        ResultMask = (uint)BrowseResultMask.All
+                    };
+                    NodeId nodeToBrowse = new NodeId(parentReferenceDescription.NodeId.Identifier, namespaceIndex);
+                    browseDescription.NodeId = nodeToBrowse;
+                    browseDescriptionCollection.Add(browseDescription);
+                }
+            }
             RequestHeader requestHeader = null;
             ViewDescription viewDescription = null;
             const uint requestedMaxReferencesPerNode = 100;
