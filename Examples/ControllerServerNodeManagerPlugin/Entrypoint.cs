@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using Iso.Opc.Interface;
 using Opc.Ua;
@@ -23,36 +24,42 @@ namespace ControllerServerNodeManagerPlugin
             base.Author = "Ola";
             base.Description = "Plugin Test";
             base.Version = "1.0.0.0";
+            base.NamespaceUris = new List<string> { $"http://{Dns.GetHostName()}/UA/Default" };
         }
 
         #region Overridden Methods
-        public override void Initialise(CustomNodeManager2 nodeManager, IDictionary<NodeId, IList<IReference>> externalReferences, string resourcePath = null)
+        public override void BindNodeStateCollection()
         {
-            base.ApplicationNodeManager = nodeManager;
+            if (ExternalReferences == null)
+                return;
+            // ensure the process object can be found via the server object. 
+            if (!ExternalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
+            {
+                ExternalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
+            }
+            references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, NodeStateCollection[0].NodeId));
+        }
+
+        public override void Initialise(CustomNodeManager2 nodeManager)
+        { 
+            ApplicationNodeManager = nodeManager;
+            ushort namespaceIndex = ApplicationNodeManager.SystemContext.NamespaceUris.GetIndexOrAppend(NamespaceUris[0]);
             /* ***************************************** */
             /* ControllerType                            */
             /* ***************************************** */
             BaseObjectState controller = new BaseObjectState(null)
             {
-                NodeId = new NodeId(1, nodeManager.NamespaceIndex),
-                BrowseName = new QualifiedName("Controllers", nodeManager.NamespaceIndex),
+                NodeId = new NodeId(1, namespaceIndex),
+                BrowseName = new QualifiedName("Controllers", namespaceIndex),
                 DisplayName = new LocalizedText("Controllers"),
                 TypeDefinitionId = ObjectTypeIds.BaseObjectType
             };
-
-            // ensure the process object can be found via the server object. 
-            if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
-            {
-                externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
-            }
             controller.AddReference(ReferenceTypeIds.Organizes, true, ObjectIds.ObjectsFolder);
-            references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, controller.NodeId));
-
             //Variables
             PropertyState<uint> state = new PropertyState<uint>(controller)
             {
-                NodeId = new NodeId(2, nodeManager.NamespaceIndex),
-                BrowseName = new QualifiedName("State", nodeManager.NamespaceIndex),
+                NodeId = new NodeId(2, namespaceIndex),
+                BrowseName = new QualifiedName("State", namespaceIndex),
                 DisplayName = new LocalizedText("State"),
                 TypeDefinitionId = VariableTypeIds.PropertyType,
                 ReferenceTypeId = ReferenceTypeIds.HasProperty,
@@ -68,8 +75,8 @@ namespace ControllerServerNodeManagerPlugin
             //Method
             MethodState start = new MethodState(controller)
             {
-                NodeId = new NodeId(3, nodeManager.NamespaceIndex),
-                BrowseName = new QualifiedName("Start", nodeManager.NamespaceIndex),
+                NodeId = new NodeId(3, namespaceIndex),
+                BrowseName = new QualifiedName("Start", namespaceIndex),
                 DisplayName = new LocalizedText("Start"),
                 ReferenceTypeId = ReferenceTypeIds.HasComponent,
                 UserExecutable = true,
@@ -79,7 +86,7 @@ namespace ControllerServerNodeManagerPlugin
             //Method - Input
             start.InputArguments = new PropertyState<Argument[]>(start)
             {
-                NodeId = new NodeId(4, nodeManager.NamespaceIndex),
+                NodeId = new NodeId(4, namespaceIndex),
                 BrowseName = BrowseNames.InputArguments,
                 DisplayName = new LocalizedText(BrowseNames.InputArguments),
                 TypeDefinitionId = VariableTypeIds.PropertyType,
@@ -110,7 +117,7 @@ namespace ControllerServerNodeManagerPlugin
             //Method - Output
             start.OutputArguments = new PropertyState<Argument[]>(start)
             {
-                NodeId = new NodeId(5, nodeManager.NamespaceIndex),
+                NodeId = new NodeId(5, namespaceIndex),
                 BrowseName = BrowseNames.OutputArguments,
                 TypeDefinitionId = VariableTypeIds.PropertyType,
                 ReferenceTypeId = ReferenceTypeIds.HasProperty,
@@ -140,7 +147,7 @@ namespace ControllerServerNodeManagerPlugin
             start.OnCallMethod = OnStart;
             controller.AddChild(start);
 
-            base.NodeStateCollection = new NodeStateCollection {controller};
+            NodeStateCollection = new NodeStateCollection { controller };
         }
         #endregion
 

@@ -20,6 +20,8 @@ namespace Iso.Opc.Interface
         public virtual List<string> NamespaceUris { get; set; }
         public virtual List<string> ServerUris { get; set; }
         public virtual NodeStateCollection NodeStateCollection { get; set; }
+        public virtual IDictionary<NodeId, IList<IReference>> ExternalReferences { get; set; }
+
         #endregion
 
         #region Private Fields
@@ -28,62 +30,57 @@ namespace Iso.Opc.Interface
         #endregion
 
         #region Virtual Methods
-        public virtual void Initialise(CustomNodeManager2 nodeManager, IDictionary<NodeId, IList<IReference>> externalReferences, string resourcePath=null)
+        public virtual void BindNodeStateCollection()
         {
-            try
+            if (ExternalReferences == null)
+                return;
+            if (NodeStateCollection == null) 
+                return;
+            NodeStateCollection parsedNodeState = new NodeStateCollection();
+            foreach (NodeState nodeState in NodeStateCollection)
             {
-                if (!string.IsNullOrEmpty(ResourcePath))
-                {
-                    if (!File.Exists(ResourcePath))
-                        ResourcePath = AppDomain.CurrentDomain.BaseDirectory + "plugin\\" + ResourcePath;
-                    if (!File.Exists(ResourcePath))
-                        throw new Exception($"Cannot find file: {ResourcePath}");
-                    resourcePath = ResourcePath;
-                }
-                if (string.IsNullOrEmpty(resourcePath) )
-                    return;
-                NamespaceUris = new List<string>();
-                NodeStateCollection predefinedNodeStateCollection = new NodeStateCollection();
-                Stream stream = new FileStream(resourcePath, FileMode.Open);
-                UANodeSet uaNodeSet = UANodeSet.Read(stream);
-                NamespaceUris.AddRange(nodeManager.NamespaceUris);
-                // Update namespace table
-                if (uaNodeSet.ServerUris != null)
-                {
-                    foreach (string namespaceUri in uaNodeSet.NamespaceUris)
-                    {
-                        NamespaceUris.Add(namespaceUri);
-                        nodeManager.SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
-                    }
-                }
-                // Update server table
-                if (uaNodeSet.ServerUris != null)
-                {
-                    foreach (string serverUri in uaNodeSet.ServerUris)
-                    {
-                        nodeManager.SystemContext.ServerUris.GetIndexOrAppend(serverUri);
-                    }
-                }
-                uaNodeSet.Import(nodeManager.SystemContext, predefinedNodeStateCollection);
-                NodeStateCollection parsedNodeState = new NodeStateCollection();
-                foreach (NodeState nodeState in predefinedNodeStateCollection)
-                {
-                    NodeState bindNodeState = BindNodeStates(externalReferences, nodeState, ref parsedNodeState);
-                    parsedNodeState.Add(bindNodeState);
-                }
-
-                if (NodeStateCollection == null)
-                    NodeStateCollection = parsedNodeState;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Import XML exception: {e.StackTrace}");
+                NodeState bindNodeState = BindNodeStates(ExternalReferences, nodeState, ref parsedNodeState);
+                parsedNodeState.Add(bindNodeState);
             }
         }
-        public virtual void BindMethod(MethodState methodState)
+
+        public virtual void Initialise(CustomNodeManager2 nodeManager)
         {
-            methodState.OnCallMethod = OnGeneratedEmptyMethod;
-            methodState.OnCallMethod2 = OnGeneratedEmptyMethod2;
+            ApplicationNodeManager = nodeManager;
+            if (string.IsNullOrEmpty(ResourcePath))
+                return;
+            NamespaceUris = new List<string>();
+            NodeStateCollection predefinedNodeStateCollection = new NodeStateCollection();
+            Stream stream = new FileStream(ResourcePath, FileMode.Open);
+            UANodeSet uaNodeSet = UANodeSet.Read(stream);
+            NamespaceUris.AddRange(ApplicationNodeManager.NamespaceUris);
+            // Update namespace table
+            if (uaNodeSet.NamespaceUris != null)
+            {
+                foreach (string namespaceUri in uaNodeSet.NamespaceUris)
+                {
+                    NamespaceUris.Add(namespaceUri);
+                    ApplicationNodeManager.SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
+                }
+            }
+            // Update server table
+            if (uaNodeSet.ServerUris != null)
+            {
+                foreach (string serverUri in uaNodeSet.ServerUris)
+                {
+                    ServerUris.Add(serverUri);
+                    ApplicationNodeManager.SystemContext.ServerUris.GetIndexOrAppend(serverUri);
+                }
+            }
+            uaNodeSet.Import(ApplicationNodeManager.SystemContext, predefinedNodeStateCollection);
+            NodeStateCollection = predefinedNodeStateCollection;
+        }
+        public virtual void BindNodeStateActions(NodeState nodeState)
+        {
+            if (!(nodeState is MethodState methodNodeState))
+                return;
+            methodNodeState.OnCallMethod = OnGeneratedEmptyMethod;
+            methodNodeState.OnCallMethod2 = OnGeneratedEmptyMethod2;
         }
         public virtual void DeleteAddressSpace()
         {
@@ -170,7 +167,7 @@ namespace Iso.Opc.Interface
                 case NodeClass.Method:
                     if (!(nodeState is MethodState methodState))
                         return nodeState;
-                    BindMethod(methodState);
+                    BindNodeStateActions(methodState);
                     _previousBaseNode?.AddChild(methodState);
                     if (_previousMethod != null)
                     {
@@ -187,6 +184,7 @@ namespace Iso.Opc.Interface
                     {
                         if (!(nodeState is PropertyState propertyState))
                             return nodeState;
+                        BindNodeStateActions(propertyState);
                         if (propertyState.DisplayName == BrowseNames.InputArguments)
                         {
                             _previousMethod.InputArguments = new PropertyState<Argument[]>(_previousMethod)

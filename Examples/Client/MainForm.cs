@@ -370,10 +370,11 @@ namespace Client
                 return;
             _monitoredTreeNodes.Add(_selectedTreeNode);
             Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(attributeData.DataType, attributeData.ValueRank));
-            AddMonitoredVariableUserControl(defaultValue.Value.ToString(), attributeData.Description.Text,
+            if (defaultValue.Value == null)
+                defaultValue.Value = ""; 
+            AddMonitoredVariableUserControl(defaultValue.Value.ToString(), attributeData.Description.Text, 
                 attributeData.DisplayName.Text, defaultValue.TypeInfo, attributeData.NodeId);
             _applicationInstanceManager.SubscribeToNode(attributeData.NodeId, MonitoredItemNotification, 500);
-
         }
 
         private void CallToolStripMenuItemClick(object sender, EventArgs e)
@@ -401,16 +402,18 @@ namespace Client
                 (ExtensionObject[]) outputDataDescription?.AttributeData.Value.Value;
             inputArgumentsPanel.Controls.Clear();
             outputArgumentsPanel.Controls.Clear();
+            callMethodButton.Enabled = true;
             if (inputExtensionObjects != null)
             {
                 foreach (ExtensionObject extensionObject in inputExtensionObjects)
                 {
                     Argument argument = (Argument) extensionObject.Body;
                     Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(argument.DataType, argument.ValueRank));
+                    if (defaultValue.Value == null)
+                        defaultValue.Value = "";
                     AddInputArgumentUserControl(defaultValue.Value.ToString(), argument.Description.Text, argument.Name,
                         defaultValue.TypeInfo);
                 }
-                callMethodButton.Enabled = true;
             }
             if (outputExtensionObjects == null)
                 return;
@@ -476,7 +479,7 @@ namespace Client
         {
             List<object> arguments = GetInputArgumentFromUserControl();
             IList<object> outputArguments =
-                _applicationInstanceManager.Session.Call(_selectedObjectId, _selectedMethodId, arguments.ToArray());
+                _applicationInstanceManager.Session.Call(_selectedObjectId, _selectedMethodId, arguments.Count >0?arguments.ToArray():null);
             SetOutputArgumentValueForUserControl(outputArguments.ToList());
         }
         #endregion

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using Iso.Opc.ApplicationNodeManager.Plugin;
+using Iso.Opc.Interface;
 using Opc.Ua;
 using Opc.Ua.Server;
 
@@ -12,7 +14,7 @@ namespace Iso.Opc.ApplicationNodeManager.Server
     {
         #region Fields
         private readonly string _pluginDirectory;
-        private ApplicationNodeManagerPluginService _applicationNodeManagerPluginService;
+        private readonly ApplicationNodeManagerPluginService _applicationNodeManagerPluginService;
         private uint _nextNodeId;
         #endregion
 
@@ -27,6 +29,21 @@ namespace Iso.Opc.ApplicationNodeManager.Server
             _pluginDirectory = AppDomain.CurrentDomain.BaseDirectory + "plugin";
             if (!Directory.Exists(_pluginDirectory))
                 Directory.CreateDirectory(_pluginDirectory);
+            _applicationNodeManagerPluginService = new ApplicationNodeManagerPluginService(_pluginDirectory);
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            lock (Lock)
+            {
+                foreach (AbstractApplicationNodeManagerPlugin abstractApplicationNodeManagerPlugin in _applicationNodeManagerPluginService.PluginBaseNodeManagers)
+                {
+                    abstractApplicationNodeManagerPlugin.Initialise(this);
+                    //Get current namespace uris
+                    List<string> temporaryNamespaceUris = NamespaceUris.ToList();
+                    //Add the new namespaces
+                    temporaryNamespaceUris.AddRange(abstractApplicationNodeManagerPlugin.NamespaceUris);
+                    //override the current namespace uris
+                    NamespaceUris = temporaryNamespaceUris.Distinct();
+                }
+            }
         }
     }
 }

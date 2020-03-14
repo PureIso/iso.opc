@@ -36,12 +36,15 @@ namespace Iso.Opc.Interface
         List<string> ServerUris { get; set; }
 
         NodeStateCollection NodeStateCollection { get; set; }
+
+        IDictionary<NodeId, IList<IReference>> ExternalReferences { get; set; }
         #endregion
 
         #region Methods
+        void Initialise(CustomNodeManager2 nodeManager);
         void DeleteAddressSpace();
-        void BindMethod(MethodState methodState);
-        void Initialise(CustomNodeManager2 nodeManager, IDictionary<NodeId, IList<IReference>> externalReferences, string resourcePath = null);
+        void BindNodeStateActions(NodeState nodeState);
+        void BindNodeStateCollection();
         ServiceResult OnWriteValue(ISystemContext context, NodeState node, ref object value);
         ServiceResult OnReadUserAccessLevel(ISystemContext context, NodeState node, ref byte value);
         NodeState BindNodeStates(IDictionary<NodeId, IList<IReference>> externalReferences, NodeState nodeState,
