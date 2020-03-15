@@ -8,6 +8,9 @@ using Opc.Ua.Server;
 
 namespace ControllerServerNodeManagerPlugin
 {
+    /// <summary>
+    /// Controller ser node manager plugin entry point
+    /// </summary>
     public class EntryPoint : AbstractApplicationNodeManagerPlugin
     {
         #region Fields
@@ -28,20 +31,8 @@ namespace ControllerServerNodeManagerPlugin
         }
 
         #region Overridden Methods
-        public override void BindNodeStateCollection()
-        {
-            if (ExternalReferences == null)
-                return;
-            // ensure the process object can be found via the server object. 
-            if (!ExternalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
-            {
-                ExternalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
-            }
-            references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, NodeStateCollection[0].NodeId));
-        }
-
         public override void Initialise(CustomNodeManager2 nodeManager)
-        { 
+        {
             ApplicationNodeManager = nodeManager;
             ushort namespaceIndex = ApplicationNodeManager.SystemContext.NamespaceUris.GetIndexOrAppend(NamespaceUris[0]);
             /* ***************************************** */
@@ -149,34 +140,30 @@ namespace ControllerServerNodeManagerPlugin
 
             NodeStateCollection = new NodeStateCollection { controller };
         }
+        public override void BindNodeStateCollection()
+        {
+            if (ExternalReferences == null)
+                return;
+            // ensure the process object can be found via the server object. 
+            if (!ExternalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
+            {
+                ExternalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
+            }
+            references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, NodeStateCollection[0].NodeId));
+        }
         #endregion
 
         #region Methods
-        /// <summary>
-        /// Called when the Start method is called.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="method">The method.</param>
-        /// <param name="inputArguments">The input arguments.</param>
-        /// <param name="outputArguments">The output arguments.</param>
-        /// <returns></returns>
         private ServiceResult OnStart(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             // all arguments must be provided.
             if (inputArguments.Count < 2)
-            {
                 return StatusCodes.BadArgumentsMissing;
-            }
-
             // check the data type of the input arguments.
             uint? initialState = inputArguments[0] as uint?;
             uint? finalState = inputArguments[1] as uint?;
-
             if (initialState == null || finalState == null)
-            {
-                return StatusCodes.BadTypeMismatch;
-            }
-
+                return StatusCodes.BadTypeMismatch; 
             lock (_processLock)
             {
                 // check if the process is running.
@@ -185,31 +172,23 @@ namespace ControllerServerNodeManagerPlugin
                     _processTimer.Dispose();
                     _processTimer = null;
                 }
-
                 // start the process.
                 _state = initialState.Value;
                 _finalState = finalState.Value;
                 _processTimer = new Timer(OnUpdateProcess, null, 1000, 1000);
-
                 // the calling function sets default values for all output arguments.
                 // only need to update them here.
                 outputArguments[0] = _state;
                 outputArguments[1] = _finalState;
             }
-
             // signal update to state node.
             lock (ApplicationNodeManager.Lock)
             {
                 _stateNode.Value = _state;
                 _stateNode.ClearChangeMasks(ApplicationNodeManager.SystemContext, true);
             }
-
             return ServiceResult.Good;
         }
-        /// <summary>
-        /// Called when updating the process.
-        /// </summary>
-        /// <param name="state">The state.</param>
         private void OnUpdateProcess(object state)
         {
             try
@@ -218,24 +197,17 @@ namespace ControllerServerNodeManagerPlugin
                 {
                     // check if increasing.
                     if (_state < _finalState)
-                    {
                         _state++;
-                    }
-
                     // check if decreasing.
                     else if (_state > _finalState)
-                    {
                         _state--;
-                    }
-
                     // check if all done.
                     else
                     {
                         _processTimer.Dispose();
                         _processTimer = null;
-                    };
+                    }
                 }
-
                 // signal update to state node.
                 lock (ApplicationNodeManager.Lock)
                 {

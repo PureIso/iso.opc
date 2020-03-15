@@ -8,6 +8,9 @@ using LocalizedText = Opc.Ua.LocalizedText;
 
 namespace Iso.Opc.Interface
 {
+    /// <summary>
+    /// The abstract interface to application node manager
+    /// </summary>
     public abstract class AbstractApplicationNodeManagerPlugin : IApplicationNodeManagerPlugin
     {
         #region Virtual Properties
@@ -21,7 +24,6 @@ namespace Iso.Opc.Interface
         public virtual List<string> ServerUris { get; set; }
         public virtual NodeStateCollection NodeStateCollection { get; set; }
         public virtual IDictionary<NodeId, IList<IReference>> ExternalReferences { get; set; }
-
         #endregion
 
         #region Private Fields
@@ -30,20 +32,6 @@ namespace Iso.Opc.Interface
         #endregion
 
         #region Virtual Methods
-        public virtual void BindNodeStateCollection()
-        {
-            if (ExternalReferences == null)
-                return;
-            if (NodeStateCollection == null) 
-                return;
-            NodeStateCollection parsedNodeState = new NodeStateCollection();
-            foreach (NodeState nodeState in NodeStateCollection)
-            {
-                NodeState bindNodeState = BindNodeStates(ExternalReferences, nodeState, ref parsedNodeState);
-                parsedNodeState.Add(bindNodeState);
-            }
-        }
-
         public virtual void Initialise(CustomNodeManager2 nodeManager)
         {
             ApplicationNodeManager = nodeManager;
@@ -75,6 +63,19 @@ namespace Iso.Opc.Interface
             uaNodeSet.Import(ApplicationNodeManager.SystemContext, predefinedNodeStateCollection);
             NodeStateCollection = predefinedNodeStateCollection;
         }
+        public virtual void BindNodeStateCollection()
+        {
+            if (ExternalReferences == null)
+                return;
+            if (NodeStateCollection == null)
+                return;
+            NodeStateCollection parsedNodeState = new NodeStateCollection();
+            foreach (NodeState nodeState in NodeStateCollection)
+            {
+                NodeState bindNodeState = BindNodeStates(ExternalReferences, nodeState, ref parsedNodeState);
+                parsedNodeState.Add(bindNodeState);
+            }
+        }
         public virtual void BindNodeStateActions(NodeState nodeState)
         {
             if (!(nodeState is MethodState methodNodeState))
@@ -98,22 +99,19 @@ namespace Iso.Opc.Interface
                     "User cannot change value.");
                 return new ServiceResult(StatusCodes.BadUserAccessDenied, new LocalizedText(info));
             }
-            // attempt to update file system.
             try
             {
+                // attempt to update file system.
                 string filePath = value as string;
                 if (node is PropertyState<string> variable && !string.IsNullOrEmpty(variable.Value))
                 {
                     FileInfo file = new FileInfo(variable.Value);
                     if (file.Exists)
-                    {
                         file.Delete();
-                    }
                 }
                 if (!string.IsNullOrEmpty(filePath))
                 {
-                    FileInfo file = new FileInfo(filePath);
-                    using (StreamWriter writer = file.CreateText())
+                    using (StreamWriter writer = new FileInfo(filePath).CreateText())
                     {
                         writer.WriteLine(System.Security.Principal.WindowsIdentity.GetCurrent().Name);
                     }
@@ -129,13 +127,9 @@ namespace Iso.Opc.Interface
         public virtual ServiceResult OnReadUserAccessLevel(ISystemContext context, NodeState node, ref byte value)
         {
             if (context.UserIdentity == null || context.UserIdentity.TokenType == UserTokenType.Anonymous)
-            {
                 value = AccessLevels.CurrentRead;
-            }
             else
-            {
                 value = AccessLevels.CurrentReadOrWrite;
-            }
             return ServiceResult.Good;
         }
         public virtual NodeState BindNodeStates(IDictionary<NodeId, IList<IReference>> externalReferences, NodeState nodeState, ref NodeStateCollection noteStateCollectionToBind)
@@ -155,7 +149,6 @@ namespace Iso.Opc.Interface
                         else
                             noteStateCollectionToBind[index] = _previousMethod;
                     }
-
                     // ensure the process object can be found via the server object. 
                     if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
                     {
