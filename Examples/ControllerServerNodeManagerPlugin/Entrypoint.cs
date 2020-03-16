@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using Iso.Opc.Interface;
 using Opc.Ua;
@@ -7,6 +8,9 @@ using Opc.Ua.Server;
 
 namespace ControllerServerNodeManagerPlugin
 {
+    /// <summary>
+    /// Controller ser node manager plugin entry point
+    /// </summary>
     public class EntryPoint : AbstractApplicationNodeManagerPlugin
     {
         #region Fields
@@ -23,36 +27,30 @@ namespace ControllerServerNodeManagerPlugin
             base.Author = "Ola";
             base.Description = "Plugin Test";
             base.Version = "1.0.0.0";
+            base.NamespaceUris = new List<string> { $"http://{Dns.GetHostName()}/UA/Default" };
         }
 
         #region Overridden Methods
-        public override void Initialise(CustomNodeManager2 nodeManager, IDictionary<NodeId, IList<IReference>> externalReferences, string resourcePath = null)
+        public override void Initialise(CustomNodeManager2 nodeManager)
         {
-            base.ApplicationNodeManager = nodeManager;
+            ApplicationNodeManager = nodeManager;
+            ushort namespaceIndex = ApplicationNodeManager.SystemContext.NamespaceUris.GetIndexOrAppend(NamespaceUris[0]);
             /* ***************************************** */
             /* ControllerType                            */
             /* ***************************************** */
             BaseObjectState controller = new BaseObjectState(null)
             {
-                NodeId = new NodeId(1, nodeManager.NamespaceIndex),
-                BrowseName = new QualifiedName("Controllers", nodeManager.NamespaceIndex),
+                NodeId = new NodeId(1, namespaceIndex),
+                BrowseName = new QualifiedName("Controllers", namespaceIndex),
                 DisplayName = new LocalizedText("Controllers"),
                 TypeDefinitionId = ObjectTypeIds.BaseObjectType
             };
-
-            // ensure the process object can be found via the server object. 
-            if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
-            {
-                externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
-            }
             controller.AddReference(ReferenceTypeIds.Organizes, true, ObjectIds.ObjectsFolder);
-            references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, controller.NodeId));
-
             //Variables
             PropertyState<uint> state = new PropertyState<uint>(controller)
             {
-                NodeId = new NodeId(2, nodeManager.NamespaceIndex),
-                BrowseName = new QualifiedName("State", nodeManager.NamespaceIndex),
+                NodeId = new NodeId(2, namespaceIndex),
+                BrowseName = new QualifiedName("State", namespaceIndex),
                 DisplayName = new LocalizedText("State"),
                 TypeDefinitionId = VariableTypeIds.PropertyType,
                 ReferenceTypeId = ReferenceTypeIds.HasProperty,
@@ -68,8 +66,8 @@ namespace ControllerServerNodeManagerPlugin
             //Method
             MethodState start = new MethodState(controller)
             {
-                NodeId = new NodeId(3, nodeManager.NamespaceIndex),
-                BrowseName = new QualifiedName("Start", nodeManager.NamespaceIndex),
+                NodeId = new NodeId(3, namespaceIndex),
+                BrowseName = new QualifiedName("Start", namespaceIndex),
                 DisplayName = new LocalizedText("Start"),
                 ReferenceTypeId = ReferenceTypeIds.HasComponent,
                 UserExecutable = true,
@@ -79,7 +77,7 @@ namespace ControllerServerNodeManagerPlugin
             //Method - Input
             start.InputArguments = new PropertyState<Argument[]>(start)
             {
-                NodeId = new NodeId(4, nodeManager.NamespaceIndex),
+                NodeId = new NodeId(4, namespaceIndex),
                 BrowseName = BrowseNames.InputArguments,
                 DisplayName = new LocalizedText(BrowseNames.InputArguments),
                 TypeDefinitionId = VariableTypeIds.PropertyType,
@@ -110,7 +108,7 @@ namespace ControllerServerNodeManagerPlugin
             //Method - Output
             start.OutputArguments = new PropertyState<Argument[]>(start)
             {
-                NodeId = new NodeId(5, nodeManager.NamespaceIndex),
+                NodeId = new NodeId(5, namespaceIndex),
                 BrowseName = BrowseNames.OutputArguments,
                 TypeDefinitionId = VariableTypeIds.PropertyType,
                 ReferenceTypeId = ReferenceTypeIds.HasProperty,
@@ -140,36 +138,32 @@ namespace ControllerServerNodeManagerPlugin
             start.OnCallMethod = OnStart;
             controller.AddChild(start);
 
-            base.NodeStateCollection = new NodeStateCollection {controller};
+            NodeStateCollection = new NodeStateCollection { controller };
+        }
+        public override void BindNodeStateCollection()
+        {
+            if (ExternalReferences == null)
+                return;
+            // ensure the process object can be found via the server object. 
+            if (!ExternalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
+            {
+                ExternalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
+            }
+            references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, NodeStateCollection[0].NodeId));
         }
         #endregion
 
-        #region
-        /// <summary>
-        /// Called when the Start method is called.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="method">The method.</param>
-        /// <param name="inputArguments">The input arguments.</param>
-        /// <param name="outputArguments">The output arguments.</param>
-        /// <returns></returns>
+        #region Methods
         private ServiceResult OnStart(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             // all arguments must be provided.
             if (inputArguments.Count < 2)
-            {
                 return StatusCodes.BadArgumentsMissing;
-            }
-
             // check the data type of the input arguments.
             uint? initialState = inputArguments[0] as uint?;
             uint? finalState = inputArguments[1] as uint?;
-
             if (initialState == null || finalState == null)
-            {
-                return StatusCodes.BadTypeMismatch;
-            }
-
+                return StatusCodes.BadTypeMismatch; 
             lock (_processLock)
             {
                 // check if the process is running.
@@ -178,31 +172,23 @@ namespace ControllerServerNodeManagerPlugin
                     _processTimer.Dispose();
                     _processTimer = null;
                 }
-
                 // start the process.
                 _state = initialState.Value;
                 _finalState = finalState.Value;
                 _processTimer = new Timer(OnUpdateProcess, null, 1000, 1000);
-
                 // the calling function sets default values for all output arguments.
                 // only need to update them here.
                 outputArguments[0] = _state;
                 outputArguments[1] = _finalState;
             }
-
             // signal update to state node.
             lock (ApplicationNodeManager.Lock)
             {
                 _stateNode.Value = _state;
                 _stateNode.ClearChangeMasks(ApplicationNodeManager.SystemContext, true);
             }
-
             return ServiceResult.Good;
         }
-        /// <summary>
-        /// Called when updating the process.
-        /// </summary>
-        /// <param name="state">The state.</param>
         private void OnUpdateProcess(object state)
         {
             try
@@ -211,24 +197,17 @@ namespace ControllerServerNodeManagerPlugin
                 {
                     // check if increasing.
                     if (_state < _finalState)
-                    {
                         _state++;
-                    }
-
                     // check if decreasing.
                     else if (_state > _finalState)
-                    {
                         _state--;
-                    }
-
                     // check if all done.
                     else
                     {
                         _processTimer.Dispose();
                         _processTimer = null;
-                    };
+                    }
                 }
-
                 // signal update to state node.
                 lock (ApplicationNodeManager.Lock)
                 {

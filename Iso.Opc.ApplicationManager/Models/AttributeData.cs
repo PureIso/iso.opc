@@ -240,6 +240,8 @@ namespace Iso.Opc.ApplicationManager.Models
             BrowseName = dataValueCollection[2].Value as QualifiedName;
             DisplayName = dataValueCollection[3].Value as LocalizedText;
             Description = dataValueCollection[4].Value as LocalizedText;
+            if (Description == null)
+                Description = "N/A";
             WriteMask = (AttributeWriteMask)dataValueCollection[5].Value;
             UserWriteMask = (AttributeWriteMask)dataValueCollection[6].Value;
             //ReferenceType && VariableType && ObjectType && DataType

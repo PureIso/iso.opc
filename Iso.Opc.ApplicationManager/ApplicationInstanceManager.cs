@@ -245,8 +245,8 @@ namespace Iso.Opc.ApplicationManager
             securityConfiguration.NonceLength = 32;
             //false for server
             securityConfiguration.RejectUnknownRevocationStatus = false;
-            /** For CA signed certificates, this flag controls whether the server shall send the complete certificate chain instead of just sending the certificate. 
-             * This affects the GetEndpoints and CreateSession service.**/
+            //For CA signed certificates, this flag controls whether the server shall send the complete certificate chain instead of just sending the certificate. 
+            //This affects the GetEndpoints and CreateSession service.**/
             securityConfiguration.SendCertificateChain = true;
             securityConfiguration.MinimumCertificateKeySize = CertificateFactory.defaultKeySize;
             securityConfiguration.Validate();
@@ -483,15 +483,14 @@ namespace Iso.Opc.ApplicationManager
                 break;
             }
             // try HTTPS if no opc.tcp.
-            if (url == null)
+            if (url != null) 
+                return url ?? discoveryUrls[0];
+            foreach (string discoveryUrl in discoveryUrls)
             {
-                foreach (string discoveryUrl in discoveryUrls)
-                {
-                    if (!discoveryUrl.StartsWith("https://", StringComparison.Ordinal))
-                        continue;
-                    url = discoveryUrl;
-                    break;
-                }
+                if (!discoveryUrl.StartsWith("https://", StringComparison.Ordinal))
+                    continue;
+                url = discoveryUrl;
+                break;
             }
             // use the first URL if nothing else.
             return url ?? discoveryUrls[0];
@@ -957,17 +956,42 @@ namespace Iso.Opc.ApplicationManager
                 ResultMask = (uint)BrowseResultMask.All
             };
             //Define the node to browse
-            NodeId nodeToBrowse;
             if (parentReferenceDescription == null)
             {
-                nodeToBrowse = new NodeId(global::Opc.Ua.Objects.RootFolder, 0);
+                foreach (string sessionNamespaceUri in Session.NamespaceUris.ToArray())
+                {
+                    ushort namespaceIndex = Session.SystemContext.NamespaceUris.GetIndexOrAppend(sessionNamespaceUri);
+                    browseDescription = new BrowseDescription
+                    {
+                        BrowseDirection = BrowseDirection.Forward,
+                        ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences,
+                        IncludeSubtypes = true,
+                        NodeClassMask = (uint)NodeClass.Unspecified,
+                        ResultMask = (uint)BrowseResultMask.All
+                    };
+                    NodeId nodeToBrowse = new NodeId(global::Opc.Ua.Objects.RootFolder, namespaceIndex);
+                    browseDescription.NodeId = nodeToBrowse;
+                    browseDescriptionCollection.Add(browseDescription);
+                }
             }
             else
             {
-                nodeToBrowse = ExpandedNodeId.ToNodeId(parentReferenceDescription.NodeId, Session.NamespaceUris);
+                foreach (string sessionNamespaceUri in Session.NamespaceUris.ToArray())
+                {
+                    ushort namespaceIndex = Session.SystemContext.NamespaceUris.GetIndexOrAppend(sessionNamespaceUri);
+                    browseDescription = new BrowseDescription
+                    {
+                        BrowseDirection = BrowseDirection.Forward,
+                        ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences,
+                        IncludeSubtypes = true,
+                        NodeClassMask = (uint)NodeClass.Unspecified,
+                        ResultMask = (uint)BrowseResultMask.All
+                    };
+                    NodeId nodeToBrowse = new NodeId(parentReferenceDescription.NodeId.Identifier, namespaceIndex);
+                    browseDescription.NodeId = nodeToBrowse;
+                    browseDescriptionCollection.Add(browseDescription);
+                }
             }
-            browseDescription.NodeId = nodeToBrowse;
-            browseDescriptionCollection.Add(browseDescription);
             RequestHeader requestHeader = null;
             ViewDescription viewDescription = null;
             const uint requestedMaxReferencesPerNode = 100;
@@ -1135,6 +1159,57 @@ namespace Iso.Opc.ApplicationManager
             attributeData.Initialise(results);
             return attributeData;
         }
+
+        public Subscription Subscription { get; set; }
+        public bool SubscribeToNode(NodeId nodeId, MonitoredItemNotificationEventHandler callback=null, int publishingInterval = 1000)
+        {
+            try
+            {
+                if (Session == null)
+                    return false;
+                if (Subscription == null)
+                {
+                    Subscription = new Subscription
+                    {
+                        PublishingEnabled = true,
+                        PublishingInterval = publishingInterval,
+                        Priority = 1,
+                        KeepAliveCount = 10,
+                        LifetimeCount = 20,
+                        MaxNotificationsPerPublish = 1000
+                    };
+                    Session.AddSubscription(Subscription);
+                    Subscription.Create();
+                }
+
+                if (callback == null)
+                    callback = MonitoredItemNotification;
+                MonitoredItem monitoredItem = new MonitoredItem {StartNodeId = nodeId, AttributeId = Attributes.Value};
+                monitoredItem.Notification += callback;
+                Subscription.AddItem(monitoredItem);
+                Subscription.ApplyChanges();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Monitored Item Notification exception: {e.StackTrace}");
+                return false;
+            }
+        }
+        private static void MonitoredItemNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
+        {
+            try
+            {
+                if (!(e.NotificationValue is MonitoredItemNotification monitoredItemNotification))
+                    return; 
+                Console.WriteLine($"Monitored value: {monitoredItemNotification.Value.WrappedValue.ToString()}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Monitored Item Notification exception: {ex.StackTrace}");
+            }
+        }
+
         /// <summary>
         /// Create a session with the GDS.
         /// GlobalDiscoveryServerClient class has encapsulated/wrapped the GDS call services
@@ -1318,6 +1393,8 @@ namespace Iso.Opc.ApplicationManager
         public bool GetAndMergeWithGlobalDiscoveryTrustedList()
         {
             if (!GlobalDiscoveryServerClient.IsConnected)
+                return false;
+            if (RegisteredApplication == null)
                 return false;
             //Application user access required
             NodeId trustListId = GlobalDiscoveryServerClient.GetTrustList(RegisteredApplication.ApplicationId, null);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Iso.Opc.ApplicationNodeManager.Plugin;
 using Iso.Opc.Interface;
 using Opc.Ua;
@@ -22,12 +23,11 @@ namespace Iso.Opc.ApplicationNodeManager.Server
         {
             lock (Lock)
             {
-                //CreateProcessNode(externalReferences);
-                _applicationNodeManagerPluginService = new ApplicationNodeManagerPluginService(_pluginDirectory);
                 foreach (AbstractApplicationNodeManagerPlugin abstractApplicationNodeManagerPlugin in _applicationNodeManagerPluginService.PluginBaseNodeManagers)
                 {
-                    abstractApplicationNodeManagerPlugin.Initialise(this, externalReferences);
-                    if (abstractApplicationNodeManagerPlugin.NodeStateCollection == null) 
+                    abstractApplicationNodeManagerPlugin.ExternalReferences = externalReferences;
+                    abstractApplicationNodeManagerPlugin.BindNodeStateCollection();
+                    if (abstractApplicationNodeManagerPlugin.NodeStateCollection == null)
                         continue;
                     foreach (NodeState nodeState in abstractApplicationNodeManagerPlugin.NodeStateCollection)
                     {

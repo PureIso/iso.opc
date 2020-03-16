@@ -34,6 +34,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ArgumentUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ArgumentUserControl.Designer.cs">
+      <DependentUpon>ArgumentUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Extensions.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -42,6 +49,9 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="ArgumentUserControl.resx">
+      <DependentUpon>ArgumentUserControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -94,15 +104,12 @@
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Iso.Opc.ApplicationManager\Iso.Opc.ApplicationInstanceManager.csproj">
       <Project>{05c3ab19-150b-4fbb-85aa-760beed083a4}</Project>
       <Name>Iso.Opc.ApplicationInstanceManager</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Iso.Opc.ApplicationNodeManager\Iso.Opc.ApplicationNodeManager.csproj">
-      <Project>{d1dce023-982f-4d26-b674-a1057f6595db}</Project>
-      <Name>Iso.Opc.ApplicationNodeManager</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

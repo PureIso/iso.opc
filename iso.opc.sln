@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.1022
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29905.134
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.ApplicationNodeManager", "Iso.Opc.ApplicationNodeManager\Iso.Opc.ApplicationNodeManager.csproj", "{D1DCE023-982F-4D26-B674-A1057F6595DB}"
 EndProject
@@ -16,6 +16,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.Interface", "Iso.Opc.Interface\Iso.Opc.Interface.csproj", "{EBA60041-B1B0-4313-B9F8-53ADDD272630}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControllerServerNodeManagerPlugin", "Examples\ControllerServerNodeManagerPlugin\ControllerServerNodeManagerPlugin.csproj", "{BFC52425-2E7A-440F-9F48-C04136F9666C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XMLServerNodeManagerPlugin", "XMLServerNodeManagerPlugin\XMLServerNodeManagerPlugin.csproj", "{D90AF09D-81C1-42A3-B8B6-2BEC2EE8947A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,10 @@ Global
 		{BFC52425-2E7A-440F-9F48-C04136F9666C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BFC52425-2E7A-440F-9F48-C04136F9666C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BFC52425-2E7A-440F-9F48-C04136F9666C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D90AF09D-81C1-42A3-B8B6-2BEC2EE8947A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D90AF09D-81C1-42A3-B8B6-2BEC2EE8947A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D90AF09D-81C1-42A3-B8B6-2BEC2EE8947A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D90AF09D-81C1-42A3-B8B6-2BEC2EE8947A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

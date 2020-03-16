@@ -8,6 +8,9 @@ using LocalizedText = Opc.Ua.LocalizedText;
 
 namespace Iso.Opc.Interface
 {
+    /// <summary>
+    /// The abstract interface to application node manager
+    /// </summary>
     public abstract class AbstractApplicationNodeManagerPlugin : IApplicationNodeManagerPlugin
     {
         #region Virtual Properties
@@ -15,10 +18,12 @@ namespace Iso.Opc.Interface
         public virtual string Description { get; set; }
         public virtual string Author { get; set; }
         public virtual string Version { get; set; }
+        public virtual string ResourcePath { get; set; }
         public virtual CustomNodeManager2 ApplicationNodeManager { get; set; }
         public virtual List<string> NamespaceUris { get; set; }
         public virtual List<string> ServerUris { get; set; }
         public virtual NodeStateCollection NodeStateCollection { get; set; }
+        public virtual IDictionary<NodeId, IList<IReference>> ExternalReferences { get; set; }
         #endregion
 
         #region Private Fields
@@ -27,51 +32,56 @@ namespace Iso.Opc.Interface
         #endregion
 
         #region Virtual Methods
-        public virtual void Initialise(CustomNodeManager2 nodeManager, IDictionary<NodeId, IList<IReference>> externalReferences, string resourcePath=null)
+        public virtual void Initialise(CustomNodeManager2 nodeManager)
         {
-            try
+            ApplicationNodeManager = nodeManager;
+            if (string.IsNullOrEmpty(ResourcePath))
+                return;
+            NamespaceUris = new List<string>();
+            NodeStateCollection predefinedNodeStateCollection = new NodeStateCollection();
+            Stream stream = new FileStream(ResourcePath, FileMode.Open);
+            UANodeSet uaNodeSet = UANodeSet.Read(stream);
+            NamespaceUris.AddRange(ApplicationNodeManager.NamespaceUris);
+            // Update namespace table
+            if (uaNodeSet.NamespaceUris != null)
             {
-                if (string.IsNullOrEmpty(resourcePath))
-                    return;
-                NamespaceUris = new List<string>();
-                NodeStateCollection predefinedNodeStateCollection = new NodeStateCollection();
-                Stream stream = new FileStream(resourcePath, FileMode.Open);
-                UANodeSet uaNodeSet = UANodeSet.Read(stream);
-                NamespaceUris.AddRange(nodeManager.NamespaceUris);
-                // Update namespace table
-                if (uaNodeSet.ServerUris != null)
+                foreach (string namespaceUri in uaNodeSet.NamespaceUris)
                 {
-                    foreach (string namespaceUri in uaNodeSet.NamespaceUris)
-                    {
-                        NamespaceUris.Add(namespaceUri);
-                        nodeManager.SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
-                    }
-                }
-                // Update server table
-                if (uaNodeSet.ServerUris != null)
-                {
-                    foreach (string serverUri in uaNodeSet.ServerUris)
-                    {
-                        nodeManager.SystemContext.ServerUris.GetIndexOrAppend(serverUri);
-                    }
-                }
-                uaNodeSet.Import(nodeManager.SystemContext, predefinedNodeStateCollection);
-                NodeStateCollection parsedNodeState = new NodeStateCollection();
-                foreach (NodeState nodeState in predefinedNodeStateCollection)
-                {
-                    NodeState bindNodeState = BindNodeStates(externalReferences, nodeState, ref parsedNodeState);
-                    parsedNodeState.Add(bindNodeState);
+                    NamespaceUris.Add(namespaceUri);
+                    ApplicationNodeManager.SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
                 }
             }
-            catch (Exception e)
+            // Update server table
+            if (uaNodeSet.ServerUris != null)
             {
-                Console.WriteLine($"Import XML exception: {e.StackTrace}");
+                foreach (string serverUri in uaNodeSet.ServerUris)
+                {
+                    ServerUris.Add(serverUri);
+                    ApplicationNodeManager.SystemContext.ServerUris.GetIndexOrAppend(serverUri);
+                }
+            }
+            uaNodeSet.Import(ApplicationNodeManager.SystemContext, predefinedNodeStateCollection);
+            NodeStateCollection = predefinedNodeStateCollection;
+        }
+        public virtual void BindNodeStateCollection()
+        {
+            if (ExternalReferences == null)
+                return;
+            if (NodeStateCollection == null)
+                return;
+            NodeStateCollection parsedNodeState = new NodeStateCollection();
+            foreach (NodeState nodeState in NodeStateCollection)
+            {
+                NodeState bindNodeState = BindNodeStates(ExternalReferences, nodeState, ref parsedNodeState);
+                parsedNodeState.Add(bindNodeState);
             }
         }
-        public virtual void BindMethod(MethodState methodState)
+        public virtual void BindNodeStateActions(NodeState nodeState)
         {
-            methodState.OnCallMethod = OnGeneratedEmptyMethod;
-            methodState.OnCallMethod2 = OnGeneratedEmptyMethod2;
+            if (!(nodeState is MethodState methodNodeState))
+                return;
+            methodNodeState.OnCallMethod = OnGeneratedEmptyMethod;
+            methodNodeState.OnCallMethod2 = OnGeneratedEmptyMethod2;
         }
         public virtual void DeleteAddressSpace()
         {
@@ -89,22 +99,19 @@ namespace Iso.Opc.Interface
                     "User cannot change value.");
                 return new ServiceResult(StatusCodes.BadUserAccessDenied, new LocalizedText(info));
             }
-            // attempt to update file system.
             try
             {
+                // attempt to update file system.
                 string filePath = value as string;
                 if (node is PropertyState<string> variable && !string.IsNullOrEmpty(variable.Value))
                 {
                     FileInfo file = new FileInfo(variable.Value);
                     if (file.Exists)
-                    {
                         file.Delete();
-                    }
                 }
                 if (!string.IsNullOrEmpty(filePath))
                 {
-                    FileInfo file = new FileInfo(filePath);
-                    using (StreamWriter writer = file.CreateText())
+                    using (StreamWriter writer = new FileInfo(filePath).CreateText())
                     {
                         writer.WriteLine(System.Security.Principal.WindowsIdentity.GetCurrent().Name);
                     }
@@ -120,13 +127,9 @@ namespace Iso.Opc.Interface
         public virtual ServiceResult OnReadUserAccessLevel(ISystemContext context, NodeState node, ref byte value)
         {
             if (context.UserIdentity == null || context.UserIdentity.TokenType == UserTokenType.Anonymous)
-            {
                 value = AccessLevels.CurrentRead;
-            }
             else
-            {
                 value = AccessLevels.CurrentReadOrWrite;
-            }
             return ServiceResult.Good;
         }
         public virtual NodeState BindNodeStates(IDictionary<NodeId, IList<IReference>> externalReferences, NodeState nodeState, ref NodeStateCollection noteStateCollectionToBind)
@@ -146,7 +149,6 @@ namespace Iso.Opc.Interface
                         else
                             noteStateCollectionToBind[index] = _previousMethod;
                     }
-
                     // ensure the process object can be found via the server object. 
                     if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
                     {
@@ -158,7 +160,7 @@ namespace Iso.Opc.Interface
                 case NodeClass.Method:
                     if (!(nodeState is MethodState methodState))
                         return nodeState;
-                    BindMethod(methodState);
+                    BindNodeStateActions(methodState);
                     _previousBaseNode?.AddChild(methodState);
                     if (_previousMethod != null)
                     {
@@ -175,6 +177,7 @@ namespace Iso.Opc.Interface
                     {
                         if (!(nodeState is PropertyState propertyState))
                             return nodeState;
+                        BindNodeStateActions(propertyState);
                         if (propertyState.DisplayName == BrowseNames.InputArguments)
                         {
                             _previousMethod.InputArguments = new PropertyState<Argument[]>(_previousMethod)
