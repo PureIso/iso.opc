@@ -270,52 +270,46 @@ namespace Client
         #endregion
 
         #region Handlers
-
         private void DisconnectButtonClick(object sender, EventArgs e)
         {
             Disconnect();
         }
-
         private void ConnectButtonClick(object sender, EventArgs e)
         {
             Connect();
         }
-
         private void ConnectToolStripMenuItemClick(object sender, EventArgs e)
         {
             Connect(true);
         }
-
-        private void GetDiscoveryServerTrustedListButtonClick(object sender, EventArgs e)
+        private void DiscoveryServerTrustedListButtonClick(object sender, EventArgs e)
         {
+            //TODO investigate why not all gds server certs are transferred
             _applicationInstanceManager.GetAndMergeWithGlobalDiscoveryTrustedList();
         }
-
         private void UseSecurityCheckBoxCheckedChanged(object sender, EventArgs e)
         {
             serverUserNameTextBox.Enabled = useSecurityCheckBox.Checked;
             serverPasswordTextBox.Enabled = useSecurityCheckBox.Checked;
         }
-
         private void GlobalDiscoveryServerUseSecurityCheckBoxCheckedChanged(object sender, EventArgs e)
         {
             globalDiscoveryServerUserNameTextBox.Enabled = globalDiscoveryServerUseSecurityCheckBox.Checked;
             globalDiscoveryServerPasswordTextBox.Enabled = globalDiscoveryServerUseSecurityCheckBox.Checked;
         }
-
         private void GlobalDiscoveryServerUseCheckBoxCheckedChanged(object sender, EventArgs e)
         {
             globalDiscoveryServerDiscoveryURLTextBox.Enabled = globalDiscoveryServerUseCheckBox.Checked;
             globalDiscoveryServerUserNameTextBox.Enabled = globalDiscoveryServerUseCheckBox.Checked;
             globalDiscoveryServerPasswordTextBox.Enabled = globalDiscoveryServerUseCheckBox.Checked;
             globalDiscoveryServerUseSecurityCheckBox.Enabled = globalDiscoveryServerUseCheckBox.Checked;
+            globalDiscoveryServerTrustedListButton.Enabled = globalDiscoveryServerUseCheckBox.Checked;
 
             serverUserNameTextBox.Enabled = !globalDiscoveryServerUseCheckBox.Checked;
             serverPasswordTextBox.Enabled = !globalDiscoveryServerUseCheckBox.Checked;
             serverDiscoveryURLTextBox.Enabled = !globalDiscoveryServerUseCheckBox.Checked;
             useSecurityCheckBox.Enabled = !globalDiscoveryServerUseCheckBox.Checked;
         }
-
         private void DiscoveredServersListViewMouseDown(object sender, MouseEventArgs e)
         {
             if (e.Button != MouseButtons.Right)

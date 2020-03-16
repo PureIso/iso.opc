@@ -1394,6 +1394,8 @@ namespace Iso.Opc.ApplicationManager
         {
             if (!GlobalDiscoveryServerClient.IsConnected)
                 return false;
+            if (RegisteredApplication == null)
+                return false;
             //Application user access required
             NodeId trustListId = GlobalDiscoveryServerClient.GetTrustList(RegisteredApplication.ApplicationId, null);
             if (trustListId == null)

@@ -20,29 +20,29 @@ namespace XMLServerNodeManagerPlugin
 
         public override void BindNodeStateActions(NodeState nodeState)
         {
-            if (nodeState is MethodState methodNodeState)
+            switch (nodeState)
             {
-                Console.WriteLine($"Method State: {methodNodeState.BrowseName}");
-                if (methodNodeState.DisplayName.Text == RaspberryPiNode.MethodNameGetDoubleTheValue)
-                {
+                case MethodState methodNodeState when methodNodeState.DisplayName.Text == RaspberryPiNode.MethodNameGetDoubleTheValue:
                     methodNodeState.OnCallMethod = GetDoubleTheValue;
-                }
-                else if (methodNodeState.DisplayName.Text == RaspberryPiNode.MethodNameGetVoltage)
-                {
+                    break;
+                case MethodState methodNodeState when methodNodeState.DisplayName.Text == RaspberryPiNode.MethodNameGetVoltage:
                     methodNodeState.OnCallMethod = GetVoltage;
-                }
-                else if (methodNodeState.DisplayName.Text == RaspberryPiNode.MethodNameUpdateSystemStatus)
+                    break;
+                case MethodState methodNodeState:
                 {
-                    methodNodeState.OnCallMethod = UpdateSystemStatus;
+                    if (methodNodeState.DisplayName.Text == RaspberryPiNode.MethodNameUpdateSystemStatus)
+                    {
+                        methodNodeState.OnCallMethod = UpdateSystemStatus;
+                    }
+                    break;
                 }
-            }
-            else if (nodeState is PropertyState propertyState)
-            {
-                Console.WriteLine($"Property State: {propertyState.BrowseName}");
-                Console.WriteLine($"Property Display State: {propertyState.DisplayName.Text}");
-                if (propertyState.DisplayName.Text == RaspberryPiNode.VariableNameSystemStatus)
+                case PropertyState propertyState:
                 {
-                    _systemStatusPropertyState = propertyState;
+                    if (propertyState.DisplayName.Text == RaspberryPiNode.VariableNameSystemStatus)
+                    {
+                        _systemStatusPropertyState = propertyState;
+                    }
+                    break;
                 }
             }
         }
