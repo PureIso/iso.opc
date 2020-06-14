@@ -14,7 +14,11 @@ using Opc.Ua.Gds;
 using Opc.Ua.Gds.Client;
 using Opc.Ua.Security;
 using ApplicationType = Opc.Ua.ApplicationType;
+using BrowseNames = Opc.Ua.BrowseNames;
 using CertificateIdentifier = Opc.Ua.CertificateIdentifier;
+using ObjectIds = Opc.Ua.ObjectIds;
+using ObjectTypeIds = Opc.Ua.ObjectTypeIds;
+using ObjectTypes = Opc.Ua.ObjectTypes;
 
 namespace Iso.Opc.ApplicationManager
 {
@@ -1019,6 +1023,10 @@ namespace Iso.Opc.ApplicationManager
             List<ReferenceDescription> referenceDescriptions = BrowseReferenceDescription(parentDataDescription.ReferenceDescription);
             if (!referenceDescriptions.Any())
                 return null;
+            if (parentDataDescription.ReferenceDescription.BrowseName.Name == "Server")
+                return null;
+            string name = parentDataDescription.ReferenceDescription.BrowseName.Name;
+            Console.WriteLine(name);
             //We need to iterate through the list
             foreach (ReferenceDescription referenceDescription in referenceDescriptions)
             {
@@ -1045,6 +1053,8 @@ namespace Iso.Opc.ApplicationManager
             List<ReferenceDescription> referenceDescriptions = BrowseReferenceDescription(parentDataDescription.ReferenceDescription);
             if (!referenceDescriptions.Any())
                 return null;
+            string name = parentDataDescription.ReferenceDescription.BrowseName.Name;
+            Console.WriteLine(name);
             //We need to iterate through the list
             foreach (ReferenceDescription referenceDescription in referenceDescriptions)
             {
@@ -1072,6 +1082,8 @@ namespace Iso.Opc.ApplicationManager
             List<ReferenceDescription> referenceDescriptions = BrowseReferenceDescription(parentDataDescription.ReferenceDescription);
             if (!referenceDescriptions.Any())
                 return null;
+            if (parentDataDescription.ReferenceDescription.BrowseName.Name == "Server")
+                return null;
             //We need to iterate through the list
             foreach (ReferenceDescription referenceDescription in referenceDescriptions)
             {
@@ -1086,7 +1098,8 @@ namespace Iso.Opc.ApplicationManager
                 {
                     DataDescription = dataDescription,
                     VariableDataDescriptions = GetVariablesDataDescriptions(dataDescription),
-                    MethodDataDescriptions = GetMethodsExtendedDescriptions(dataDescription)
+                    MethodDataDescriptions = GetMethodsExtendedDescriptions(dataDescription),
+                    //ObjectDataDescriptions = GetObjectExtendedDataDescription(dataDescription)
                 };
                 extendedDataDescriptions.Add(objectDataDescription);
                 if (!FlatExtendedDataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
@@ -1164,8 +1177,8 @@ namespace Iso.Opc.ApplicationManager
         public bool SubscribeToNode(NodeId nodeId, MonitoredItemNotificationEventHandler callback=null, int publishingInterval = 1000)
         {
             try
-            {
-                if (Session == null)
+            { 
+                if (Session == null) 
                     return false;
                 if (Subscription == null)
                 {
@@ -1176,7 +1189,8 @@ namespace Iso.Opc.ApplicationManager
                         Priority = 1,
                         KeepAliveCount = 10,
                         LifetimeCount = 20,
-                        MaxNotificationsPerPublish = 1000
+                        MaxNotificationsPerPublish = 1000,
+                        TimestampsToReturn = TimestampsToReturn.Both
                     };
                     Session.AddSubscription(Subscription);
                     Subscription.Create();
@@ -1184,9 +1198,49 @@ namespace Iso.Opc.ApplicationManager
 
                 if (callback == null)
                     callback = MonitoredItemNotification;
-                MonitoredItem monitoredItem = new MonitoredItem {StartNodeId = nodeId, AttributeId = Attributes.Value};
+
+                MonitoredItem monitoredItem = new MonitoredItem { StartNodeId = nodeId, AttributeId = Attributes.Value };
                 monitoredItem.Notification += callback;
+
+
+                /////////////////////////////////////////////////////////////////////////////////////////////////////
+                //MonitoredItem monitoredItemEvent = new MonitoredItem
+                //{
+                //    StartNodeId = ObjectIds.Server,
+                //    AttributeId = Attributes.EventNotifier,
+                //    MonitoringMode = MonitoringMode.Reporting,
+                //    SamplingInterval = 0,
+                //    QueueSize = 1000,
+                //    DiscardOldest = true,
+                //    Filter = new EventFilter()
+                //};
+                //monitoredItemEvent.Notification += callback;
+
+                EventFilter filter = new EventFilter();
+                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.EventId); 
+                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.EventType); 
+                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.SourceNode);
+                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.SourceName); 
+                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Time); 
+                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.ReceiveTime);
+                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.LocalTime); 
+                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Message); 
+                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Severity);
+                MonitoredItem triggeringItemId = new MonitoredItem(Subscription.DefaultItem)
+                {
+                    NodeClass = NodeClass.Object,
+                    StartNodeId = ObjectIds.Server,
+                    AttributeId = Attributes.EventNotifier,
+                    MonitoringMode = MonitoringMode.Reporting,
+                    SamplingInterval = -1,
+                    QueueSize = 100,
+                    CacheQueueSize = 100,
+                    Filter = filter
+                };
+                triggeringItemId.Notification += callback;
+                ///////////////////////////////////////////////////////////////////////////////////////////////////////
                 Subscription.AddItem(monitoredItem);
+                Subscription.AddItem(triggeringItemId);
                 Subscription.ApplyChanges();
                 return true;
             }
@@ -1196,6 +1250,7 @@ namespace Iso.Opc.ApplicationManager
                 return false;
             }
         }
+
         private static void MonitoredItemNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
         {
             try

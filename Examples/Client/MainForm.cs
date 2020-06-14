@@ -238,16 +238,94 @@ namespace Client
         {
             try
             {
-                if (!(e.NotificationValue is MonitoredItemNotification monitoredItemNotification))
-                    return;
-                for (int index = 0; index < monitoredVariablePanel.Controls.Count; index++)
+                if (e.NotificationValue is EventFieldList notification)
                 {
-                    if(monitoredVariablePanel.Controls[index].Name != monitoredItem.ResolvedNodeId.ToString())
-                        continue;
-                    ArgumentUserControl argumentUserControl =
-                        (ArgumentUserControl)monitoredVariablePanel.Controls[index];
-                    argumentUserControl.ValueInput = monitoredItemNotification.Value.WrappedValue.ToString();
+                    
+                    foreach (Variant notificationEventField in notification.EventFields)
+                    {
+                        if (notificationEventField.Value == null)
+                            InformationDisplay($"Event Notification value: NULL");
+                        else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.NodeId)
+                        {
+                            INode node = _applicationInstanceManager.Session.NodeCache.Find((NodeId)notificationEventField.Value);
+                            if (node != null)
+                            {
+                                
+                                InformationDisplay($"Event Notification [BuiltInType.NodeId] value: {node.ToString()}");
+                                InformationDisplay($"Event Notification [Node Class] value: {node.NodeClass.ToString()}");
+                                if (node.NodeClass == NodeClass.Method)
+                                {
+                                    ReferenceDescription referenceDescription = new ReferenceDescription();
+                                    referenceDescription.NodeId = node.NodeId;
+                                    AttributeData attributeData = _applicationInstanceManager.ReadAttributes(referenceDescription);
+                                    InformationDisplay($"Event Notification [Attribute Browse Name] value: {attributeData.BrowseName.ToString()}");
+                                    InformationDisplay($"Event Notification [Attribute Value] value: {attributeData.Value.ToString()}");
+                                    //DataDescription inputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
+                                    //    x.AttributeData.BrowseName.Name == NameVariables.InputArguments);
+                                    //DataDescription outputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
+                                    //    x.AttributeData.BrowseName.Name == NameVariables.OutputArguments);
+
+                                    ////get all argument information
+                                    //ExtensionObject[] inputExtensionObjects =
+                                    //    (ExtensionObject[])inputDataDescription?.AttributeData.Value.Value;
+                                    //ExtensionObject[] outputExtensionObjects =
+                                    //    (ExtensionObject[])outputDataDescription?.AttributeData.Value.Value;
+                                    //inputArgumentsPanel.Controls.Clear();
+                                    //outputArgumentsPanel.Controls.Clear();
+                                    //callMethodButton.Enabled = true;
+                                    //if (inputExtensionObjects != null)
+                                    //{
+                                    //    foreach (ExtensionObject extensionObject in inputExtensionObjects)
+                                    //    {
+                                    //        Argument argument = (Argument)extensionObject.Body;
+                                    //        Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(argument.DataType, argument.ValueRank));
+                                    //        if (defaultValue.Value == null)
+                                    //            defaultValue.Value = "";
+                                    //        AddInputArgumentUserControl(defaultValue.Value.ToString(), argument.Description.Text, argument.Name,
+                                    //            defaultValue.TypeInfo);
+                                    //    }
+                                    //}
+                                }
+                            }
+                        }
+                        else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.Variant)
+                        {
+                            DateTime value = (DateTime)notificationEventField.Value;
+                            InformationDisplay($"Event Notification [BuiltInType.Variant] value: {value.ToString()}");
+                        }
+                        else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.DateTime)
+                        {
+                            DateTime value = (DateTime)notificationEventField.Value;
+                            InformationDisplay($"Event Notification [BuiltInType.DateTime] value: {value.ToString()}");
+                            //if (m_filter.Fields[ii - 1].InstanceDeclaration.DisplayName.Contains("Time"))
+                            //{
+                            //    text = value.ToLocalTime().ToString("HH:mm:ss.fff");
+                            //}
+                            //else
+                            //{
+                            //    text = value.ToLocalTime().ToString("yyyy-MM-dd");
+                            //}
+                        }
+                        else
+                        {
+                            InformationDisplay($"Event Notification [UNKNOWN] value: {notificationEventField.ToString()}");
+                        }
+                    }
+                    
                 }
+                else if (e.NotificationValue is MonitoredItemNotification monitoredItemNotification)
+                {
+                    for (int index = 0; index < monitoredVariablePanel.Controls.Count; index++)
+                    {
+                        if (monitoredVariablePanel.Controls[index].Name != monitoredItem.ResolvedNodeId.ToString())
+                            continue;
+                        ArgumentUserControl argumentUserControl =
+                            (ArgumentUserControl)monitoredVariablePanel.Controls[index];
+                        argumentUserControl.ValueInput = monitoredItemNotification.Value.WrappedValue.ToString();
+                    }
+                }
+
+               
             }
             catch (Exception ex)
             {
@@ -337,17 +415,19 @@ namespace Client
             {
                 case NodeClass.Variable:
                     monitorToolStripMenuItem.Enabled = true;
-                    callToolStripMenuItem.Enabled = false;
+                    callToolStripMenuItem.Enabled = true;
                     break;
                 case NodeClass.Method:
                 {
-                    monitorToolStripMenuItem.Enabled = false;
+                    monitorToolStripMenuItem.Enabled = true;
                     callToolStripMenuItem.Enabled = true;
                     break;
                 }
                 default:
-                    _selectedTreeNode = null;
-                    return;
+                    // _selectedTreeNode = null;
+                    monitorToolStripMenuItem.Enabled = true;
+                    callToolStripMenuItem.Enabled = true;
+                    break;
             }
 
             if (sender == null)
@@ -431,7 +511,6 @@ namespace Client
             {
                 objectReference = _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[parentNode.Text];
             }
-
             if (objectReference == null)
                 return;
             PopulateAttributeListView(objectReference.DataDescription.AttributeData);
@@ -471,6 +550,8 @@ namespace Client
 
         private void CallMethodButtonClick(object sender, EventArgs e)
         {
+            if (_selectedObjectId == null || _selectedMethodId == null)
+                return;
             List<object> arguments = GetInputArgumentFromUserControl();
             IList<object> outputArguments =
                 _applicationInstanceManager.Session.Call(_selectedObjectId, _selectedMethodId, arguments.Count >0?arguments.ToArray():null);

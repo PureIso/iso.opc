@@ -6,6 +6,7 @@ using Iso.Opc.ApplicationManager;
 using Iso.Opc.ApplicationNodeManager.Server;
 using Opc.Ua;
 using Opc.Ua.Server;
+using Namespaces = Opc.Ua.Gds.Namespaces;
 
 namespace Server
 {
@@ -98,31 +99,40 @@ namespace Server
         }
         protected override OperationContext ValidateRequest(RequestHeader requestHeader, RequestType requestType)
         {
-            OperationContext context = base.ValidateRequest(requestHeader, requestType);
-            if (requestType != RequestType.Write)
+            OperationContext context = new OperationContext(requestHeader, requestType);
+            try
+            { 
+                context = base.ValidateRequest(requestHeader, requestType);
+                if (requestType != RequestType.Write)
+                    return context;
+                // reject all writes if no user provided.
+                if (context.UserIdentity.TokenType == UserTokenType.Anonymous)
+                {
+                    // construct translation object with default text.
+                    TranslationInfo info = new TranslationInfo(
+                        "NoWriteAllowed",
+                        "en-US",
+                        "Must provide a valid user before calling write.");
+                    // create an exception with a vendor defined sub-code.
+                    throw new ServiceResultException(new ServiceResult(
+                        StatusCodes.BadUserAccessDenied,
+                        "NoWriteAllowed",
+                        Namespaces.OpcUa,
+                        new LocalizedText(info)));
+                }
+                UserIdentityToken securityToken = context.UserIdentity.GetIdentityToken();
+                // check for a user name token.
+                if (!(securityToken is UserNameIdentityToken)) 
+                    return context;
+                lock (_requestLock)
+                {
+                    _contexts.Add(context.RequestId, new ImpersonationContext());
+                }
                 return context;
-            // reject all writes if no user provided.
-            if (context.UserIdentity.TokenType == UserTokenType.Anonymous)
-            {
-                // construct translation object with default text.
-                TranslationInfo info = new TranslationInfo(
-                    "NoWriteAllowed",
-                    "en-US",
-                    "Must provide a valid user before calling write.");
-                // create an exception with a vendor defined sub-code.
-                throw new ServiceResultException(new ServiceResult(
-                    StatusCodes.BadUserAccessDenied,
-                    "NoWriteAllowed",
-                    Opc.Ua.Gds.Namespaces.OpcUa,
-                    new LocalizedText(info)));
             }
-            UserIdentityToken securityToken = context.UserIdentity.GetIdentityToken();
-            // check for a user name token.
-            if (!(securityToken is UserNameIdentityToken)) 
-                return context;
-            lock (_requestLock)
+            catch (Exception e)
             {
-                _contexts.Add(context.RequestId, new ImpersonationContext());
+                Console.WriteLine($"Session Manager Impersonate Exception:\r\n{e.StackTrace}");
             }
             return context;
         }

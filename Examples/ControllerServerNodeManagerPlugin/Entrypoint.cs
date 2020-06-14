@@ -16,6 +16,7 @@ namespace ControllerServerNodeManagerPlugin
         #region Fields
         private readonly object _processLock = new object();
         private uint _state;
+        private Dictionary<string, AlarmConditionState>  m_alarms = new Dictionary<string, AlarmConditionState>();
         private uint _finalState;
         private Timer _processTimer;
         private PropertyState<uint> _stateNode;
@@ -43,7 +44,8 @@ namespace ControllerServerNodeManagerPlugin
                 NodeId = new NodeId(1, namespaceIndex),
                 BrowseName = new QualifiedName("Controllers", namespaceIndex),
                 DisplayName = new LocalizedText("Controllers"),
-                TypeDefinitionId = ObjectTypeIds.BaseObjectType
+                EventNotifier = EventNotifiers.SubscribeToEvents | EventNotifiers.HistoryRead | EventNotifiers.HistoryWrite,
+                TypeDefinitionId = ObjectTypeIds.BaseObjectType,
             };
             controller.AddReference(ReferenceTypeIds.Organizes, true, ObjectIds.ObjectsFolder);
             //Variables
@@ -73,7 +75,6 @@ namespace ControllerServerNodeManagerPlugin
                 UserExecutable = true,
                 Executable = true
             };
-
             //Method - Input
             start.InputArguments = new PropertyState<Argument[]>(start)
             {
@@ -85,7 +86,11 @@ namespace ControllerServerNodeManagerPlugin
                 DataType = DataTypeIds.Argument,
                 ValueRank = ValueRanks.OneDimension,
                 OnReadUserAccessLevel = OnReadUserAccessLevel,
-                OnSimpleWriteValue = OnWriteValue
+                OnSimpleWriteValue = OnWriteValue,
+                OnReportEvent = (context, node, target) =>
+                {
+                    Console.WriteLine("ssssssssss");
+                },
             };
 
             Argument[] inputArguments = new Argument[2];
@@ -137,6 +142,9 @@ namespace ControllerServerNodeManagerPlugin
             start.OutputArguments.Value = inputArguments;
             start.OnCallMethod = OnStart;
             controller.AddChild(start);
+            controller.AddReference(ReferenceTypeIds.HasNotifier,true,ObjectIds.Server);
+            //create status object
+            //AggregationModel.
 
             NodeStateCollection = new NodeStateCollection { controller };
         }
@@ -180,6 +188,7 @@ namespace ControllerServerNodeManagerPlugin
                 // only need to update them here.
                 outputArguments[0] = _state;
                 outputArguments[1] = _finalState;
+                //method.OnReportEvent
             }
             // signal update to state node.
             lock (ApplicationNodeManager.Lock)
@@ -187,6 +196,33 @@ namespace ControllerServerNodeManagerPlugin
                 _stateNode.Value = _state;
                 _stateNode.ClearChangeMasks(ApplicationNodeManager.SystemContext, true);
             }
+
+            //BaseEventState stopMonitoringEvent = new BaseEventState(method);
+            BaseEventState onStartBaseEvent = new BaseEventState(method);
+            TranslationInfo info = new TranslationInfo(
+                "OnStart",
+                "en-US",
+                "The Confirm method was called.");
+            onStartBaseEvent.Initialize(context,method,EventSeverity.High,new LocalizedText(info));
+            bool valid = onStartBaseEvent.Validate(context);
+            // Report the event at Server level
+            ApplicationNodeManager.Server.ReportEvent(onStartBaseEvent);
+
+            AuditUpdateMethodEventState auditUpdateMethodEventState = new AuditUpdateMethodEventState(method);
+            auditUpdateMethodEventState.Initialize(
+                context,
+                method,
+                EventSeverity.Low,
+                new LocalizedText(info),
+                ServiceResult.IsGood(StatusCodes.Good),
+                DateTime.UtcNow);
+
+            auditUpdateMethodEventState.SourceName.Value = "Attribute/Call";
+            auditUpdateMethodEventState.MethodId = new PropertyState<NodeId>(method);
+            auditUpdateMethodEventState.MethodId.Value = method.NodeId;
+            auditUpdateMethodEventState.InputArguments = new PropertyState<object[]>(method);
+            auditUpdateMethodEventState.InputArguments.Value = new object[] { inputArguments };
+            ApplicationNodeManager.Server.ReportEvent(auditUpdateMethodEventState);
             return ServiceResult.Good;
         }
         private void OnUpdateProcess(object state)
