@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using Iso.Opc.Interface;
@@ -198,15 +199,15 @@ namespace ControllerServerNodeManagerPlugin
             }
 
             //BaseEventState stopMonitoringEvent = new BaseEventState(method);
-            BaseEventState onStartBaseEvent = new BaseEventState(method);
+            //BaseEventState onStartBaseEvent = new BaseEventState(method);
             TranslationInfo info = new TranslationInfo(
                 "OnStart",
                 "en-US",
                 "The Confirm method was called.");
-            onStartBaseEvent.Initialize(context,method,EventSeverity.High,new LocalizedText(info));
-            bool valid = onStartBaseEvent.Validate(context);
-            // Report the event at Server level
-            ApplicationNodeManager.Server.ReportEvent(onStartBaseEvent);
+            //onStartBaseEvent.Initialize(context,method,EventSeverity.High,new LocalizedText(info));
+            //bool valid = onStartBaseEvent.Validate(context);
+            //// Report the event at Server level
+            //ApplicationNodeManager.Server.ReportEvent(onStartBaseEvent);
 
             AuditUpdateMethodEventState auditUpdateMethodEventState = new AuditUpdateMethodEventState(method);
             auditUpdateMethodEventState.Initialize(
@@ -216,13 +217,19 @@ namespace ControllerServerNodeManagerPlugin
                 new LocalizedText(info),
                 ServiceResult.IsGood(StatusCodes.Good),
                 DateTime.UtcNow);
-
             auditUpdateMethodEventState.SourceName.Value = "Attribute/Call";
-            auditUpdateMethodEventState.MethodId = new PropertyState<NodeId>(method);
-            auditUpdateMethodEventState.MethodId.Value = method.NodeId;
-            auditUpdateMethodEventState.InputArguments = new PropertyState<object[]>(method);
-            auditUpdateMethodEventState.InputArguments.Value = new object[] { inputArguments };
-            ApplicationNodeManager.Server.ReportEvent(auditUpdateMethodEventState);
+            auditUpdateMethodEventState.MethodId = new PropertyState<NodeId>(method)
+            {
+                Value = method.NodeId
+            };
+            auditUpdateMethodEventState.InputArguments = new PropertyState<object[]>(method)
+            {
+                Value = new object[] { inputArguments }
+            };
+            auditUpdateMethodEventState.SetChildValue(context, BrowseNames.InputArguments, inputArguments.ToArray(), true);
+            bool valid = auditUpdateMethodEventState.Validate(context);
+            if(valid) 
+                ApplicationNodeManager.Server.ReportEvent(auditUpdateMethodEventState);
             return ServiceResult.Good;
         }
         private void OnUpdateProcess(object state)

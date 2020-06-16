@@ -233,99 +233,244 @@ namespace Client
             }
             return arguments;
         }
-
-        private void MonitoredItemNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
+        private static readonly NodeId[] KnownEventTypes = new[]
         {
+            ObjectTypeIds.BaseEventType,
+            ObjectTypeIds.ConditionType,
+            ObjectTypeIds.DialogConditionType,
+            ObjectTypeIds.AlarmConditionType,
+            ObjectTypeIds.ExclusiveLimitAlarmType,
+            ObjectTypeIds.NonExclusiveLimitAlarmType,
+            ObjectTypeIds.AuditEventType,
+            ObjectTypeIds.AuditUpdateMethodEventType
+        };
+        private void MonitoredItemNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
+        { 
             try
             {
-                if (e.NotificationValue is EventFieldList notification)
+                switch (e.NotificationValue)
                 {
-                    
-                    foreach (Variant notificationEventField in notification.EventFields)
+                    case EventFieldList notification:
                     {
-                        if (notificationEventField.Value == null)
-                            InformationDisplay($"Event Notification value: NULL");
-                        else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.NodeId)
+                        NodeId eventTypeId = null;
+                        if (!(monitoredItem.Status.Filter is EventFilter filter))
+                            return;
+                        for (int index = 0; index < filter.SelectClauses.Count; index++)
                         {
-                            INode node = _applicationInstanceManager.Session.NodeCache.Find((NodeId)notificationEventField.Value);
-                            if (node != null)
+                            SimpleAttributeOperand simpleAttributeOperand = filter.SelectClauses[index];
+                            if (simpleAttributeOperand.BrowsePath.Count != 1 ||
+                                simpleAttributeOperand.BrowsePath[0] != BrowseNames.EventType) 
+                                continue;
+                            eventTypeId = notification.EventFields[index].Value as NodeId;
+                        }
+                        // look up the known event type.
+                        Dictionary<NodeId, NodeId>  eventTypeMappings = new Dictionary<NodeId, NodeId>();
+                        if (eventTypeId == null || NodeId.IsNull(eventTypeId))
+                            return; 
+                        if (!eventTypeMappings.TryGetValue(eventTypeId, out NodeId knownTypeId))
+                        {
+                            // check for a known type
+                            if (KnownEventTypes.Any(nodeId => nodeId == eventTypeId))
                             {
-                                
-                                InformationDisplay($"Event Notification [BuiltInType.NodeId] value: {node.ToString()}");
-                                InformationDisplay($"Event Notification [Node Class] value: {node.NodeClass.ToString()}");
-                                if (node.NodeClass == NodeClass.Method)
-                                {
-                                    ReferenceDescription referenceDescription = new ReferenceDescription();
-                                    referenceDescription.NodeId = node.NodeId;
-                                    AttributeData attributeData = _applicationInstanceManager.ReadAttributes(referenceDescription);
-                                    InformationDisplay($"Event Notification [Attribute Browse Name] value: {attributeData.BrowseName.ToString()}");
-                                    InformationDisplay($"Event Notification [Attribute Value] value: {attributeData.Value.ToString()}");
-                                    //DataDescription inputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
-                                    //    x.AttributeData.BrowseName.Name == NameVariables.InputArguments);
-                                    //DataDescription outputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
-                                    //    x.AttributeData.BrowseName.Name == NameVariables.OutputArguments);
+                                knownTypeId = eventTypeId;
+                                eventTypeMappings.Add(eventTypeId, eventTypeId);
+                            }
+                            // browse for the supertypes of the event type.
+                            if (knownTypeId == null)
+                            {
+                                ReferenceDescriptionCollection supertypes = new ReferenceDescriptionCollection();
+                                // find all of the children of the field.
+                                BrowseDescription nodeToBrowse = new BrowseDescription();
+                                nodeToBrowse.NodeId = eventTypeId;
+                                nodeToBrowse.BrowseDirection = BrowseDirection.Inverse;
+                                nodeToBrowse.ReferenceTypeId = ReferenceTypeIds.HasSubtype;
+                                nodeToBrowse.IncludeSubtypes = false; // more efficient to use IncludeSubtypes=False when possible.
+                                nodeToBrowse.NodeClassMask = 0; // the HasSubtype reference already restricts the targets to Types. 
+                                nodeToBrowse.ResultMask = (uint)BrowseResultMask.All;
 
-                                    ////get all argument information
-                                    //ExtensionObject[] inputExtensionObjects =
-                                    //    (ExtensionObject[])inputDataDescription?.AttributeData.Value.Value;
-                                    //ExtensionObject[] outputExtensionObjects =
-                                    //    (ExtensionObject[])outputDataDescription?.AttributeData.Value.Value;
-                                    //inputArgumentsPanel.Controls.Clear();
-                                    //outputArgumentsPanel.Controls.Clear();
-                                    //callMethodButton.Enabled = true;
-                                    //if (inputExtensionObjects != null)
-                                    //{
-                                    //    foreach (ExtensionObject extensionObject in inputExtensionObjects)
-                                    //    {
-                                    //        Argument argument = (Argument)extensionObject.Body;
-                                    //        Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(argument.DataType, argument.ValueRank));
-                                    //        if (defaultValue.Value == null)
-                                    //            defaultValue.Value = "";
-                                    //        AddInputArgumentUserControl(defaultValue.Value.ToString(), argument.Description.Text, argument.Name,
-                                    //            defaultValue.TypeInfo);
-                                    //    }
-                                    //}
+                                ReferenceDescriptionCollection references = _applicationInstanceManager.Browse(nodeToBrowse);
+                                while (references != null && references.Count > 0)
+                                {
+                                    // should never be more than one supertype.
+                                    supertypes.Add(references[0]);
+                                    // only follow references within this server.
+                                    if (references[0].NodeId.IsAbsolute)
+                                    {
+                                        break;
+                                    }
+                                    // get the references for the next level up.
+                                    nodeToBrowse.NodeId = (NodeId)references[0].NodeId;
+                                    references = _applicationInstanceManager.Browse(nodeToBrowse);
+                                }
+                                // find the first supertype that matches a known event type.
+                                foreach (ReferenceDescription referenceDescription in supertypes)
+                                {
+                                    foreach (NodeId nodeId in KnownEventTypes)
+                                    {
+                                        if (nodeId != referenceDescription.NodeId) 
+                                            continue;
+                                        knownTypeId = nodeId;
+                                        eventTypeMappings.Add(eventTypeId, knownTypeId);
+                                        break;
+                                    }
+                                    if (knownTypeId != null)
+                                        break;
                                 }
                             }
                         }
-                        else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.Variant)
-                        {
-                            DateTime value = (DateTime)notificationEventField.Value;
-                            InformationDisplay($"Event Notification [BuiltInType.Variant] value: {value.ToString()}");
-                        }
-                        else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.DateTime)
-                        {
-                            DateTime value = (DateTime)notificationEventField.Value;
-                            InformationDisplay($"Event Notification [BuiltInType.DateTime] value: {value.ToString()}");
-                            //if (m_filter.Fields[ii - 1].InstanceDeclaration.DisplayName.Contains("Time"))
-                            //{
-                            //    text = value.ToLocalTime().ToString("HH:mm:ss.fff");
-                            //}
-                            //else
-                            //{
-                            //    text = value.ToLocalTime().ToString("yyyy-MM-dd");
-                            //}
-                        }
-                        else
-                        {
-                            InformationDisplay($"Event Notification [UNKNOWN] value: {notificationEventField.ToString()}");
-                        }
-                    }
-                    
-                }
-                else if (e.NotificationValue is MonitoredItemNotification monitoredItemNotification)
-                {
-                    for (int index = 0; index < monitoredVariablePanel.Controls.Count; index++)
-                    {
-                        if (monitoredVariablePanel.Controls[index].Name != monitoredItem.ResolvedNodeId.ToString())
-                            continue;
-                        ArgumentUserControl argumentUserControl =
-                            (ArgumentUserControl)monitoredVariablePanel.Controls[index];
-                        argumentUserControl.ValueInput = monitoredItemNotification.Value.WrappedValue.ToString();
-                    }
-                }
+                        if (knownTypeId == null) 
+                            return; 
+                        // all of the known event types have a UInt32 as identifier.
+                        uint? id = knownTypeId.Identifier as uint?;
+                        if (id == null)
+                            return;
+                        // construct the event based on the known event type.
+                        BaseEventState baseEventState = null;
 
-               
+                        switch (id.Value)
+                        {
+                            case ObjectTypes.ConditionType: { baseEventState = new ConditionState(null); break; }
+                            case ObjectTypes.DialogConditionType: { baseEventState = new DialogConditionState(null); break; }
+                            case ObjectTypes.AlarmConditionType: { baseEventState = new AlarmConditionState(null); break; }
+                            case ObjectTypes.ExclusiveLimitAlarmType: { baseEventState = new ExclusiveLimitAlarmState(null); break; }
+                            case ObjectTypes.NonExclusiveLimitAlarmType: { baseEventState = new NonExclusiveLimitAlarmState(null); break; }
+                            case ObjectTypes.AuditEventType: { baseEventState = new AuditEventState(null); break; }
+                            case ObjectTypes.AuditUpdateMethodEventType: { baseEventState = new AuditUpdateMethodEventState(null); break; }
+                            default:
+                            {
+                                baseEventState = new BaseEventState(null);
+                                break;
+                            }
+                        }
+                        // get the filter which defines the contents of the notification.
+                        filter = monitoredItem.Status.Filter as EventFilter; 
+                        // initialize the event with the values in the notification.
+                        baseEventState.Update(_applicationInstanceManager.Session.SystemContext, filter.SelectClauses, notification); 
+                        // save the original notification.
+                        baseEventState.Handle = notification;
+                        // construct the audit object.
+                        if (baseEventState is AuditUpdateMethodEventState audit)
+                        {
+                            List<string> data = new List<string>(); 
+                            // look up the condition type metadata in the local cache.
+                            string sourceName = "";
+                            if (audit.SourceName.Value != null) 
+                                sourceName = Utils.Format("{0}", audit.SourceName.Value);
+                            string type = "";
+                            if (audit.TypeDefinitionId != null)
+                                type = Utils.Format("{0}",
+                                    _applicationInstanceManager.Session.NodeCache.Find(audit.TypeDefinitionId));
+
+                            string method = "";
+                            if (audit.MethodId != null)
+                                method = Utils.Format("{0}",
+                                    _applicationInstanceManager.Session.NodeCache.Find(
+                                        BaseVariableState.GetValue(audit.MethodId)));
+
+                            string status = "";
+                            if (audit.Status != null)
+                                status = Utils.Format("{0}", audit.Status.Value);
+
+                            string time = "";
+                            if (audit.Time != null)
+                                time = Utils.Format("{0:HH:mm:ss.fff}", audit.Time.Value.ToLocalTime());
+                            
+                            string message = "";
+                            if (audit.Message != null)
+                                message = Utils.Format("{0}", audit.Message.Value);
+                            
+                            string inputArguments = "";
+                            if (audit.InputArguments != null)
+                                inputArguments = Utils.Format("{0}", new Variant(audit.InputArguments.Value));
+
+
+                            InformationDisplay($"sourceName: {sourceName}, type:{type}, method:{method}, status:{status}, time:{time}, message:{message}, inputArguments:{inputArguments}");
+                        } 
+                        //foreach (Variant notificationEventField in notification.EventFields)
+                        //{
+                        //    if (notificationEventField.Value == null)
+                        //        InformationDisplay($"Event Notification value: NULL");
+                        //    else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.NodeId)
+                        //    {
+                        //        INode node = _applicationInstanceManager.Session.NodeCache.Find((NodeId)notificationEventField.Value);
+                        //        if (node != null)
+                        //        {
+                                
+                        //            InformationDisplay($"Event Notification [BuiltInType.NodeId] value: {node.ToString()}");
+                        //            InformationDisplay($"Event Notification [Node Class] value: {node.NodeClass.ToString()}");
+                        //            if (node.NodeClass == NodeClass.Method)
+                        //            {
+                        //                ReferenceDescription referenceDescription = new ReferenceDescription();
+                        //                referenceDescription.NodeId = node.NodeId;
+                        //                AttributeData attributeData = _applicationInstanceManager.ReadAttributes(referenceDescription);
+                        //                InformationDisplay($"Event Notification [Attribute Browse Name] value: {attributeData.BrowseName.ToString()}");
+                        //                InformationDisplay($"Event Notification [Attribute Value] value: {attributeData.Value.ToString()}");
+                        //                //DataDescription inputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
+                        //                //    x.AttributeData.BrowseName.Name == NameVariables.InputArguments);
+                        //                //DataDescription outputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
+                        //                //    x.AttributeData.BrowseName.Name == NameVariables.OutputArguments);
+
+                        //                ////get all argument information
+                        //                //ExtensionObject[] inputExtensionObjects =
+                        //                //    (ExtensionObject[])inputDataDescription?.AttributeData.Value.Value;
+                        //                //ExtensionObject[] outputExtensionObjects =
+                        //                //    (ExtensionObject[])outputDataDescription?.AttributeData.Value.Value;
+                        //                //inputArgumentsPanel.Controls.Clear();
+                        //                //outputArgumentsPanel.Controls.Clear();
+                        //                //callMethodButton.Enabled = true;
+                        //                //if (inputExtensionObjects != null)
+                        //                //{
+                        //                //    foreach (ExtensionObject extensionObject in inputExtensionObjects)
+                        //                //    {
+                        //                //        Argument argument = (Argument)extensionObject.Body;
+                        //                //        Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(argument.DataType, argument.ValueRank));
+                        //                //        if (defaultValue.Value == null)
+                        //                //            defaultValue.Value = "";
+                        //                //        AddInputArgumentUserControl(defaultValue.Value.ToString(), argument.Description.Text, argument.Name,
+                        //                //            defaultValue.TypeInfo);
+                        //                //    }
+                        //                //}
+                        //            }
+                        //        }
+                        //    }
+                        //    else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.Variant)
+                        //    {
+                        //        DateTime value = (DateTime)notificationEventField.Value;
+                        //        InformationDisplay($"Event Notification [BuiltInType.Variant] value: {value.ToString()}");
+                        //    }
+                        //    else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.DateTime)
+                        //    {
+                        //        DateTime value = (DateTime)notificationEventField.Value;
+                        //        InformationDisplay($"Event Notification [BuiltInType.DateTime] value: {value.ToString()}");
+                        //        //if (m_filter.Fields[ii - 1].InstanceDeclaration.DisplayName.Contains("Time"))
+                        //        //{
+                        //        //    text = value.ToLocalTime().ToString("HH:mm:ss.fff");
+                        //        //}
+                        //        //else
+                        //        //{
+                        //        //    text = value.ToLocalTime().ToString("yyyy-MM-dd");
+                        //        //}
+                        //    }
+                        //    else
+                        //    {
+                        //        InformationDisplay($"Event Notification [UNKNOWN] value: {notificationEventField.ToString()}");
+                        //    }
+                        //}
+                        break;
+                    }
+                    case MonitoredItemNotification monitoredItemNotification:
+                    {
+                        for (int index = 0; index < monitoredVariablePanel.Controls.Count; index++)
+                        {
+                            if (monitoredVariablePanel.Controls[index].Name != monitoredItem.ResolvedNodeId.ToString())
+                                continue;
+                            ArgumentUserControl argumentUserControl =
+                                (ArgumentUserControl)monitoredVariablePanel.Controls[index];
+                            argumentUserControl.ValueInput = monitoredItemNotification.Value.WrappedValue.ToString();
+                        }
+                        break;
+                    }
+                }
             }
             catch (Exception ex)
             {

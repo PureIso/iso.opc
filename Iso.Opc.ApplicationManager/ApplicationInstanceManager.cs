@@ -1173,7 +1173,209 @@ namespace Iso.Opc.ApplicationManager
             return attributeData;
         }
 
+        public ReferenceDescriptionCollection Browse(BrowseDescription nodeToBrowse)
+        {
+            ReferenceDescriptionCollection references = new ReferenceDescriptionCollection();
+            try
+            {
+                // construct browse request.
+                BrowseDescriptionCollection nodesToBrowse = new BrowseDescriptionCollection {nodeToBrowse};
+                // start the browse operation.
+                Session.Browse(
+                    null,
+                    null,
+                    0,
+                    nodesToBrowse,
+                    out BrowseResultCollection results,
+                    out DiagnosticInfoCollection diagnosticInfos);
+                ClientBase.ValidateResponse(results, nodesToBrowse);
+                ClientBase.ValidateDiagnosticInfos(diagnosticInfos, nodesToBrowse);
+                do
+                {
+                    // check for error.
+                    if (StatusCode.IsBad(results[0].StatusCode))
+                    {
+                        throw new ServiceResultException(results[0].StatusCode);
+                    }
+                    // process results.
+                    foreach (ReferenceDescription referenceDescription in results[0].References)
+                    {
+                        references.Add(referenceDescription);
+                    }
+                    // check if all references have been fetched.
+                    if (results[0].References.Count == 0 || results[0].ContinuationPoint == null)
+                    {
+                        break;
+                    }
+                    // continue browse operation.
+                    ByteStringCollection continuationPoints = new ByteStringCollection
+                    {
+                        results[0].ContinuationPoint
+                    };
+                    Session.BrowseNext(
+                        null,
+                        false,
+                        continuationPoints,
+                        out results,
+                        out diagnosticInfos);
+                    ClientBase.ValidateResponse(results, continuationPoints);
+                    ClientBase.ValidateDiagnosticInfos(diagnosticInfos, continuationPoints);
+                }
+                while (true);
+                //return complete list.
+                
+            }
+            catch (Exception exception)
+            {
+                //throw new ServiceResultException(exception, StatusCodes.BadUnexpectedError);
+                return null;
+            }
+            return references;
+        }
+
         public Subscription Subscription { get; set; }
+        private bool ContainsPath(SimpleAttributeOperandCollection selectClause, QualifiedNameCollection browsePath)
+        {
+            for (int ii = 0; ii < selectClause.Count; ii++)
+            {
+                SimpleAttributeOperand field = selectClause[ii];
+
+                if (field.BrowsePath.Count != browsePath.Count)
+                {
+                    continue;
+                }
+
+                bool match = true;
+
+                for (int jj = 0; jj < field.BrowsePath.Count; jj++)
+                {
+                    if (field.BrowsePath[jj] != browsePath[jj])
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        private void CollectFields(NodeId eventTypeId, SimpleAttributeOperandCollection eventFields)
+        {
+            // get the supertypes.
+            ReferenceDescriptionCollection supertypes = new ReferenceDescriptionCollection();
+            // find all of the children of the field.
+            BrowseDescription nodeToBrowse = new BrowseDescription();
+            nodeToBrowse.NodeId = eventTypeId;
+            nodeToBrowse.BrowseDirection = BrowseDirection.Inverse;
+            nodeToBrowse.ReferenceTypeId = ReferenceTypeIds.HasSubtype;
+            nodeToBrowse.IncludeSubtypes = false; // more efficient to use IncludeSubtypes=False when possible.
+            nodeToBrowse.NodeClassMask = 0; // the HasSubtype reference already restricts the targets to Types. 
+            nodeToBrowse.ResultMask = (uint)BrowseResultMask.All;
+
+            ReferenceDescriptionCollection references = Browse(nodeToBrowse);
+            while (references != null && references.Count > 0)
+            {
+                // should never be more than one supertype.
+                supertypes.Add(references[0]);
+                // only follow references within this server.
+                if (references[0].NodeId.IsAbsolute)
+                {
+                    break;
+                }
+                // get the references for the next level up.
+                nodeToBrowse.NodeId = (NodeId)references[0].NodeId;
+                references = Browse(nodeToBrowse);
+            }
+            if (supertypes == null)
+            {
+                return;
+            }
+
+            // process the types starting from the top of the tree.
+            Dictionary<NodeId, QualifiedNameCollection> foundNodes = new Dictionary<NodeId, QualifiedNameCollection>();
+            QualifiedNameCollection parentPath = new QualifiedNameCollection();
+
+            for (int ii = supertypes.Count - 1; ii >= 0; ii--)
+            {
+                CollectFields((NodeId)supertypes[ii].NodeId, parentPath, eventFields, foundNodes);
+            }
+
+            // collect the fields for the selected type.
+            CollectFields(eventTypeId, parentPath, eventFields, foundNodes);
+        }
+        /// <summary>
+        /// Collects the fields for the instance node.
+        /// </summary>
+        /// <param name="session">The session.</param>
+        /// <param name="nodeId">The node id.</param>
+        /// <param name="parentPath">The parent path.</param>
+        /// <param name="eventFields">The event fields.</param>
+        /// <param name="foundNodes">The table of found nodes.</param>
+        private void CollectFields(
+            NodeId nodeId,
+            QualifiedNameCollection parentPath,
+            SimpleAttributeOperandCollection eventFields,
+            Dictionary<NodeId, QualifiedNameCollection> foundNodes)
+        {
+            // find all of the children of the field.
+            BrowseDescription nodeToBrowse = new BrowseDescription();
+
+            nodeToBrowse.NodeId = nodeId;
+            nodeToBrowse.BrowseDirection = BrowseDirection.Forward;
+            nodeToBrowse.ReferenceTypeId = ReferenceTypeIds.Aggregates;
+            nodeToBrowse.IncludeSubtypes = true;
+            nodeToBrowse.NodeClassMask = (uint)(NodeClass.Object | NodeClass.Variable);
+            nodeToBrowse.ResultMask = (uint)BrowseResultMask.All;
+
+            ReferenceDescriptionCollection children = Browse(nodeToBrowse);
+
+            if (children == null)
+            {
+                return;
+            }
+
+            // process the children.
+            for (int ii = 0; ii < children.Count; ii++)
+            {
+                ReferenceDescription child = children[ii];
+
+                if (child.NodeId.IsAbsolute)
+                {
+                    continue;
+                }
+
+                // construct browse path.
+                QualifiedNameCollection browsePath = new QualifiedNameCollection(parentPath);
+                browsePath.Add(child.BrowseName);
+
+                // check if the browse path is already in the list.
+                if (!ContainsPath(eventFields, browsePath))
+                {
+                    SimpleAttributeOperand field = new SimpleAttributeOperand();
+
+                    field.TypeDefinitionId = ObjectTypeIds.BaseEventType;
+                    field.BrowsePath = browsePath;
+                    field.AttributeId = (child.NodeClass == NodeClass.Variable) ? Attributes.Value : Attributes.NodeId;
+
+                    eventFields.Add(field);
+                }
+
+                // recusively find all of the children.
+                NodeId targetId = (NodeId)child.NodeId;
+
+                // need to guard against loops.
+                if (!foundNodes.ContainsKey(targetId))
+                {
+                    foundNodes.Add(targetId, browsePath);
+                    CollectFields((NodeId)child.NodeId, browsePath, eventFields, foundNodes);
+                }
+            }
+        }
         public bool SubscribeToNode(NodeId nodeId, MonitoredItemNotificationEventHandler callback=null, int publishingInterval = 1000)
         {
             try
@@ -1217,15 +1419,44 @@ namespace Iso.Opc.ApplicationManager
                 //monitoredItemEvent.Notification += callback;
 
                 EventFilter filter = new EventFilter();
-                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.EventId); 
-                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.EventType); 
-                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.SourceNode);
-                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.SourceName); 
-                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Time); 
-                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.ReceiveTime);
-                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.LocalTime); 
-                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Message); 
-                filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Severity);
+                // browse the type model in the server address space to find the fields available for the event type.
+                SimpleAttributeOperandCollection selectClauses = new SimpleAttributeOperandCollection();
+                // must always request the NodeId for the condition instances.
+                // this can be done by specifying an operand with an empty browse path.
+                SimpleAttributeOperand operand = new SimpleAttributeOperand();
+                operand.TypeDefinitionId = ObjectTypeIds.BaseEventType;
+                operand.AttributeId = Attributes.NodeId;
+                operand.BrowsePath = new QualifiedNameCollection();
+                selectClauses.Add(operand);
+
+                // add the fields for the selected EventTypes.
+                if (ObjectTypeIds.AuditUpdateMethodEventType != null)
+                {
+                    CollectFields(ObjectTypeIds.AuditUpdateMethodEventType, selectClauses);
+                }
+
+                // use BaseEventType as the default if no EventTypes specified.
+                else
+                {
+                    CollectFields(ObjectTypeIds.BaseEventType, selectClauses);
+                }
+
+                filter.SelectClauses = selectClauses;
+
+                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.EventId);
+                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.EventType);
+                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.SourceNode);
+                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.SourceName);
+                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Time);
+                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.ReceiveTime);
+                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.LocalTime);
+                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Message);
+                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Severity);
+                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Status);
+                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.InputArguments);
+                //filter.AddSelectClause(ObjectTypes.AuditUpdateMethodEventType, BrowseNames.InputArguments);
+                //filter.AddSelectClause(ObjectTypes.AuditUpdateMethodEventType, BrowseNames.MethodId);
+                //filter.AddSelectClause(ObjectTypes.AuditUpdateMethodEventType, BrowseNames.PropertyType);
                 MonitoredItem triggeringItemId = new MonitoredItem(Subscription.DefaultItem)
                 {
                     NodeClass = NodeClass.Object,
