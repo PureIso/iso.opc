@@ -351,7 +351,6 @@ namespace Client
                         // construct the audit object.
                         if (baseEventState is AuditUpdateMethodEventState audit)
                         {
-                            List<string> data = new List<string>(); 
                             // look up the condition type metadata in the local cache.
                             string sourceName = "";
                             if (audit.SourceName.Value != null) 

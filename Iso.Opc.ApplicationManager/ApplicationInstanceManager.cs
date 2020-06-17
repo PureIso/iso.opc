@@ -48,6 +48,7 @@ namespace Iso.Opc.ApplicationManager
         public Dictionary<string, ExtendedDataDescription> ExtendedDataDescriptionDictionary { get; set; }
         public Dictionary<string, ExtendedDataDescription> FlatExtendedDataDescriptionDictionary { get; set; }
         public bool AutomaticallyAddAppCertToTrustStore { get; set; }
+        public Subscription Subscription { get; set; }
         #endregion
 
         #region Constructor
@@ -1225,15 +1226,14 @@ namespace Iso.Opc.ApplicationManager
                 //return complete list.
                 
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                //throw new ServiceResultException(exception, StatusCodes.BadUnexpectedError);
-                return null;
+                Console.WriteLine($"Exception: {ex.StackTrace} Status Code: {StatusCodes.BadUnexpectedError}");
             }
             return references;
         }
 
-        public Subscription Subscription { get; set; }
+        
         private bool ContainsPath(SimpleAttributeOperandCollection selectClause, QualifiedNameCollection browsePath)
         {
             for (int ii = 0; ii < selectClause.Count; ii++)
