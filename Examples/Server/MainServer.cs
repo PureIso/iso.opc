@@ -37,7 +37,7 @@ namespace Server
         /// </remarks>
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
-            Console.WriteLine("Creating the Node Managers.");
+            Utils.Trace("Creating the Node Managers.");
             List<INodeManager> nodeManagers = new List<INodeManager> {new ServerNodeManager(server, configuration)};
             // create master node manager.
             return new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
@@ -70,7 +70,7 @@ namespace Server
         /// </remarks>
         protected override void OnServerStarting(ApplicationConfiguration configuration)
         {
-            Console.WriteLine("The server is starting.....");
+            Utils.Trace("The server is starting.....");
             base.OnServerStarting(configuration);
             // it is up to the application to decide how to validate user identity tokens.
             // this function creates validator for X509 identity tokens.
@@ -81,7 +81,7 @@ namespace Server
         /// </summary>
         protected override void OnServerStarted(IServerInternal server)
         {
-            Console.WriteLine("The server is started.");
+            Utils.Trace("The server is started.");
             base.OnServerStarted(server);
             //request notifications when the user identity is changed.all valid users are accepted by default.
             server.SessionManager.ImpersonateUser += SessionManager_ImpersonateUser;
@@ -132,7 +132,7 @@ namespace Server
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Session Manager Impersonate Exception:\r\n{e.StackTrace}");
+                Utils.Trace($"Session Manager Impersonate Exception:\r\n{e.StackTrace}");
             }
             return context;
         }
@@ -195,7 +195,7 @@ namespace Server
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Session Manager Impersonate Exception:\r\n{e.StackTrace}");
+                Utils.Trace($"Session Manager Impersonate Exception:\r\n{e.StackTrace}");
             }
         }
         /// <summary>
@@ -248,7 +248,7 @@ namespace Server
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Session Manager Impersonate Exception:\r\n{e.StackTrace}");
+                Utils.Trace($"Session Manager Impersonate Exception:\r\n{e.StackTrace}");
             }
             return null;
         }

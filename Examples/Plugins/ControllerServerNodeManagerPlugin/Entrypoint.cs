@@ -90,7 +90,7 @@ namespace ControllerServerNodeManagerPlugin
                 OnSimpleWriteValue = OnWriteValue,
                 OnReportEvent = (context, node, target) =>
                 {
-                    Console.WriteLine("ssssssssss");
+                    Utils.Trace("ssssssssss");
                 },
             };
 

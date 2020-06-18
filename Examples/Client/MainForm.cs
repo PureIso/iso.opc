@@ -279,16 +279,18 @@ namespace Client
                             if (knownTypeId == null)
                             {
                                 ReferenceDescriptionCollection supertypes = new ReferenceDescriptionCollection();
-                                // find all of the children of the field.
-                                BrowseDescription nodeToBrowse = new BrowseDescription();
-                                nodeToBrowse.NodeId = eventTypeId;
-                                nodeToBrowse.BrowseDirection = BrowseDirection.Inverse;
-                                nodeToBrowse.ReferenceTypeId = ReferenceTypeIds.HasSubtype;
-                                nodeToBrowse.IncludeSubtypes = false; // more efficient to use IncludeSubtypes=False when possible.
-                                nodeToBrowse.NodeClassMask = 0; // the HasSubtype reference already restricts the targets to Types. 
-                                nodeToBrowse.ResultMask = (uint)BrowseResultMask.All;
+                                    // find all of the children of the field.
+                                    BrowseDescription nodeToBrowse = new BrowseDescription
+                                    {
+                                        NodeId = eventTypeId,
+                                        BrowseDirection = BrowseDirection.Inverse,
+                                        ReferenceTypeId = ReferenceTypeIds.HasSubtype,
+                                        IncludeSubtypes = false, // more efficient to use IncludeSubtypes=False when possible.
+                                        NodeClassMask = 0, // the HasSubtype reference already restricts the targets to Types. 
+                                        ResultMask = (uint)BrowseResultMask.All
+                                    };
 
-                                ReferenceDescriptionCollection references = _applicationInstanceManager.Browse(nodeToBrowse);
+                                    ReferenceDescriptionCollection references = _applicationInstanceManager.Browse(nodeToBrowse);
                                 while (references != null && references.Count > 0)
                                 {
                                     // should never be more than one supertype.
@@ -302,7 +304,7 @@ namespace Client
                                     nodeToBrowse.NodeId = (NodeId)references[0].NodeId;
                                     references = _applicationInstanceManager.Browse(nodeToBrowse);
                                 }
-                                // find the first supertype that matches a known event type.
+                                // find the first super type that matches a known event type.
                                 foreach (ReferenceDescription referenceDescription in supertypes)
                                 {
                                     foreach (NodeId nodeId in KnownEventTypes)
@@ -384,77 +386,7 @@ namespace Client
 
 
                             InformationDisplay($"sourceName: {sourceName}, type:{type}, method:{method}, status:{status}, time:{time}, message:{message}, inputArguments:{inputArguments}");
-                        } 
-                        //foreach (Variant notificationEventField in notification.EventFields)
-                        //{
-                        //    if (notificationEventField.Value == null)
-                        //        InformationDisplay($"Event Notification value: NULL");
-                        //    else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.NodeId)
-                        //    {
-                        //        INode node = _applicationInstanceManager.Session.NodeCache.Find((NodeId)notificationEventField.Value);
-                        //        if (node != null)
-                        //        {
-                                
-                        //            InformationDisplay($"Event Notification [BuiltInType.NodeId] value: {node.ToString()}");
-                        //            InformationDisplay($"Event Notification [Node Class] value: {node.NodeClass.ToString()}");
-                        //            if (node.NodeClass == NodeClass.Method)
-                        //            {
-                        //                ReferenceDescription referenceDescription = new ReferenceDescription();
-                        //                referenceDescription.NodeId = node.NodeId;
-                        //                AttributeData attributeData = _applicationInstanceManager.ReadAttributes(referenceDescription);
-                        //                InformationDisplay($"Event Notification [Attribute Browse Name] value: {attributeData.BrowseName.ToString()}");
-                        //                InformationDisplay($"Event Notification [Attribute Value] value: {attributeData.Value.ToString()}");
-                        //                //DataDescription inputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
-                        //                //    x.AttributeData.BrowseName.Name == NameVariables.InputArguments);
-                        //                //DataDescription outputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
-                        //                //    x.AttributeData.BrowseName.Name == NameVariables.OutputArguments);
-
-                        //                ////get all argument information
-                        //                //ExtensionObject[] inputExtensionObjects =
-                        //                //    (ExtensionObject[])inputDataDescription?.AttributeData.Value.Value;
-                        //                //ExtensionObject[] outputExtensionObjects =
-                        //                //    (ExtensionObject[])outputDataDescription?.AttributeData.Value.Value;
-                        //                //inputArgumentsPanel.Controls.Clear();
-                        //                //outputArgumentsPanel.Controls.Clear();
-                        //                //callMethodButton.Enabled = true;
-                        //                //if (inputExtensionObjects != null)
-                        //                //{
-                        //                //    foreach (ExtensionObject extensionObject in inputExtensionObjects)
-                        //                //    {
-                        //                //        Argument argument = (Argument)extensionObject.Body;
-                        //                //        Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(argument.DataType, argument.ValueRank));
-                        //                //        if (defaultValue.Value == null)
-                        //                //            defaultValue.Value = "";
-                        //                //        AddInputArgumentUserControl(defaultValue.Value.ToString(), argument.Description.Text, argument.Name,
-                        //                //            defaultValue.TypeInfo);
-                        //                //    }
-                        //                //}
-                        //            }
-                        //        }
-                        //    }
-                        //    else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.Variant)
-                        //    {
-                        //        DateTime value = (DateTime)notificationEventField.Value;
-                        //        InformationDisplay($"Event Notification [BuiltInType.Variant] value: {value.ToString()}");
-                        //    }
-                        //    else if (notificationEventField.TypeInfo.BuiltInType == BuiltInType.DateTime)
-                        //    {
-                        //        DateTime value = (DateTime)notificationEventField.Value;
-                        //        InformationDisplay($"Event Notification [BuiltInType.DateTime] value: {value.ToString()}");
-                        //        //if (m_filter.Fields[ii - 1].InstanceDeclaration.DisplayName.Contains("Time"))
-                        //        //{
-                        //        //    text = value.ToLocalTime().ToString("HH:mm:ss.fff");
-                        //        //}
-                        //        //else
-                        //        //{
-                        //        //    text = value.ToLocalTime().ToString("yyyy-MM-dd");
-                        //        //}
-                        //    }
-                        //    else
-                        //    {
-                        //        InformationDisplay($"Event Notification [UNKNOWN] value: {notificationEventField.ToString()}");
-                        //    }
-                        //}
+                        }
                         break;
                     }
                     case MonitoredItemNotification monitoredItemNotification:
@@ -559,18 +491,18 @@ namespace Client
             {
                 case NodeClass.Variable:
                     monitorToolStripMenuItem.Enabled = true;
-                    callToolStripMenuItem.Enabled = true;
+                    callToolStripMenuItem.Enabled = false;
                     break;
                 case NodeClass.Method:
                 {
-                    monitorToolStripMenuItem.Enabled = true;
+                    monitorToolStripMenuItem.Enabled = false;
                     callToolStripMenuItem.Enabled = true;
                     break;
                 }
-                default:
-                    // _selectedTreeNode = null;
-                    monitorToolStripMenuItem.Enabled = true;
-                    callToolStripMenuItem.Enabled = true;
+                default: 
+                    _selectedTreeNode = null;
+                    monitorToolStripMenuItem.Enabled = false;
+                    callToolStripMenuItem.Enabled = false;
                     break;
             }
 

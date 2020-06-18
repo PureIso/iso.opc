@@ -33,14 +33,14 @@ namespace LocalDiscoveryService
         #region Overridden Methods
         protected override void OnServerStarted(IServerInternal server)
         {
-            Console.WriteLine("The server is started.");
+            Utils.Trace("The server is started.");
             base.OnServerStarted(server);
             // request notifications when the user identity is changed. all valid users are accepted by default.
             server.SessionManager.ImpersonateUser += SessionManager_ImpersonateUser;
         }
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
-            Console.WriteLine("Creating the Node Managers.");
+            Utils.Trace("Creating the Node Managers.");
             List<INodeManager> nodeManagers = new List<INodeManager>
             {
                 new GlobalDiscoveryServiceNodeManager(server, configuration,

@@ -85,18 +85,18 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             try
             {
                 ServerOnNetwork[] results = _database.QueryServers(0, 5, null, null, null, null, out DateTime _);
-                Console.WriteLine($"QueryServers Returned: {results.Length} records");
+                Utils.Trace($"QueryServers Returned: {results.Length} records");
                 foreach (ServerOnNetwork result in results)
                 {
-                    Console.WriteLine($"Server Found at {result.DiscoveryUrl}");
+                    Utils.Trace($"Server Found at {result.DiscoveryUrl}");
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Could not connect to the Database! Exception:\r\n{e.InnerException}");
-                Console.WriteLine("Initialize Database tables!");
+                Utils.Trace($"Could not connect to the Database! Exception:\r\n{e.InnerException}");
+                Utils.Trace("Initialize Database tables!");
                 _database.Initialize();
-                Console.WriteLine("Database Initialized!");
+                Utils.Trace("Database Initialized!");
             }
             Server.MessageContext.Factory.AddEncodeableTypes(typeof(global::Opc.Ua.Gds.ObjectIds).GetTypeInfo().Assembly);
         }

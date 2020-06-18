@@ -635,7 +635,7 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             }
             catch
             {
-                Console.WriteLine("User may not have authorization to approve request");
+                Utils.Trace("User may not have authorization to approve request");
             }
             return ServiceResult.Good;
         }
@@ -701,7 +701,7 @@ namespace Iso.Opc.ApplicationNodeManager.GDS
             }
             catch
             {
-                Console.WriteLine("User may not have authorization to approve request");
+                Utils.Trace("User may not have authorization to approve request");
             }
             return ServiceResult.Good;
         }

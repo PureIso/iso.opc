@@ -90,41 +90,41 @@ namespace Iso.Opc.ApplicationManager
                     wellKnownDiscoveryUrls[i] = Utils.ReplaceLocalhost(wellKnownDiscoveryUrls[i]);
                 }
             }
-            Console.WriteLine("Checking application configuration.");
+            Utils.Trace("Checking application configuration.");
             ApplicationConfiguration applicationConfiguration = GetApplicationConfiguration(applicationName, applicationUri, applicationType);
             switch (applicationConfiguration.ApplicationType)
             {
                 //Check server configuration
                 case ApplicationType.Server:
                 {
-                        Console.WriteLine("Checking application transport quota configuration.");
+                        Utils.Trace("Checking application transport quota configuration.");
                         applicationConfiguration.TransportQuotas = GetTransportQuotas();
-                        Console.WriteLine("Checking application server configuration.");
+                        Utils.Trace("Checking application server configuration.");
                         applicationConfiguration.ServerConfiguration = GetServerConfiguration(baseAddress, serverCapabilities, null, applicationType);
                         //required in order to connect to the discovery server
                         //GDS session will have to validate the client configuration as part of the application configuration
-                        Console.WriteLine("Checking client configuration.");
+                        Utils.Trace("Checking client configuration.");
                         applicationConfiguration.ClientConfiguration = GetClientConfiguration(new StringCollection(), new EndpointDescriptionCollection());
                         break;
                 }
                 case ApplicationType.DiscoveryServer:
                 {
-                        Console.WriteLine("Checking application transport quota configuration.");
+                        Utils.Trace("Checking application transport quota configuration.");
                         applicationConfiguration.TransportQuotas = GetTransportQuotas();
                         endpointUrl = Utils.ReplaceLocalhost(endpointUrl);
                         endpointApplicationUri = Utils.ReplaceLocalhost(endpointApplicationUri);
-                        Console.WriteLine("Checking discovery server configuration.");
+                        Utils.Trace("Checking discovery server configuration.");
                         EndpointDescription discoveryServerRegistrationEndpointDescription =
                             GetDiscoveryServerRegistrationEndpointDescription(endpointUrl, endpointApplicationUri, discoveryUrls);
                         applicationConfiguration.DiscoveryServerConfiguration = GetDiscoveryServerConfiguration(discoveryUrls);
-                        Console.WriteLine("Checking application server configuration.");
+                        Utils.Trace("Checking application server configuration.");
                         applicationConfiguration.ServerConfiguration = GetServerConfiguration(baseAddress, serverCapabilities,
                             discoveryServerRegistrationEndpointDescription, applicationType);
                         break;
                 }
                 case ApplicationType.Client:
                 {
-                        Console.WriteLine("Checking client configuration.");
+                        Utils.Trace("Checking client configuration.");
                         applicationConfiguration.ClientConfiguration = GetClientConfiguration(wellKnownDiscoveryUrls, new EndpointDescriptionCollection());
                         break;
                 }
@@ -132,7 +132,7 @@ namespace Iso.Opc.ApplicationManager
             applicationConfiguration = CheckApplicationInstanceCertificate(applicationConfiguration);
             if (applicationConfiguration == null)
                 return;
-            Console.WriteLine("Checking global discovery client configuration.");
+            Utils.Trace("Checking global discovery client configuration.");
             ApplicationInstance = new ApplicationInstance
             {
                 ApplicationType = applicationConfiguration.ApplicationType,
@@ -145,7 +145,6 @@ namespace Iso.Opc.ApplicationManager
         #region Private Methods
         private ApplicationConfiguration GetApplicationConfiguration(string applicationName, string applicationUri, ApplicationType applicationType)
         {
-            Console.WriteLine("Getting application configuration.");
             ApplicationConfiguration configuration = new ApplicationConfiguration
             {
                 ApplicationName = applicationName,
@@ -154,8 +153,11 @@ namespace Iso.Opc.ApplicationManager
                 ApplicationUri = applicationUri,
                 DisableHiResClock = true
             };
+            //Setup Trace
+            Utils.Trace("Checking application transport trace configuration.");
+            configuration.TraceConfiguration = GetTraceConfiguration(applicationType.ToString().ToLower());
             //Setup security configuration
-            Console.WriteLine("Getting application security configuration.");
+            Utils.Trace("Getting application security configuration.");
             SecurityConfiguration securityConfiguration = GetSecurityConfiguration(applicationName);
             CertificateValidator certificateValidator = new CertificateValidator();
             certificateValidator.CertificateValidation += CertificateValidatorCertificateValidation;
@@ -163,12 +165,12 @@ namespace Iso.Opc.ApplicationManager
             configuration.CertificateValidator = certificateValidator;
             configuration.SecurityConfiguration = securityConfiguration;
             //Check the certificate.
-            Console.WriteLine("Checking application certificate.");
+            Utils.Trace("Checking application certificate.");
             X509Certificate2 certificate = securityConfiguration.ApplicationCertificate.Find(true).Result;
             if (certificate == null)
             {
                 // create a new certificate.
-                Console.WriteLine("Creating a new certificate.");
+                Utils.Trace("Creating a new certificate.");
                 certificate = CreateApplicationInstanceCertificate(configuration).Result;
                 if (certificate == null)
                     throw new Exception("Cannot create certificate.");
@@ -181,8 +183,6 @@ namespace Iso.Opc.ApplicationManager
                     AddToTrustedStore(configuration, certificate).Wait();
                 }
             }
-            Console.WriteLine("Checking application transport trace configuration.");
-            configuration.TraceConfiguration = GetTraceConfiguration();
             return configuration;
         }
         private SecurityConfiguration GetSecurityConfiguration(string applicationName)
@@ -369,7 +369,7 @@ namespace Iso.Opc.ApplicationManager
         }
         private static DiscoveryServerConfiguration GetDiscoveryServerConfiguration(StringCollection discoveryUrls)
         {
-            Console.WriteLine("Checking discovery server configuration.");
+            Utils.Trace("Checking discovery server configuration.");
             DiscoveryServerConfiguration discoveryServerConfiguration = new DiscoveryServerConfiguration
             {
                 BaseAddresses = discoveryUrls,
@@ -460,18 +460,20 @@ namespace Iso.Opc.ApplicationManager
             };
             return transportQuotas;
         }
-        private static TraceConfiguration GetTraceConfiguration()
+        private static TraceConfiguration GetTraceConfiguration(string logName)
         {
             string traceLogsDirectory = AppDomain.CurrentDomain.BaseDirectory + "logs";
             if (!Directory.Exists(traceLogsDirectory))
                 Directory.CreateDirectory(traceLogsDirectory);
-            string traceLogFile = traceLogsDirectory + "\\server.log.txt";
+            string traceLogFile = traceLogsDirectory + $"\\{logName}.log.txt";
             if (!File.Exists(traceLogFile))
                 File.Create(traceLogFile).Close();
             TraceConfiguration traceConfiguration = new TraceConfiguration
             {
-                OutputFilePath = traceLogFile, DeleteOnLoad = true, TraceMasks = 515
+                OutputFilePath = traceLogFile, DeleteOnLoad = false, TraceMasks = 515
+                
             };
+            traceConfiguration.ApplySettings();
             return traceConfiguration;
         }
         private static string SelectServerUrl(IList<string> discoveryUrls)
@@ -756,21 +758,21 @@ namespace Iso.Opc.ApplicationManager
         private static ApplicationConfiguration CheckApplicationInstanceCertificate(ApplicationConfiguration applicationConfiguration,
             ushort minimumKeySize = CertificateFactory.defaultKeySize, ushort lifeTimeInMonths = CertificateFactory.defaultLifeTime)
         {
-            Console.WriteLine("Checking application instance certificate.");
+            Utils.Trace("Checking application instance certificate.");
             if (applicationConfiguration == null)
                 return null;
             //Find the existing certificate.
             CertificateIdentifier applicationCertificateIdentifier = applicationConfiguration.SecurityConfiguration.ApplicationCertificate;
             if (applicationCertificateIdentifier == null)
             {
-                Console.WriteLine("Configuration file does not specify a certificate.");
+                Utils.Trace("Configuration file does not specify a certificate.");
                 return null;
             }
             X509Certificate2 applicationX509Certificate = applicationCertificateIdentifier.Find(true).Result;
             //Check that it is ok.
             if (applicationX509Certificate != null)
             {
-                Console.WriteLine($"Checking application instance certificate. {applicationX509Certificate.Subject}");
+                Utils.Trace($"Checking application instance certificate. {applicationX509Certificate.Subject}");
                 try
                 {
                     //Validate certificate.
@@ -778,19 +780,19 @@ namespace Iso.Opc.ApplicationManager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error validating certificate. Exception: { ex.Message}. Use certificate anyway?");
+                    Utils.Trace($"Error validating certificate. Exception: { ex.Message}. Use certificate anyway?");
                     return null;
                 }
                 //Check key size.
                 if (minimumKeySize > applicationX509Certificate.GetRSAPublicKey().KeySize)
                 {
-                    Console.WriteLine($"The key size ({applicationX509Certificate.GetRSAPublicKey().KeySize}) in the certificate is less than the minimum provided ({minimumKeySize}). Use certificate anyway?");
+                    Utils.Trace($"The key size ({applicationX509Certificate.GetRSAPublicKey().KeySize}) in the certificate is less than the minimum provided ({minimumKeySize}). Use certificate anyway?");
                     return null;
                 }
                 //Check domains.
                 if (applicationConfiguration.ApplicationType != ApplicationType.Client)
                 {
-                    Console.WriteLine($"Checking domains in certificate. {applicationX509Certificate.Subject}");
+                    Utils.Trace($"Checking domains in certificate. {applicationX509Certificate.Subject}");
                     List<string> serverDomainNames = applicationConfiguration.GetServerDomainNames().Distinct().ToList();
                     List<string> certificateDomainNames = Utils.GetDomainsFromCertficate(applicationX509Certificate).Distinct().ToList();
                     string computerName = Utils.GetHostName();
@@ -813,7 +815,7 @@ namespace Iso.Opc.ApplicationManager
                             if (found)
                                 continue;
                         }
-                        Console.WriteLine($"The server is configured to use domain '{serverDomainNames[index]}' which does not appear in the certificate. Use certificate?");
+                        Utils.Trace($"The server is configured to use domain '{serverDomainNames[index]}' which does not appear in the certificate. Use certificate?");
                         break;
                     }
                 }
@@ -821,11 +823,11 @@ namespace Iso.Opc.ApplicationManager
                 string applicationUri = Utils.GetApplicationUriFromCertificate(applicationX509Certificate);
                 if (string.IsNullOrEmpty(applicationUri))
                 {
-                    Console.WriteLine("The Application URI could not be read from the certificate.");
+                    Utils.Trace("The Application URI could not be read from the certificate.");
                 }
                 else
                 {
-                    Console.WriteLine("The Application URI found in certificate.");
+                    Utils.Trace("The Application URI found in certificate.");
                     applicationConfiguration.ApplicationUri = applicationUri;
                 }
             }
@@ -835,7 +837,7 @@ namespace Iso.Opc.ApplicationManager
                 applicationX509Certificate = applicationCertificateIdentifier.Find(false).Result;
                 if (applicationX509Certificate != null)
                 {
-                    Console.WriteLine($"Cannot access certificate private key. Subject={applicationX509Certificate.Subject}");
+                    Utils.Trace($"Cannot access certificate private key. Subject={applicationX509Certificate.Subject}");
                 }
                 // check for missing thumbprint.
                 if (!string.IsNullOrEmpty(applicationCertificateIdentifier.Thumbprint))
@@ -852,14 +854,14 @@ namespace Iso.Opc.ApplicationManager
                     }
                     if (applicationX509Certificate != null)
                     {
-                        Console.WriteLine("Thumbprint was explicitly specified in the configuration." +
+                        Utils.Trace("Thumbprint was explicitly specified in the configuration." +
                                           "\r\nAnother certificate with the same subject name was found." +
                                           "\r\nUse it instead?\r\n" +
                                           $"\r\nRequested: {applicationCertificateIdentifier.SubjectName}" +
                                           $"\r\nFound: {applicationX509Certificate.Subject}");
                         return null;
                     }
-                    Console.WriteLine("Thumbprint was explicitly specified in the configuration. Cannot generate a new certificate.");
+                    Utils.Trace("Thumbprint was explicitly specified in the configuration. Cannot generate a new certificate.");
                     return null;
                 }
                 applicationX509Certificate = CreateApplicationInstanceCertificate(applicationConfiguration, minimumKeySize, lifeTimeInMonths).Result;
@@ -870,7 +872,7 @@ namespace Iso.Opc.ApplicationManager
                 applicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = applicationX509Certificate;
                 return applicationConfiguration;
             }
-            Console.WriteLine("There is no cert with subject in the configuration." + "\r\n Please generate a cert for your application");
+            Utils.Trace("There is no cert with subject in the configuration." + "\r\n Please generate a cert for your application");
             return null;
         }
         #endregion
@@ -886,7 +888,14 @@ namespace Iso.Opc.ApplicationManager
         {
             if (!GlobalDiscoveryServerClient.IsConnected)
                 return null;
-            List<ServerOnNetwork> servers = GlobalDiscoveryServerClient.QueryServers(0, "", "", "", new List<string>()).ToList();
+            uint maximumRecordsToReturn = 0;
+            string applicationName = "";
+            string applicationUri = "";
+            string productUri = "";
+            List<string> serverCapabilities = new List<string>();
+            List<ServerOnNetwork> servers = GlobalDiscoveryServerClient.QueryServers(
+                maximumRecordsToReturn, 
+                applicationName, applicationUri, productUri, serverCapabilities).ToList();
             return servers;
         }
         public bool ConnectToServer(string serverDiscoveryEndpoint, string username, string password)
@@ -923,29 +932,27 @@ namespace Iso.Opc.ApplicationManager
                     userIdentity,
                     new[] { "" }
                     ).Result;
-                if (Session.Connected)
+                if (!Session.Connected) 
+                    return false;
+                Session.KeepAlive += SessionKeepAlive;
+                FlatExtendedDataDescriptionDictionary = new Dictionary<string, ExtendedDataDescription>();
+                ExtendedDataDescriptionDictionary = new Dictionary<string, ExtendedDataDescription>();
+                List<ExtendedDataDescription> extendedDataDescriptions = GetRootExtendedDataDescriptions();
+                foreach (ExtendedDataDescription extendedDataDescription in extendedDataDescriptions)
                 {
-                    Session.KeepAlive += SessionKeepAlive;
-                    FlatExtendedDataDescriptionDictionary = new Dictionary<string, ExtendedDataDescription>();
-                    ExtendedDataDescriptionDictionary = new Dictionary<string, ExtendedDataDescription>();
-                    List<ExtendedDataDescription> extendedDataDescriptions = GetRootExtendedDataDescriptions();
-                    foreach (ExtendedDataDescription extendedDataDescription in extendedDataDescriptions)
-                    {
-                        if (ExtendedDataDescriptionDictionary.ContainsKey(extendedDataDescription.DataDescription
-                            .ReferenceDescription.BrowseName.Name))
-                            continue;
-                        ExtendedDataDescriptionDictionary[extendedDataDescription.DataDescription
-                            .ReferenceDescription.BrowseName.Name] = extendedDataDescription;
-                    }
-                    ComplexTypeSystem typeSystemLoader = new ComplexTypeSystem(Session);
-                    typeSystemLoader.Load();
-                    return true;
+                    if (ExtendedDataDescriptionDictionary.ContainsKey(extendedDataDescription.DataDescription
+                        .ReferenceDescription.BrowseName.Name))
+                        continue;
+                    ExtendedDataDescriptionDictionary[extendedDataDescription.DataDescription
+                        .ReferenceDescription.BrowseName.Name] = extendedDataDescription;
                 }
-                return false;
+                ComplexTypeSystem typeSystemLoader = new ComplexTypeSystem(Session);
+                typeSystemLoader.Load();
+                return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Connecting to GDS exception: {ex.StackTrace}");
+                Utils.Trace($"Connecting to GDS exception: {ex.StackTrace}");
                 return false;
             }
         }
@@ -1027,7 +1034,7 @@ namespace Iso.Opc.ApplicationManager
             if (parentDataDescription.ReferenceDescription.BrowseName.Name == "Server")
                 return null;
             string name = parentDataDescription.ReferenceDescription.BrowseName.Name;
-            Console.WriteLine(name);
+            Utils.Trace(name);
             //We need to iterate through the list
             foreach (ReferenceDescription referenceDescription in referenceDescriptions)
             {
@@ -1055,7 +1062,7 @@ namespace Iso.Opc.ApplicationManager
             if (!referenceDescriptions.Any())
                 return null;
             string name = parentDataDescription.ReferenceDescription.BrowseName.Name;
-            Console.WriteLine(name);
+            Utils.Trace(name);
             //We need to iterate through the list
             foreach (ReferenceDescription referenceDescription in referenceDescriptions)
             {
@@ -1228,7 +1235,7 @@ namespace Iso.Opc.ApplicationManager
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception: {ex.StackTrace} Status Code: {StatusCodes.BadUnexpectedError}");
+                Utils.Trace($"Exception: {ex.StackTrace} Status Code: {StatusCodes.BadUnexpectedError}");
             }
             return references;
         }
@@ -1477,7 +1484,7 @@ namespace Iso.Opc.ApplicationManager
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Monitored Item Notification exception: {e.StackTrace}");
+                Utils.Trace($"Monitored Item Notification exception: {e.StackTrace}");
                 return false;
             }
         }
@@ -1488,11 +1495,11 @@ namespace Iso.Opc.ApplicationManager
             {
                 if (!(e.NotificationValue is MonitoredItemNotification monitoredItemNotification))
                     return; 
-                Console.WriteLine($"Monitored value: {monitoredItemNotification.Value.WrappedValue.ToString()}");
+                Utils.Trace($"Monitored value: {monitoredItemNotification.Value.WrappedValue.ToString()}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Monitored Item Notification exception: {ex.StackTrace}");
+                Utils.Trace($"Monitored Item Notification exception: {ex.StackTrace}");
             }
         }
 
@@ -1531,7 +1538,7 @@ namespace Iso.Opc.ApplicationManager
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Connecting to GDS exception: {ex.StackTrace}");
+                Utils.Trace($"Connecting to GDS exception: {ex.StackTrace}");
                 return false;
             }
         }
@@ -1591,7 +1598,7 @@ namespace Iso.Opc.ApplicationManager
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Request new certificate pull mode exception: \r\n{ex.StackTrace}");
+                Utils.Trace($"Request new certificate pull mode exception: \r\n{ex.StackTrace}");
                 return false;
             }
             return true;
@@ -1673,7 +1680,7 @@ namespace Iso.Opc.ApplicationManager
                 return false;
             DeleteExistingCertificateFromStore(RegisteredApplication.TrustListStorePath, RegisteredApplication.CertificatePublicKeyPath, RegisteredApplication.CertificatePrivateKeyPath).Wait();
             DeleteExistingCertificateFromStore(RegisteredApplication.IssuerListStorePath, RegisteredApplication.CertificatePublicKeyPath, RegisteredApplication.CertificatePrivateKeyPath).Wait();
-            Console.WriteLine("The trust list (include CRLs) was deleted locally.");
+            Utils.Trace("The trust list (include CRLs) was deleted locally.");
             return GetAndMergeWithGlobalDiscoveryTrustedList();
         }
         public bool GetAndMergeWithGlobalDiscoveryTrustedList()
@@ -1736,7 +1743,7 @@ namespace Iso.Opc.ApplicationManager
                 }
             }
             ReloadRegisteredApplicationCertificateList();
-            Console.WriteLine("The trust list (include CRLs) was downloaded from the GDS and saved locally.");
+            Utils.Trace("The trust list (include CRLs) was downloaded from the GDS and saved locally.");
             return true;
         }
         public void ReloadRegisteredApplicationCertificateList()
@@ -1788,12 +1795,12 @@ namespace Iso.Opc.ApplicationManager
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Reconnect exception: {ex.StackTrace}");
+                Utils.Trace($"Reconnect exception: {ex.StackTrace}");
             }
         }
         private void CertificateValidatorCertificateValidation(CertificateValidator sender, CertificateValidationEventArgs e)
         {
-            Console.WriteLine($"Untrusted Certificate: {e.Certificate}");
+            Utils.Trace($"Untrusted Certificate: {e.Certificate}");
             try
             {
                 if (ApplicationInstance == null)
@@ -1804,10 +1811,10 @@ namespace Iso.Opc.ApplicationManager
                     e.Error.Code != StatusCodes.BadCertificateUntrusted)
                 {
                     if (e.Error != null)
-                        Console.WriteLine($"Certificate not accepted: {e.Certificate.Subject} \r\n {e.Error.Code}");
+                        Utils.Trace($"Certificate not accepted: {e.Certificate.Subject} \r\n {e.Error.Code}");
                     else
                     {
-                        Console.WriteLine($"Certificate not accepted: {e.Certificate.Subject}");
+                        Utils.Trace($"Certificate not accepted: {e.Certificate.Subject}");
                     }
                     return;
                 }
@@ -1815,23 +1822,23 @@ namespace Iso.Opc.ApplicationManager
                 if (ApplicationInstance.ApplicationConfiguration.SecurityConfiguration.AddAppCertToTrustedStore)
                 {
                     AddToTrustedStore(ApplicationInstance.ApplicationConfiguration, e.Certificate).Wait();
-                    Console.WriteLine($"Automatically accepted certificate and added to TrustStore: {e.Certificate.Subject}");
+                    Utils.Trace($"Automatically accepted certificate and added to TrustStore: {e.Certificate.Subject}");
                 }
                 else
                 {
-                    Console.WriteLine($"Automatically accepted certificate: {e.Certificate.Subject}");
+                    Utils.Trace($"Automatically accepted certificate: {e.Certificate.Subject}");
                 }
             }
             catch(Exception ex)
             {
-                Console.WriteLine($"Error accepting certificate.\r\nException:\r\n{ex.StackTrace}");
+                Utils.Trace($"Error accepting certificate.\r\nException:\r\n{ex.StackTrace}");
             }
         }
         private static void MonitoredItemStatusNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
         {
             MonitoredItemNotification notification = (MonitoredItemNotification)e.NotificationValue;
             ServerStatusDataType serverStatusDataType = notification.Value.GetValue<ServerStatusDataType>(null);
-            Console.WriteLine($"GDS ServerStatusDataType: {serverStatusDataType}");
+            Utils.Trace($"GDS ServerStatusDataType: {serverStatusDataType}");
         }
         private void SessionKeepAlive(Session session, KeepAliveEventArgs e)
         {
@@ -1843,7 +1850,7 @@ namespace Iso.Opc.ApplicationManager
                 // start reconnect sequence on communication error.
                 if (ServiceResult.IsBad(e.Status))
                 {
-                    Console.WriteLine($"{e.CurrentTime} Reconnecting in: {ReconnectPeriod}");
+                    Utils.Trace($"{e.CurrentTime} Reconnecting in: {ReconnectPeriod}");
                     if (SessionReconnectHandler != null) 
                         return;
                     ReconnectStartingHandler?.Invoke(this, e);
@@ -1852,15 +1859,15 @@ namespace Iso.Opc.ApplicationManager
                     return;
                 }
                 // update status.
-                Console.WriteLine($"{e.CurrentTime} Connected: {session.Endpoint.EndpointUrl}");
+                Utils.Trace($"{e.CurrentTime} Connected: {session.Endpoint.EndpointUrl}");
                 // raise any additional notifications.
                 KeepAliveCompleteHandler?.Invoke(this, e);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Keep Alive exception: {ex.StackTrace}");
+                Utils.Trace($"Keep Alive exception: {ex.StackTrace}");
             }
-            Console.WriteLine($"Session endpoint:{session.ConfiguredEndpoint} - Session Status: {e.Status}");
+            Utils.Trace($"Session endpoint:{session.ConfiguredEndpoint} - Session Status: {e.Status}");
         }
         #endregion
     }
