@@ -14,11 +14,9 @@ using Opc.Ua.Gds;
 using Opc.Ua.Gds.Client;
 using Opc.Ua.Security;
 using ApplicationType = Opc.Ua.ApplicationType;
-using BrowseNames = Opc.Ua.BrowseNames;
 using CertificateIdentifier = Opc.Ua.CertificateIdentifier;
 using ObjectIds = Opc.Ua.ObjectIds;
 using ObjectTypeIds = Opc.Ua.ObjectTypeIds;
-using ObjectTypes = Opc.Ua.ObjectTypes;
 
 namespace Iso.Opc.ApplicationManager
 {
@@ -45,7 +43,6 @@ namespace Iso.Opc.ApplicationManager
         public RegisteredApplication RegisteredApplication { get; set; }
         public Session Session { get; set; }
         public EndpointDescription SessionEndpointDescription { get; set; }
-        public Dictionary<string, ExtendedDataDescription> ExtendedDataDescriptionDictionary { get; set; }
         public Dictionary<string, ExtendedDataDescription> FlatExtendedDataDescriptionDictionary { get; set; }
         public bool AutomaticallyAddAppCertToTrustStore { get; set; }
         public Subscription Subscription { get; set; }
@@ -480,25 +477,12 @@ namespace Iso.Opc.ApplicationManager
         {
             if (discoveryUrls == null || discoveryUrls.Count == 0)
                 return null;
-            string url = null;
+            string url = discoveryUrls.FirstOrDefault(discoveryUrl => discoveryUrl.StartsWith("opc.tcp://", StringComparison.Ordinal));
             // always use opc.tcp by default.
-            foreach (string discoveryUrl in discoveryUrls)
-            {
-                if (!discoveryUrl.StartsWith("opc.tcp://", StringComparison.Ordinal))
-                    continue;
-                url = discoveryUrl;
-                break;
-            }
             // try HTTPS if no opc.tcp.
             if (url != null) 
-                return url ?? discoveryUrls[0];
-            foreach (string discoveryUrl in discoveryUrls)
-            {
-                if (!discoveryUrl.StartsWith("https://", StringComparison.Ordinal))
-                    continue;
-                url = discoveryUrl;
-                break;
-            }
+                return url;
+            url = discoveryUrls.FirstOrDefault(discoveryUrl => discoveryUrl.StartsWith("https://", StringComparison.Ordinal));
             // use the first URL if nothing else.
             return url ?? discoveryUrls[0];
         }
@@ -533,6 +517,146 @@ namespace Iso.Opc.ApplicationManager
                 return null;
             applicationRecordDataType.ApplicationId = applicationId;
             return applicationRecordDataType;
+        }
+        private static bool ContainsPath(SimpleAttributeOperandCollection selectClause, QualifiedNameCollection browsePath)
+        {
+            for (int ii = 0; ii < selectClause.Count; ii++)
+            {
+                SimpleAttributeOperand field = selectClause[ii];
+
+                if (field.BrowsePath.Count != browsePath.Count)
+                {
+                    continue;
+                }
+
+                bool match = true;
+
+                for (int jj = 0; jj < field.BrowsePath.Count; jj++)
+                {
+                    if (field.BrowsePath[jj] != browsePath[jj])
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        private void CollectFields(NodeId eventTypeId, SimpleAttributeOperandCollection eventFields)
+        {
+            // get the supertypes.
+            ReferenceDescriptionCollection supertypes = new ReferenceDescriptionCollection();
+            // find all of the children of the field.
+            BrowseDescription nodeToBrowse = new BrowseDescription
+            {
+                NodeId = eventTypeId,
+                BrowseDirection = BrowseDirection.Inverse,
+                ReferenceTypeId = ReferenceTypeIds.HasSubtype,
+                IncludeSubtypes = false,
+                NodeClassMask = 0,
+                ResultMask = (uint) BrowseResultMask.All
+            };
+            // more efficient to use IncludeSubtypes=False when possible.
+            // the HasSubtype reference already restricts the targets to Types. 
+            ReferenceDescriptionCollection references = Browse(nodeToBrowse);
+            while (references != null && references.Count > 0)
+            {
+                // should never be more than one super type.
+                supertypes.Add(references[0]);
+                // only follow references within this server.
+                if (references[0].NodeId.IsAbsolute)
+                    break;
+                // get the references for the next level up.
+                nodeToBrowse.NodeId = (NodeId)references[0].NodeId;
+                references = Browse(nodeToBrowse);
+            }
+            // process the types starting from the top of the tree.
+            Dictionary<NodeId, QualifiedNameCollection> foundNodes = new Dictionary<NodeId, QualifiedNameCollection>();
+            QualifiedNameCollection parentPath = new QualifiedNameCollection();
+            for (int ii = supertypes.Count - 1; ii >= 0; ii--)
+            {
+                CollectFields((NodeId)supertypes[ii].NodeId, parentPath, eventFields, foundNodes);
+            }
+            // collect the fields for the selected type.
+            CollectFields(eventTypeId, parentPath, eventFields, foundNodes);
+        }
+        private void CollectFields(
+            NodeId nodeId,
+            QualifiedNameCollection parentPath,
+            SimpleAttributeOperandCollection eventFields,
+            IDictionary<NodeId, QualifiedNameCollection> foundNodes)
+        {
+            // find all of the children of the field.
+            BrowseDescription nodeToBrowse = new BrowseDescription
+            {
+                NodeId = nodeId,
+                BrowseDirection = BrowseDirection.Forward,
+                ReferenceTypeId = ReferenceTypeIds.Aggregates,
+                IncludeSubtypes = true,
+                NodeClassMask = (uint) (NodeClass.Object | NodeClass.Variable),
+                ResultMask = (uint) BrowseResultMask.All
+            };
+            ReferenceDescriptionCollection children = Browse(nodeToBrowse);
+            if (children == null)
+                return; 
+            // process the children.
+            foreach (ReferenceDescription child in children)
+            {
+                if (child.NodeId.IsAbsolute)
+                    continue;
+                // construct browse path.
+                QualifiedNameCollection browsePath = new QualifiedNameCollection(parentPath) {child.BrowseName};
+                // check if the browse path is already in the list.
+                if (!ContainsPath(eventFields, browsePath))
+                {
+                    SimpleAttributeOperand field = new SimpleAttributeOperand
+                    {
+                        TypeDefinitionId = ObjectTypeIds.BaseEventType,
+                        BrowsePath = browsePath,
+                        AttributeId = child.NodeClass == NodeClass.Variable ? Attributes.Value : Attributes.NodeId
+                    };
+                    eventFields.Add(field);
+                }
+                // recursively find all of the children.
+                NodeId targetId = (NodeId)child.NodeId;
+                // need to guard against loops.
+                if (foundNodes.ContainsKey(targetId)) 
+                    continue;
+                foundNodes.Add(targetId, browsePath);
+                CollectFields((NodeId)child.NodeId, browsePath, eventFields, foundNodes);
+            }
+        }
+        private static void MonitoredItemNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
+        {
+            try
+            {
+                if (!(e.NotificationValue is MonitoredItemNotification monitoredItemNotification))
+                    return;
+                Utils.Trace($"Monitored value: {monitoredItemNotification.Value.WrappedValue.ToString()}");
+            }
+            catch (Exception ex)
+            {
+                Utils.Trace($"Monitored Item Notification exception: {ex.StackTrace}");
+            }
+        }
+        private void AddToFlatExtendedDataDescriptionDictionary(ExtendedDataDescription extendedDataDescription)
+        {
+            if (!FlatExtendedDataDescriptionDictionary.ContainsKey(extendedDataDescription.DataDescription.ReferenceDescription.BrowseName
+                .Name))
+            {
+                FlatExtendedDataDescriptionDictionary[extendedDataDescription.DataDescription.ReferenceDescription.BrowseName.Name] = extendedDataDescription;
+            }
+            else if (!FlatExtendedDataDescriptionDictionary.ContainsKey(extendedDataDescription.DataDescription.ReferenceDescription.NodeId
+                .Identifier.ToString()))
+            {
+                FlatExtendedDataDescriptionDictionary[extendedDataDescription.DataDescription.ReferenceDescription.NodeId.Identifier.ToString()] = extendedDataDescription;
+            }
         }
         #region Certificate Helper
         private void CertificateRequestChecker()
@@ -619,10 +743,7 @@ namespace Iso.Opc.ApplicationManager
             }
             catch (Exception exception)
             {
-                if (exception is ServiceResultException sre && sre.StatusCode == StatusCodes.BadNothingToDo)
-                {
-                    return;
-                }
+                Utils.Trace($"CertificateRequestChecker exception {exception.StackTrace}");
             }
         }
         private static async Task DeleteApplicationInstanceCertificate(ApplicationConfiguration applicationConfiguration)
@@ -698,13 +819,13 @@ namespace Iso.Opc.ApplicationManager
                 List<string> subjectName = Utils.ParseDistinguishedName(certificate.Subject);
                 // check for old certificate.
                 X509Certificate2Collection certificates = await store.Enumerate();
-                for (int index = 0; index < certificates.Count; index++)
+                foreach (X509Certificate2 x509Certificate2 in certificates)
                 {
-                    if (!Utils.CompareDistinguishedName(certificates[index], subjectName))
+                    if (!Utils.CompareDistinguishedName(x509Certificate2, subjectName))
                         continue;
-                    if (certificates[index].Thumbprint == certificate.Thumbprint)
+                    if (x509Certificate2.Thumbprint == certificate.Thumbprint)
                         return;
-                    await store.Delete(certificates[index].Thumbprint);
+                    await store.Delete(x509Certificate2.Thumbprint);
                     break;
                 }
                 // add new certificate.
@@ -798,11 +919,11 @@ namespace Iso.Opc.ApplicationManager
                     string computerName = Utils.GetHostName();
                     //Get IP addresses.
                     IPAddress[] addresses = null;
-                    for (int index = 0; index < serverDomainNames.Count; index++)
+                    foreach (string serverDomainName in serverDomainNames)
                     {
-                        if (Utils.FindStringIgnoreCase(certificateDomainNames, serverDomainNames[index]))
+                        if (Utils.FindStringIgnoreCase(certificateDomainNames, serverDomainName))
                             continue;
-                        if (string.Compare(serverDomainNames[index], "localhost", StringComparison.OrdinalIgnoreCase) == 0)
+                        if (string.Compare(serverDomainName, "localhost", StringComparison.OrdinalIgnoreCase) == 0)
                         {
                             if (Utils.FindStringIgnoreCase(certificateDomainNames, computerName))
                                 continue;
@@ -815,7 +936,7 @@ namespace Iso.Opc.ApplicationManager
                             if (found)
                                 continue;
                         }
-                        Utils.Trace($"The server is configured to use domain '{serverDomainNames[index]}' which does not appear in the certificate. Use certificate?");
+                        Utils.Trace($"The server is configured to use domain '{serverDomainName}' which does not appear in the certificate. Use certificate?");
                         break;
                     }
                 }
@@ -879,11 +1000,6 @@ namespace Iso.Opc.ApplicationManager
         #endregion
 
         #region Public Methods
-        /// <summary>
-        /// The QueryServers Method is similar to the FindServers service except that it
-        /// provides more advanced search and filter criteria
-        /// </summary>
-        /// <returns>returns list of Server On Network</returns>
         public List<ServerOnNetwork> QueryServers()
         {
             if (!GlobalDiscoveryServerClient.IsConnected)
@@ -903,7 +1019,7 @@ namespace Iso.Opc.ApplicationManager
             try
             {
                 Session?.Close();
-                IUserIdentity userIdentity = null;
+                IUserIdentity userIdentity = null; //UserTokenType.Anonymous as default
                 //create end point configuration using application instance transport quotas
                 EndpointConfiguration endpointConfiguration = EndpointConfiguration.Create(ApplicationInstance.ApplicationConfiguration);
                 //connects to the end point and get the best available available configurations including URL scheme
@@ -917,10 +1033,6 @@ namespace Iso.Opc.ApplicationManager
                     !string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(username))
                 {
                     userIdentity = new UserIdentity(username, password);
-                }
-                else if (SessionEndpointDescription.FindUserTokenPolicy(UserTokenType.Anonymous, (string)null) != null)
-                {
-                    userIdentity = null;
                 }
                 ConfiguredEndpoint configuredEndpoint = new ConfiguredEndpoint(null, SessionEndpointDescription, endpointConfiguration);               
                 Session = Session.Create(
@@ -936,16 +1048,6 @@ namespace Iso.Opc.ApplicationManager
                     return false;
                 Session.KeepAlive += SessionKeepAlive;
                 FlatExtendedDataDescriptionDictionary = new Dictionary<string, ExtendedDataDescription>();
-                ExtendedDataDescriptionDictionary = new Dictionary<string, ExtendedDataDescription>();
-                List<ExtendedDataDescription> extendedDataDescriptions = GetRootExtendedDataDescriptions();
-                foreach (ExtendedDataDescription extendedDataDescription in extendedDataDescriptions)
-                {
-                    if (ExtendedDataDescriptionDictionary.ContainsKey(extendedDataDescription.DataDescription
-                        .ReferenceDescription.BrowseName.Name))
-                        continue;
-                    ExtendedDataDescriptionDictionary[extendedDataDescription.DataDescription
-                        .ReferenceDescription.BrowseName.Name] = extendedDataDescription;
-                }
                 ComplexTypeSystem typeSystemLoader = new ComplexTypeSystem(Session);
                 typeSystemLoader.Load();
                 return true;
@@ -1027,14 +1129,10 @@ namespace Iso.Opc.ApplicationManager
         }
         public List<DataDescription> GetVariablesDataDescriptions(DataDescription parentDataDescription)
         {
-            List<DataDescription> dataDescriptions = new List<DataDescription>();
             List<ReferenceDescription> referenceDescriptions = BrowseReferenceDescription(parentDataDescription.ReferenceDescription);
             if (!referenceDescriptions.Any())
                 return null;
-            if (parentDataDescription.ReferenceDescription.BrowseName.Name == "Server")
-                return null;
-            string name = parentDataDescription.ReferenceDescription.BrowseName.Name;
-            Utils.Trace(name);
+            List<DataDescription> dataDescriptions = new List<DataDescription>();
             //We need to iterate through the list
             foreach (ReferenceDescription referenceDescription in referenceDescriptions)
             {
@@ -1045,13 +1143,12 @@ namespace Iso.Opc.ApplicationManager
                     AttributeData = ReadAttributes(referenceDescription),
                     ReferenceDescription = referenceDescription
                 };
-                dataDescriptions.Add(dataDescription);
                 ExtendedDataDescription variableDataDescription = new ExtendedDataDescription
                 {
                     DataDescription = dataDescription
                 };
-                if (!FlatExtendedDataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
-                    FlatExtendedDataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = variableDataDescription;
+                dataDescriptions.Add(dataDescription);
+                AddToFlatExtendedDataDescriptionDictionary(variableDataDescription);
             }
             return dataDescriptions;
         }
@@ -1061,8 +1158,6 @@ namespace Iso.Opc.ApplicationManager
             List<ReferenceDescription> referenceDescriptions = BrowseReferenceDescription(parentDataDescription.ReferenceDescription);
             if (!referenceDescriptions.Any())
                 return null;
-            string name = parentDataDescription.ReferenceDescription.BrowseName.Name;
-            Utils.Trace(name);
             //We need to iterate through the list
             foreach (ReferenceDescription referenceDescription in referenceDescriptions)
             {
@@ -1079,19 +1174,16 @@ namespace Iso.Opc.ApplicationManager
                     VariableDataDescriptions = GetVariablesDataDescriptions(dataDescription)
                 };
                 extendedDataDescriptions.Add(methodDataDescription);
-                if (!FlatExtendedDataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
-                    FlatExtendedDataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = methodDataDescription;
+                AddToFlatExtendedDataDescriptionDictionary(methodDataDescription);
             }
             return extendedDataDescriptions;
         }
         public List<ExtendedDataDescription> GetObjectExtendedDataDescription(DataDescription parentDataDescription)
         {
-            List<ExtendedDataDescription> extendedDataDescriptions = new List<ExtendedDataDescription>();
             List<ReferenceDescription> referenceDescriptions = BrowseReferenceDescription(parentDataDescription.ReferenceDescription);
             if (!referenceDescriptions.Any())
                 return null;
-            if (parentDataDescription.ReferenceDescription.BrowseName.Name == "Server")
-                return null;
+            List<ExtendedDataDescription> extendedDataDescriptions = new List<ExtendedDataDescription>();
             //We need to iterate through the list
             foreach (ReferenceDescription referenceDescription in referenceDescriptions)
             {
@@ -1107,11 +1199,10 @@ namespace Iso.Opc.ApplicationManager
                     DataDescription = dataDescription,
                     VariableDataDescriptions = GetVariablesDataDescriptions(dataDescription),
                     MethodDataDescriptions = GetMethodsExtendedDescriptions(dataDescription),
-                    //ObjectDataDescriptions = GetObjectExtendedDataDescription(dataDescription)
+                    ObjectDataDescriptions = GetObjectExtendedDataDescription(dataDescription)
                 };
                 extendedDataDescriptions.Add(objectDataDescription);
-                if (!FlatExtendedDataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
-                    FlatExtendedDataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = objectDataDescription;
+                AddToFlatExtendedDataDescriptionDictionary(objectDataDescription);
             }
             return extendedDataDescriptions;
         }
@@ -1180,7 +1271,6 @@ namespace Iso.Opc.ApplicationManager
             attributeData.Initialise(results);
             return attributeData;
         }
-
         public ReferenceDescriptionCollection Browse(BrowseDescription nodeToBrowse)
         {
             ReferenceDescriptionCollection references = new ReferenceDescriptionCollection();
@@ -1239,155 +1329,50 @@ namespace Iso.Opc.ApplicationManager
             }
             return references;
         }
-
-        
-        private bool ContainsPath(SimpleAttributeOperandCollection selectClause, QualifiedNameCollection browsePath)
-        {
-            for (int ii = 0; ii < selectClause.Count; ii++)
-            {
-                SimpleAttributeOperand field = selectClause[ii];
-
-                if (field.BrowsePath.Count != browsePath.Count)
-                {
-                    continue;
-                }
-
-                bool match = true;
-
-                for (int jj = 0; jj < field.BrowsePath.Count; jj++)
-                {
-                    if (field.BrowsePath[jj] != browsePath[jj])
-                    {
-                        match = false;
-                        break;
-                    }
-                }
-
-                if (match)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-        private void CollectFields(NodeId eventTypeId, SimpleAttributeOperandCollection eventFields)
-        {
-            // get the supertypes.
-            ReferenceDescriptionCollection supertypes = new ReferenceDescriptionCollection();
-            // find all of the children of the field.
-            BrowseDescription nodeToBrowse = new BrowseDescription();
-            nodeToBrowse.NodeId = eventTypeId;
-            nodeToBrowse.BrowseDirection = BrowseDirection.Inverse;
-            nodeToBrowse.ReferenceTypeId = ReferenceTypeIds.HasSubtype;
-            nodeToBrowse.IncludeSubtypes = false; // more efficient to use IncludeSubtypes=False when possible.
-            nodeToBrowse.NodeClassMask = 0; // the HasSubtype reference already restricts the targets to Types. 
-            nodeToBrowse.ResultMask = (uint)BrowseResultMask.All;
-
-            ReferenceDescriptionCollection references = Browse(nodeToBrowse);
-            while (references != null && references.Count > 0)
-            {
-                // should never be more than one supertype.
-                supertypes.Add(references[0]);
-                // only follow references within this server.
-                if (references[0].NodeId.IsAbsolute)
-                {
-                    break;
-                }
-                // get the references for the next level up.
-                nodeToBrowse.NodeId = (NodeId)references[0].NodeId;
-                references = Browse(nodeToBrowse);
-            }
-            if (supertypes == null)
-            {
-                return;
-            }
-
-            // process the types starting from the top of the tree.
-            Dictionary<NodeId, QualifiedNameCollection> foundNodes = new Dictionary<NodeId, QualifiedNameCollection>();
-            QualifiedNameCollection parentPath = new QualifiedNameCollection();
-
-            for (int ii = supertypes.Count - 1; ii >= 0; ii--)
-            {
-                CollectFields((NodeId)supertypes[ii].NodeId, parentPath, eventFields, foundNodes);
-            }
-
-            // collect the fields for the selected type.
-            CollectFields(eventTypeId, parentPath, eventFields, foundNodes);
-        }
-        /// <summary>
-        /// Collects the fields for the instance node.
-        /// </summary>
-        /// <param name="session">The session.</param>
-        /// <param name="nodeId">The node id.</param>
-        /// <param name="parentPath">The parent path.</param>
-        /// <param name="eventFields">The event fields.</param>
-        /// <param name="foundNodes">The table of found nodes.</param>
-        private void CollectFields(
-            NodeId nodeId,
-            QualifiedNameCollection parentPath,
-            SimpleAttributeOperandCollection eventFields,
-            Dictionary<NodeId, QualifiedNameCollection> foundNodes)
-        {
-            // find all of the children of the field.
-            BrowseDescription nodeToBrowse = new BrowseDescription();
-
-            nodeToBrowse.NodeId = nodeId;
-            nodeToBrowse.BrowseDirection = BrowseDirection.Forward;
-            nodeToBrowse.ReferenceTypeId = ReferenceTypeIds.Aggregates;
-            nodeToBrowse.IncludeSubtypes = true;
-            nodeToBrowse.NodeClassMask = (uint)(NodeClass.Object | NodeClass.Variable);
-            nodeToBrowse.ResultMask = (uint)BrowseResultMask.All;
-
-            ReferenceDescriptionCollection children = Browse(nodeToBrowse);
-
-            if (children == null)
-            {
-                return;
-            }
-
-            // process the children.
-            for (int ii = 0; ii < children.Count; ii++)
-            {
-                ReferenceDescription child = children[ii];
-
-                if (child.NodeId.IsAbsolute)
-                {
-                    continue;
-                }
-
-                // construct browse path.
-                QualifiedNameCollection browsePath = new QualifiedNameCollection(parentPath);
-                browsePath.Add(child.BrowseName);
-
-                // check if the browse path is already in the list.
-                if (!ContainsPath(eventFields, browsePath))
-                {
-                    SimpleAttributeOperand field = new SimpleAttributeOperand();
-
-                    field.TypeDefinitionId = ObjectTypeIds.BaseEventType;
-                    field.BrowsePath = browsePath;
-                    field.AttributeId = (child.NodeClass == NodeClass.Variable) ? Attributes.Value : Attributes.NodeId;
-
-                    eventFields.Add(field);
-                }
-
-                // recusively find all of the children.
-                NodeId targetId = (NodeId)child.NodeId;
-
-                // need to guard against loops.
-                if (!foundNodes.ContainsKey(targetId))
-                {
-                    foundNodes.Add(targetId, browsePath);
-                    CollectFields((NodeId)child.NodeId, browsePath, eventFields, foundNodes);
-                }
-            }
-        }
         public bool SubscribeToNode(NodeId nodeId, MonitoredItemNotificationEventHandler callback=null, int publishingInterval = 1000)
         {
             try
             { 
                 if (Session == null) 
+                    return false;
+                if (Subscription == null)
+                {
+                    Subscription = new Subscription
+                    {
+                        PublishingEnabled = true,
+                        PublishingInterval = publishingInterval,
+                        Priority = 1,
+                        KeepAliveCount = 10,
+                        LifetimeCount = 20,
+                        MaxNotificationsPerPublish = 1000,
+                        TimestampsToReturn = TimestampsToReturn.Both
+                    };
+                    Session.AddSubscription(Subscription);
+                    Subscription.Create();
+                }
+                if (callback == null)
+                    callback = MonitoredItemNotification;
+                MonitoredItem monitoredItem = new MonitoredItem
+                {
+                    StartNodeId = nodeId, 
+                    AttributeId = Attributes.Value
+                };
+                monitoredItem.Notification += callback;
+                Subscription.AddItem(monitoredItem);
+                Subscription.ApplyChanges();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Utils.Trace($"Monitored Item Notification exception: {e.StackTrace}");
+                return false;
+            }
+        }
+        public bool SubscribeToEvents(NodeId nodeId, MonitoredItemNotificationEventHandler callback = null, int publishingInterval = 1000)
+        {
+            try
+            {
+                if (Session == null)
                     return false;
                 if (Subscription == null)
                 {
@@ -1488,32 +1473,6 @@ namespace Iso.Opc.ApplicationManager
                 return false;
             }
         }
-
-        private static void MonitoredItemNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
-        {
-            try
-            {
-                if (!(e.NotificationValue is MonitoredItemNotification monitoredItemNotification))
-                    return; 
-                Utils.Trace($"Monitored value: {monitoredItemNotification.Value.WrappedValue.ToString()}");
-            }
-            catch (Exception ex)
-            {
-                Utils.Trace($"Monitored Item Notification exception: {ex.StackTrace}");
-            }
-        }
-
-        /// <summary>
-        /// Create a session with the GDS.
-        /// GlobalDiscoveryServerClient class has encapsulated/wrapped the GDS call services
-        /// A GDS is an OPC UA Server which allows Clients to search for Servers in the administrative domain.
-        /// It may also provide Certificate Services
-        /// It provides Methods that allow applications to search for other applications
-        /// </summary>
-        /// <param name="globalDiscoveryServerEndpoint"></param>
-        /// <param name="username">username to identify user</param>
-        /// <param name="password">user password</param>
-        /// <returns>True if connection is successful</returns>
         public bool ConnectToGlobalDiscoveryServer(string globalDiscoveryServerEndpoint, string username, string password)
         {
             try
@@ -1531,7 +1490,7 @@ namespace Iso.Opc.ApplicationManager
                 GlobalDiscoveryServerClient = new GlobalDiscoveryServerClient(ApplicationInstance, globalDiscoveryServerEndpoint, userIdentity);
                 GlobalDiscoveryServerClient.PreferredLocales = new[] { "" };
                 GlobalDiscoveryServerClient.KeepAlive += SessionKeepAlive;
-                GlobalDiscoveryServerClient.ServerStatusChanged += MonitoredItemStatusNotification;
+                GlobalDiscoveryServerClient.ServerStatusChanged += ServerStatusChanged;
                 //connect to the GDS
                 GlobalDiscoveryServerClient.Connect(configuredEndpoint).Wait();
                 return true;
@@ -1834,7 +1793,7 @@ namespace Iso.Opc.ApplicationManager
                 Utils.Trace($"Error accepting certificate.\r\nException:\r\n{ex.StackTrace}");
             }
         }
-        private static void MonitoredItemStatusNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
+        private static void ServerStatusChanged(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
         {
             MonitoredItemNotification notification = (MonitoredItemNotification)e.NotificationValue;
             ServerStatusDataType serverStatusDataType = notification.Value.GetValue<ServerStatusDataType>(null);
@@ -1858,8 +1817,6 @@ namespace Iso.Opc.ApplicationManager
                     SessionReconnectHandler.BeginReconnect(Session, ReconnectPeriod * 1000, ReconnectComplete);
                     return;
                 }
-                // update status.
-                Utils.Trace($"{e.CurrentTime} Connected: {session.Endpoint.EndpointUrl}");
                 // raise any additional notifications.
                 KeepAliveCompleteHandler?.Invoke(this, e);
             }
@@ -1867,7 +1824,6 @@ namespace Iso.Opc.ApplicationManager
             {
                 Utils.Trace($"Keep Alive exception: {ex.StackTrace}");
             }
-            Utils.Trace($"Session endpoint:{session.ConfiguredEndpoint} - Session Status: {e.Status}");
         }
         #endregion
     }

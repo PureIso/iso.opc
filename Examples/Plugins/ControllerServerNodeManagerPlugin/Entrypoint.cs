@@ -17,7 +17,6 @@ namespace ControllerServerNodeManagerPlugin
         #region Fields
         private readonly object _processLock = new object();
         private uint _state;
-        private Dictionary<string, AlarmConditionState>  m_alarms = new Dictionary<string, AlarmConditionState>();
         private uint _finalState;
         private Timer _processTimer;
         private PropertyState<uint> _stateNode;
@@ -87,11 +86,7 @@ namespace ControllerServerNodeManagerPlugin
                 DataType = DataTypeIds.Argument,
                 ValueRank = ValueRanks.OneDimension,
                 OnReadUserAccessLevel = OnReadUserAccessLevel,
-                OnSimpleWriteValue = OnWriteValue,
-                OnReportEvent = (context, node, target) =>
-                {
-                    Utils.Trace("ssssssssss");
-                },
+                OnSimpleWriteValue = OnWriteValue
             };
 
             Argument[] inputArguments = new Argument[2];
@@ -197,18 +192,10 @@ namespace ControllerServerNodeManagerPlugin
                 _stateNode.Value = _state;
                 _stateNode.ClearChangeMasks(ApplicationNodeManager.SystemContext, true);
             }
-
-            //BaseEventState stopMonitoringEvent = new BaseEventState(method);
-            //BaseEventState onStartBaseEvent = new BaseEventState(method);
             TranslationInfo info = new TranslationInfo(
                 "OnStart",
                 "en-US",
                 "The Confirm method was called.");
-            //onStartBaseEvent.Initialize(context,method,EventSeverity.High,new LocalizedText(info));
-            //bool valid = onStartBaseEvent.Validate(context);
-            //// Report the event at Server level
-            //ApplicationNodeManager.Server.ReportEvent(onStartBaseEvent);
-
             AuditUpdateMethodEventState auditUpdateMethodEventState = new AuditUpdateMethodEventState(method);
             auditUpdateMethodEventState.Initialize(
                 context,

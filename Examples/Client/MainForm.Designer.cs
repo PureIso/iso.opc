@@ -75,6 +75,7 @@
             this.outputGroupBox = new System.Windows.Forms.GroupBox();
             this.monitorGroupBox = new System.Windows.Forms.GroupBox();
             this.monitoredVariablePanel = new System.Windows.Forms.Panel();
+            this.panel1 = new System.Windows.Forms.Panel();
             this.groupBox1.SuspendLayout();
             this.referenceGroupBox.SuspendLayout();
             this.serverConnectContextMenuStrip.SuspendLayout();
@@ -84,6 +85,7 @@
             this.inputGroupBox.SuspendLayout();
             this.outputGroupBox.SuspendLayout();
             this.monitorGroupBox.SuspendLayout();
+            this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // connectButton
@@ -351,7 +353,7 @@
             // referenceGroupBox
             // 
             this.referenceGroupBox.Controls.Add(this.objectTreeView);
-            this.referenceGroupBox.Location = new System.Drawing.Point(12, 448);
+            this.referenceGroupBox.Location = new System.Drawing.Point(8, 5);
             this.referenceGroupBox.Margin = new System.Windows.Forms.Padding(3, 5, 3, 5);
             this.referenceGroupBox.Name = "referenceGroupBox";
             this.referenceGroupBox.Padding = new System.Windows.Forms.Padding(3, 5, 3, 5);
@@ -363,7 +365,7 @@
             // objectTreeView
             // 
             this.objectTreeView.Enabled = false;
-            this.objectTreeView.Location = new System.Drawing.Point(14, 28);
+            this.objectTreeView.Location = new System.Drawing.Point(0, 23);
             this.objectTreeView.Name = "objectTreeView";
             this.objectTreeView.Size = new System.Drawing.Size(320, 358);
             this.objectTreeView.TabIndex = 2;
@@ -384,9 +386,9 @@
             // 
             // inputArgumentsPanel
             // 
-            this.inputArgumentsPanel.Location = new System.Drawing.Point(8, 23);
+            this.inputArgumentsPanel.Location = new System.Drawing.Point(11, 27);
             this.inputArgumentsPanel.Name = "inputArgumentsPanel";
-            this.inputArgumentsPanel.Size = new System.Drawing.Size(465, 322);
+            this.inputArgumentsPanel.Size = new System.Drawing.Size(465, 311);
             this.inputArgumentsPanel.TabIndex = 3;
             // 
             // discoveredServersListView
@@ -427,15 +429,13 @@
             // 
             // attributeGroupBox
             // 
-            this.attributeGroupBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.attributeGroupBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.attributeGroupBox.Controls.Add(this.attributesListView);
             this.attributeGroupBox.Location = new System.Drawing.Point(1329, 37);
             this.attributeGroupBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.attributeGroupBox.Name = "attributeGroupBox";
             this.attributeGroupBox.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.attributeGroupBox.Size = new System.Drawing.Size(639, 829);
+            this.attributeGroupBox.Size = new System.Drawing.Size(497, 803);
             this.attributeGroupBox.TabIndex = 6;
             this.attributeGroupBox.TabStop = false;
             this.attributeGroupBox.Text = "Attributes";
@@ -443,19 +443,17 @@
             // attributesListView
             // 
             this.attributesListView.Alignment = System.Windows.Forms.ListViewAlignment.SnapToGrid;
-            this.attributesListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
             this.attributesListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.attributeColumnHeader,
             this.valueColumnHeader});
+            this.attributesListView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.attributesListView.FullRowSelect = true;
             this.attributesListView.GridLines = true;
             this.attributesListView.HideSelection = false;
-            this.attributesListView.Location = new System.Drawing.Point(8, 28);
+            this.attributesListView.Location = new System.Drawing.Point(4, 24);
             this.attributesListView.Margin = new System.Windows.Forms.Padding(3, 5, 3, 5);
             this.attributesListView.Name = "attributesListView";
-            this.attributesListView.Size = new System.Drawing.Size(619, 795);
+            this.attributesListView.Size = new System.Drawing.Size(489, 774);
             this.attributesListView.TabIndex = 6;
             this.attributesListView.UseCompatibleStateImageBehavior = false;
             this.attributesListView.View = System.Windows.Forms.View.Details;
@@ -463,12 +461,12 @@
             // attributeColumnHeader
             // 
             this.attributeColumnHeader.Text = "Attribute";
-            this.attributeColumnHeader.Width = 179;
+            this.attributeColumnHeader.Width = 268;
             // 
             // valueColumnHeader
             // 
             this.valueColumnHeader.Text = "Value";
-            this.valueColumnHeader.Width = 135;
+            this.valueColumnHeader.Width = 184;
             // 
             // mainMenuStrip
             // 
@@ -517,10 +515,10 @@
             this.informationRichTextBox.BackColor = System.Drawing.SystemColors.InfoText;
             this.informationRichTextBox.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.informationRichTextBox.ForeColor = System.Drawing.Color.White;
-            this.informationRichTextBox.Location = new System.Drawing.Point(0, 853);
+            this.informationRichTextBox.Location = new System.Drawing.Point(0, 848);
             this.informationRichTextBox.Name = "informationRichTextBox";
             this.informationRichTextBox.ReadOnly = true;
-            this.informationRichTextBox.Size = new System.Drawing.Size(1839, 115);
+            this.informationRichTextBox.Size = new System.Drawing.Size(1839, 132);
             this.informationRichTextBox.TabIndex = 12;
             this.informationRichTextBox.Text = "";
             // 
@@ -536,7 +534,7 @@
             // 
             this.inputGroupBox.Controls.Add(this.callMethodButton);
             this.inputGroupBox.Controls.Add(this.inputArgumentsPanel);
-            this.inputGroupBox.Location = new System.Drawing.Point(362, 448);
+            this.inputGroupBox.Location = new System.Drawing.Point(333, 5);
             this.inputGroupBox.Margin = new System.Windows.Forms.Padding(3, 5, 3, 5);
             this.inputGroupBox.Name = "inputGroupBox";
             this.inputGroupBox.Padding = new System.Windows.Forms.Padding(3, 5, 3, 5);
@@ -560,7 +558,7 @@
             // monitorGroupBox
             // 
             this.monitorGroupBox.Controls.Add(this.monitoredVariablePanel);
-            this.monitorGroupBox.Location = new System.Drawing.Point(849, 448);
+            this.monitorGroupBox.Location = new System.Drawing.Point(821, 5);
             this.monitorGroupBox.Margin = new System.Windows.Forms.Padding(3, 5, 3, 5);
             this.monitorGroupBox.Name = "monitorGroupBox";
             this.monitorGroupBox.Padding = new System.Windows.Forms.Padding(3, 5, 3, 5);
@@ -577,20 +575,29 @@
             this.monitoredVariablePanel.Size = new System.Drawing.Size(465, 360);
             this.monitoredVariablePanel.TabIndex = 3;
             // 
+            // panel1
+            // 
+            this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panel1.Controls.Add(this.monitorGroupBox);
+            this.panel1.Controls.Add(this.inputGroupBox);
+            this.panel1.Controls.Add(this.referenceGroupBox);
+            this.panel1.Location = new System.Drawing.Point(12, 449);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(1310, 393);
+            this.panel1.TabIndex = 13;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1839, 968);
+            this.ClientSize = new System.Drawing.Size(1839, 980);
+            this.Controls.Add(this.panel1);
             this.Controls.Add(this.informationRichTextBox);
             this.Controls.Add(this.outputGroupBox);
             this.Controls.Add(this.mainMenuStrip);
             this.Controls.Add(this.attributeGroupBox);
             this.Controls.Add(this.discoveredServersListView);
-            this.Controls.Add(this.referenceGroupBox);
             this.Controls.Add(this.groupBox1);
-            this.Controls.Add(this.inputGroupBox);
-            this.Controls.Add(this.monitorGroupBox);
             this.MainMenuStrip = this.mainMenuStrip;
             this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.MinimumSize = new System.Drawing.Size(1852, 998);
@@ -607,6 +614,7 @@
             this.inputGroupBox.ResumeLayout(false);
             this.outputGroupBox.ResumeLayout(false);
             this.monitorGroupBox.ResumeLayout(false);
+            this.panel1.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -659,6 +667,7 @@
         private System.Windows.Forms.GroupBox monitorGroupBox;
         private System.Windows.Forms.Panel monitoredVariablePanel;
         private System.Windows.Forms.Button globalDiscoveryServerTrustedListButton;
+        private System.Windows.Forms.Panel panel1;
     }
 }
 

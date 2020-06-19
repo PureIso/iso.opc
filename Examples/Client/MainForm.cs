@@ -112,6 +112,7 @@ namespace Client
                 string userPassword = useSecurityCheckBox.Checked ? serverPasswordTextBox.Text : null;
                 bool connectedToServer =
                     _applicationInstanceManager.ConnectToServer(serverDiscoveryURLTextBox.Text, userName, userPassword);
+                _applicationInstanceManager.GetRootExtendedDataDescriptions();
                 if (!connectedToServer)
                     return;
 
@@ -541,6 +542,12 @@ namespace Client
             ExtendedDataDescription methodReference =
                 _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[attributeData.BrowseName.Name];
             //extract input arguments
+            if (methodReference.VariableDataDescriptions == null)
+            {
+                methodReference = _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[attributeData.NodeId.Identifier.ToString()];
+                if (methodReference.VariableDataDescriptions == null)
+                    return;
+            }
             DataDescription inputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
                 x.AttributeData.BrowseName.Name == NameVariables.InputArguments);
             DataDescription outputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
