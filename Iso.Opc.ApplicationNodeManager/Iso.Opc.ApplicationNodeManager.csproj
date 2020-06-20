@@ -228,11 +228,5 @@
       <HintPath>..\packages\System.Xml.ReaderWriter.4.3.0\lib\net46\System.Xml.ReaderWriter.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Iso.Opc.Interface\Iso.Opc.Interface.csproj">
-      <Project>{eba60041-b1b0-4313-b9f8-53addd272630}</Project>
-      <Name>Iso.Opc.Interface</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

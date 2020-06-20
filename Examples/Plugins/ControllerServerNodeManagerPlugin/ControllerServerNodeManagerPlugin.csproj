@@ -51,12 +51,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Iso.Opc.Interface\Iso.Opc.Interface.csproj">
-      <Project>{EBA60041-B1B0-4313-B9F8-53ADDD272630}</Project>
-      <Name>Iso.Opc.Interface</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
