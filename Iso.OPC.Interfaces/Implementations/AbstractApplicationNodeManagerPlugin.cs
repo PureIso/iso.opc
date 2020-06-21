@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Iso.Opc.Interface.Interfaces;
+using Iso.Opc.Core.Interfaces;
 using Opc.Ua;
 using Opc.Ua.Export;
 using Opc.Ua.Server;
 using LocalizedText = Opc.Ua.LocalizedText;
 
-namespace Iso.Opc.Interface.Implementations
+namespace Iso.Opc.Core.Implementations
 {
     /// <summary>
     /// The abstract interface to application node manager

@@ -3,10 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29905.134
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.ApplicationNodeManager", "Iso.Opc.ApplicationNodeManager\Iso.Opc.ApplicationNodeManager.csproj", "{D1DCE023-982F-4D26-B674-A1057F6595DB}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.ApplicationInstanceManager", "Iso.Opc.ApplicationManager\Iso.Opc.ApplicationInstanceManager.csproj", "{05C3AB19-150B-4FBB-85AA-760BEED083A4}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Examples\Server\Server.csproj", "{C1EC8AA4-DA7C-48AA-AB7A-A07D0C6D9B3D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Examples\Client\Client.csproj", "{3C4559D2-66C1-4672-8333-F578B05F8753}"
@@ -17,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControllerServerNodeManager
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XMLServerNodeManagerPlugin", "Examples\Plugins\XMLServerNodeManagerPlugin\XMLServerNodeManagerPlugin.csproj", "{D90AF09D-81C1-42A3-B8B6-2BEC2EE8947A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.Interface", "Iso.OPC.Interfaces\Iso.Opc.Interface.csproj", "{DD62E8C5-13D7-48E0-B1E3-3D54122CC246}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.Core", "Iso.OPC.Interfaces\Iso.Opc.Core.csproj", "{DD62E8C5-13D7-48E0-B1E3-3D54122CC246}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,14 +21,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{D1DCE023-982F-4D26-B674-A1057F6595DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D1DCE023-982F-4D26-B674-A1057F6595DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D1DCE023-982F-4D26-B674-A1057F6595DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D1DCE023-982F-4D26-B674-A1057F6595DB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{05C3AB19-150B-4FBB-85AA-760BEED083A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{05C3AB19-150B-4FBB-85AA-760BEED083A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{05C3AB19-150B-4FBB-85AA-760BEED083A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{05C3AB19-150B-4FBB-85AA-760BEED083A4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C1EC8AA4-DA7C-48AA-AB7A-A07D0C6D9B3D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C1EC8AA4-DA7C-48AA-AB7A-A07D0C6D9B3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1EC8AA4-DA7C-48AA-AB7A-A07D0C6D9B3D}.Release|Any CPU.ActiveCfg = Release|Any CPU

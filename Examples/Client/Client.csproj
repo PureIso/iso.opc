@@ -107,12 +107,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Iso.Opc.ApplicationManager\Iso.Opc.ApplicationInstanceManager.csproj">
-      <Project>{05c3ab19-150b-4fbb-85aa-760beed083a4}</Project>
-      <Name>Iso.Opc.ApplicationInstanceManager</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\folder_cog.ico" />
   </ItemGroup>
   <ItemGroup>

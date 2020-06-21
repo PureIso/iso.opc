@@ -2,7 +2,7 @@
 using Opc.Ua;
 using Opc.Ua.Server;
 
-namespace Iso.Opc.Interface.Interfaces
+namespace Iso.Opc.Core.Interfaces
 {
     /// <summary>
     /// The interface to application node manager

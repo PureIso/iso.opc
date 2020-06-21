@@ -225,15 +225,5 @@
       <HintPath>..\..\packages\System.Xml.ReaderWriter.4.3.0\lib\net46\System.Xml.ReaderWriter.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Iso.Opc.ApplicationManager\Iso.Opc.ApplicationInstanceManager.csproj">
-      <Project>{05c3ab19-150b-4fbb-85aa-760beed083a4}</Project>
-      <Name>Iso.Opc.ApplicationInstanceManager</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Iso.Opc.ApplicationNodeManager\Iso.Opc.ApplicationNodeManager.csproj">
-      <Project>{d1dce023-982f-4d26-b674-a1057f6595db}</Project>
-      <Name>Iso.Opc.ApplicationNodeManager</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
