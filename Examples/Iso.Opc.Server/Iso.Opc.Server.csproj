@@ -6,6 +6,7 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <AssemblyName>Iso.Opc.Server</AssemblyName>
     <RootNamespace>Iso.Opc.Server</RootNamespace>
+    <StartupObject>Iso.OPC.Server.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>

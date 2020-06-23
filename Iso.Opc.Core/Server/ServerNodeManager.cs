@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using Iso.Opc.Core.Implementations;
 using Iso.Opc.Core.Plugin;
 using Opc.Ua;
@@ -26,7 +27,10 @@ namespace Iso.Opc.Core.Server
             _nextNodeId = 0;
             if (!string.IsNullOrEmpty(_pluginDirectory)) 
                 return;
-            _pluginDirectory = AppDomain.CurrentDomain.BaseDirectory + "plugin";
+            string directoryName = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
+            if (string.IsNullOrEmpty(directoryName))
+                return;
+            _pluginDirectory = Path.Combine(directoryName,"plugin");
             if (!Directory.Exists(_pluginDirectory))
                 Directory.CreateDirectory(_pluginDirectory);
             _applicationNodeManagerPluginService = new ApplicationNodeManagerPluginService(_pluginDirectory);

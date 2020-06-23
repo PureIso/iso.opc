@@ -62,6 +62,8 @@ namespace Iso.Opc.Core.Server
                 {
                     return null;
                 }
+                if (PredefinedNodes == null)
+                    return null;
                 if (!PredefinedNodes.TryGetValue(nodeId, out NodeState node))
                 {
                     return null;

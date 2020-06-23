@@ -9,9 +9,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XMLServerNodeManagerPlugin"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.Core", "Iso.Opc.Core\Iso.Opc.Core.csproj", "{DD62E8C5-13D7-48E0-B1E3-3D54122CC246}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.Server", "Examples\Iso.Opc.Server\Iso.Opc.Server.csproj", "{C69F4BC5-F179-4D77-967A-C13B4E4E4F74}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.Server", "Examples\Iso.Opc.Server\Iso.Opc.Server.csproj", "{C69F4BC5-F179-4D77-967A-C13B4E4E4F74}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.GlobalDiscoveryServer", "Examples\Iso.Opc.GlobalDiscoveryServer\Iso.Opc.GlobalDiscoveryServer.csproj", "{91CEDE6F-0238-4102-8CC3-E7B37E65195E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.GlobalDiscoveryServer", "Examples\Iso.Opc.GlobalDiscoveryServer\Iso.Opc.GlobalDiscoveryServer.csproj", "{91CEDE6F-0238-4102-8CC3-E7B37E65195E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.Client", "Examples\Iso.Opc.Client\Iso.Opc.Client.csproj", "{913437EA-D2A1-4A93-B09F-062E8BC7DE1C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{91CEDE6F-0238-4102-8CC3-E7B37E65195E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{91CEDE6F-0238-4102-8CC3-E7B37E65195E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{91CEDE6F-0238-4102-8CC3-E7B37E65195E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{913437EA-D2A1-4A93-B09F-062E8BC7DE1C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{913437EA-D2A1-4A93-B09F-062E8BC7DE1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{913437EA-D2A1-4A93-B09F-062E8BC7DE1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{913437EA-D2A1-4A93-B09F-062E8BC7DE1C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
