@@ -1,17 +1,14 @@
-﻿using System;
+﻿using Iso.Opc.Core.Implementations;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using Iso.Opc.Interface;
 using Opc.Ua;
 using Opc.Ua.Server;
 
-namespace ControllerServerNodeManagerPlugin
+namespace Iso.Opc.Plugin.InCodeNodeManager
 {
-    /// <summary>
-    /// Controller ser node manager plugin entry point
-    /// </summary>
     public class EntryPoint : AbstractApplicationNodeManagerPlugin
     {
         #region Fields
@@ -41,8 +38,8 @@ namespace ControllerServerNodeManagerPlugin
             /* ***************************************** */
             BaseObjectState controller = new BaseObjectState(null)
             {
-                NodeId = new NodeId(1, namespaceIndex),
-                BrowseName = new QualifiedName("Controllers", namespaceIndex),
+                NodeId = new NodeId("Controllers", namespaceIndex),
+                BrowseName = new QualifiedName("Controllers", namespaceIndex),//Qualified name is very important
                 DisplayName = new LocalizedText("Controllers"),
                 EventNotifier = EventNotifiers.SubscribeToEvents | EventNotifiers.HistoryRead | EventNotifiers.HistoryWrite,
                 TypeDefinitionId = ObjectTypeIds.BaseObjectType,
@@ -51,7 +48,7 @@ namespace ControllerServerNodeManagerPlugin
             //Variables
             PropertyState<uint> state = new PropertyState<uint>(controller)
             {
-                NodeId = new NodeId(2, namespaceIndex),
+                NodeId = new NodeId("Controllers.State", namespaceIndex),
                 BrowseName = new QualifiedName("State", namespaceIndex),
                 DisplayName = new LocalizedText("State"),
                 TypeDefinitionId = VariableTypeIds.PropertyType,
@@ -68,7 +65,7 @@ namespace ControllerServerNodeManagerPlugin
             //Method
             MethodState start = new MethodState(controller)
             {
-                NodeId = new NodeId(3, namespaceIndex),
+                NodeId = new NodeId("Controllers.Start", namespaceIndex),
                 BrowseName = new QualifiedName("Start", namespaceIndex),
                 DisplayName = new LocalizedText("Start"),
                 ReferenceTypeId = ReferenceTypeIds.HasComponent,
@@ -78,7 +75,7 @@ namespace ControllerServerNodeManagerPlugin
             //Method - Input
             start.InputArguments = new PropertyState<Argument[]>(start)
             {
-                NodeId = new NodeId(4, namespaceIndex),
+                NodeId = new NodeId("Controllers.Start.InputArguments", namespaceIndex),
                 BrowseName = BrowseNames.InputArguments,
                 DisplayName = new LocalizedText(BrowseNames.InputArguments),
                 TypeDefinitionId = VariableTypeIds.PropertyType,
@@ -109,7 +106,7 @@ namespace ControllerServerNodeManagerPlugin
             //Method - Output
             start.OutputArguments = new PropertyState<Argument[]>(start)
             {
-                NodeId = new NodeId(5, namespaceIndex),
+                NodeId = new NodeId("Controllers.Start.OutputArguments", namespaceIndex),
                 BrowseName = BrowseNames.OutputArguments,
                 TypeDefinitionId = VariableTypeIds.PropertyType,
                 ReferenceTypeId = ReferenceTypeIds.HasProperty,
@@ -138,10 +135,7 @@ namespace ControllerServerNodeManagerPlugin
             start.OutputArguments.Value = inputArguments;
             start.OnCallMethod = OnStart;
             controller.AddChild(start);
-            controller.AddReference(ReferenceTypeIds.HasNotifier,true,ObjectIds.Server);
-            //create status object
-            //AggregationModel.
-
+            controller.AddReference(ReferenceTypeIds.HasNotifier, true, ObjectIds.Server);
             NodeStateCollection = new NodeStateCollection { controller };
         }
         public override void BindNodeStateCollection()
@@ -167,7 +161,7 @@ namespace ControllerServerNodeManagerPlugin
             uint? initialState = inputArguments[0] as uint?;
             uint? finalState = inputArguments[1] as uint?;
             if (initialState == null || finalState == null)
-                return StatusCodes.BadTypeMismatch; 
+                return StatusCodes.BadTypeMismatch;
             lock (_processLock)
             {
                 // check if the process is running.
@@ -184,7 +178,6 @@ namespace ControllerServerNodeManagerPlugin
                 // only need to update them here.
                 outputArguments[0] = _state;
                 outputArguments[1] = _finalState;
-                //method.OnReportEvent
             }
             // signal update to state node.
             lock (ApplicationNodeManager.Lock)
@@ -215,7 +208,7 @@ namespace ControllerServerNodeManagerPlugin
             };
             auditUpdateMethodEventState.SetChildValue(context, BrowseNames.InputArguments, inputArguments.ToArray(), true);
             bool valid = auditUpdateMethodEventState.Validate(context);
-            if(valid) 
+            if (valid)
                 ApplicationNodeManager.Server.ReportEvent(auditUpdateMethodEventState);
             return ServiceResult.Good;
         }

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="if not exist &quot;$(SolutionDir)Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin&quot; mkdir &quot;$(SolutionDir)Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin&quot;&#xD;&#xA;xcopy &quot;$(TargetDir)$(TargetName).*&quot; &quot;$(SolutionDir)Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin&quot; /Y&#xD;&#xA;xcopy &quot;$(TargetDir)\XmlNodes\xml_example.xml&quot; &quot;$(SolutionDir)Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin&quot; /Y" />
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Iso.Opc.Core\Iso.Opc.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="XmlNodes\xml_example.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

@@ -3,17 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29905.134
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControllerServerNodeManagerPlugin", "Examples\Plugins\ControllerServerNodeManagerPlugin\ControllerServerNodeManagerPlugin.csproj", "{BFC52425-2E7A-440F-9F48-C04136F9666C}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XMLServerNodeManagerPlugin", "Examples\Plugins\XMLServerNodeManagerPlugin\XMLServerNodeManagerPlugin.csproj", "{D90AF09D-81C1-42A3-B8B6-2BEC2EE8947A}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.Core", "Iso.Opc.Core\Iso.Opc.Core.csproj", "{DD62E8C5-13D7-48E0-B1E3-3D54122CC246}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.Server", "Examples\Iso.Opc.Server\Iso.Opc.Server.csproj", "{C69F4BC5-F179-4D77-967A-C13B4E4E4F74}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.GlobalDiscoveryServer", "Examples\Iso.Opc.GlobalDiscoveryServer\Iso.Opc.GlobalDiscoveryServer.csproj", "{91CEDE6F-0238-4102-8CC3-E7B37E65195E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.Client", "Examples\Iso.Opc.Client\Iso.Opc.Client.csproj", "{913437EA-D2A1-4A93-B09F-062E8BC7DE1C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.Client", "Examples\Iso.Opc.Client\Iso.Opc.Client.csproj", "{913437EA-D2A1-4A93-B09F-062E8BC7DE1C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.Plugin.InCodeNodeManager", "Examples\Plugins\Iso.Opc.Plugin.InCodeNodeManager\Iso.Opc.Plugin.InCodeNodeManager.csproj", "{0621DEB7-B1C9-4A88-827C-1B2991FCE7E7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.Plugin.XMLNodeManager", "Examples\Plugins\Iso.Opc.Plugin.XMLNodeManager\Iso.Opc.Plugin.XMLNodeManager.csproj", "{E9A742B3-98A9-4875-9465-B1575F5A4BB2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,14 +21,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{BFC52425-2E7A-440F-9F48-C04136F9666C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BFC52425-2E7A-440F-9F48-C04136F9666C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BFC52425-2E7A-440F-9F48-C04136F9666C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BFC52425-2E7A-440F-9F48-C04136F9666C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D90AF09D-81C1-42A3-B8B6-2BEC2EE8947A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D90AF09D-81C1-42A3-B8B6-2BEC2EE8947A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D90AF09D-81C1-42A3-B8B6-2BEC2EE8947A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D90AF09D-81C1-42A3-B8B6-2BEC2EE8947A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DD62E8C5-13D7-48E0-B1E3-3D54122CC246}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DD62E8C5-13D7-48E0-B1E3-3D54122CC246}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DD62E8C5-13D7-48E0-B1E3-3D54122CC246}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -45,6 +37,14 @@ Global
 		{913437EA-D2A1-4A93-B09F-062E8BC7DE1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{913437EA-D2A1-4A93-B09F-062E8BC7DE1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{913437EA-D2A1-4A93-B09F-062E8BC7DE1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0621DEB7-B1C9-4A88-827C-1B2991FCE7E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0621DEB7-B1C9-4A88-827C-1B2991FCE7E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0621DEB7-B1C9-4A88-827C-1B2991FCE7E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0621DEB7-B1C9-4A88-827C-1B2991FCE7E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9A742B3-98A9-4875-9465-B1575F5A4BB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9A742B3-98A9-4875-9465-B1575F5A4BB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9A742B3-98A9-4875-9465-B1575F5A4BB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9A742B3-98A9-4875-9465-B1575F5A4BB2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

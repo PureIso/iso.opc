@@ -1,22 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
-using Iso.Opc.Interface;
+using System.IO;
+using Iso.Opc.Core.Implementations;
+using Iso.Opc.Plugin.XMLNodeManager.Models;
 using Opc.Ua;
 
-namespace XMLServerNodeManagerPlugin
+namespace Iso.Opc.Plugin.XMLNodeManager
 {
     public class EntryPoint : AbstractApplicationNodeManagerPlugin
     {
+        #region Fields
+        private PropertyState _systemStatusPropertyState;
+        #endregion
         public EntryPoint()
         {
             base.ApplicationName = "XML Server Node Manager";
             base.Author = "Ola";
             base.Description = "XML Plugin Test";
             base.Version = "1.0.0.0";
-            base.ResourcePath = AppDomain.CurrentDomain.BaseDirectory + "plugin\\xml_example.xml";
+            string directoryName = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()?.Location);
+            if (string.IsNullOrEmpty(directoryName)) 
+                return;
+            string xmlFilePath = Path.Combine(directoryName, "plugin/xml_example.xml");
+            base.ResourcePath = xmlFilePath;
         }
-
-        private PropertyState _systemStatusPropertyState;
 
         public override void BindNodeStateActions(NodeState nodeState)
         {
@@ -29,36 +36,28 @@ namespace XMLServerNodeManagerPlugin
                     methodNodeState.OnCallMethod = GetVoltage;
                     break;
                 case MethodState methodNodeState:
-                {
-                    if (methodNodeState.DisplayName.Text == RaspberryPiNode.MethodNameUpdateSystemStatus)
-                    {
-                        methodNodeState.OnCallMethod = UpdateSystemStatus;
-                    }
-                    break;
-                }
+                    if (methodNodeState.DisplayName.Text == RaspberryPiNode.MethodNameUpdateSystemStatus) 
+                        methodNodeState.OnCallMethod = UpdateSystemStatus; 
+                    break; 
                 case PropertyState propertyState:
-                {
                     if (propertyState.DisplayName.Text == RaspberryPiNode.VariableNameSystemStatus)
-                    {
                         _systemStatusPropertyState = propertyState;
-                    }
                     break;
-                }
             }
         }
 
-        private ServiceResult GetDoubleTheValue(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        private static ServiceResult GetDoubleTheValue(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             if (inputArguments.Count != 1)
-                return StatusCodes.BadArgumentsMissing; 
+                return StatusCodes.BadArgumentsMissing;
             // check the data type of the input arguments.
             uint? value = inputArguments[0] as uint?;
-            if (value == null) 
+            if (value == null)
                 return StatusCodes.BadTypeMismatch;
             outputArguments[0] = value * value;
             return ServiceResult.Good;
         }
-        private ServiceResult GetVoltage(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        private static ServiceResult GetVoltage(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             Random random = new Random();
             outputArguments[0] = random.NextDouble();
