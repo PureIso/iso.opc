@@ -410,7 +410,8 @@
             // 
             // attributeGroupBox
             // 
-            this.attributeGroupBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.attributeGroupBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.attributeGroupBox.Controls.Add(this.attributesListView);
             this.attributeGroupBox.Location = new System.Drawing.Point(1477, 46);
             this.attributeGroupBox.Name = "attributeGroupBox";
@@ -490,8 +491,10 @@
             // 
             // informationRichTextBox
             // 
+            this.informationRichTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.informationRichTextBox.BackColor = System.Drawing.SystemColors.InfoText;
-            this.informationRichTextBox.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.informationRichTextBox.ForeColor = System.Drawing.Color.White;
             this.informationRichTextBox.Location = new System.Drawing.Point(0, 1061);
             this.informationRichTextBox.Name = "informationRichTextBox";

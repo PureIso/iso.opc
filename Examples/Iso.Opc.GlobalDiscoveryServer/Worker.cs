@@ -61,10 +61,10 @@ namespace Iso.Opc.GlobalDiscoveryServer
             string directoryName = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()?.Location);
             if (!string.IsNullOrEmpty(directoryName))
             {
-                string databaseDirectory = Path.Combine(directoryName, "/gds/database");
+                string databaseDirectory = Path.Combine(directoryName, "gds\\database");
                 if (!Directory.Exists(databaseDirectory))
                     Directory.CreateDirectory(databaseDirectory);
-                string databaseFile = databaseDirectory + "\\gds.database.json";
+                string databaseFile = Path.Combine(databaseDirectory, "gds.database.json");
                 if (!File.Exists(databaseFile))
                     File.Create(databaseFile).Close();
 

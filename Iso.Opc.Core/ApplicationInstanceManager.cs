@@ -192,7 +192,7 @@ namespace Iso.Opc.Core
             string directoryName = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()?.Location);
             if (string.IsNullOrEmpty(directoryName))
                 return null; 
-            string applicationCertificateDirectory = Path.Combine(directoryName,"pki/trusted");//own
+            string applicationCertificateDirectory = Path.Combine(directoryName,"pki\\trusted");//own
             if (!Directory.Exists(applicationCertificateDirectory))
                 Directory.CreateDirectory(applicationCertificateDirectory);
 
@@ -203,7 +203,7 @@ namespace Iso.Opc.Core
                 SubjectName = "CN="+ applicationName+", DC="+Dns.GetHostName(),
             };
             //TrustedIssuerCertificates
-            string issuersCertificateDirectory = Path.Combine(directoryName, "pki/trusted");//issuers
+            string issuersCertificateDirectory = Path.Combine(directoryName, "pki\\trusted");//issuers
             if (!Directory.Exists(issuersCertificateDirectory))
                 Directory.CreateDirectory(issuersCertificateDirectory);
             securityConfiguration.TrustedIssuerCertificates = new CertificateTrustList
@@ -212,7 +212,7 @@ namespace Iso.Opc.Core
                 StorePath = issuersCertificateDirectory
             };
             //TrustedPeerCertificates
-            string trustedCertificateDirectory = Path.Combine(directoryName, "pki/trusted");
+            string trustedCertificateDirectory = Path.Combine(directoryName, "pki\\trusted");
             if (!Directory.Exists(trustedCertificateDirectory))
                 Directory.CreateDirectory(trustedCertificateDirectory);
             securityConfiguration.TrustedPeerCertificates = new CertificateTrustList
@@ -221,7 +221,7 @@ namespace Iso.Opc.Core
                 StorePath = trustedCertificateDirectory
             };
             //RejectedCertificateStore
-            string rejectedCertificateDirectory = Path.Combine(directoryName, "pki/trusted");
+            string rejectedCertificateDirectory = Path.Combine(directoryName, "pki\\trusted");
             if (!Directory.Exists(rejectedCertificateDirectory))
                 Directory.CreateDirectory(rejectedCertificateDirectory);
             securityConfiguration.RejectedCertificateStore = new CertificateTrustList
@@ -230,7 +230,7 @@ namespace Iso.Opc.Core
                 StorePath = rejectedCertificateDirectory
             };
             //UserIssuerCertificates
-            string userIssuerCertificateDirectory = Path.Combine(directoryName, "pki/trusted");//issuedUser
+            string userIssuerCertificateDirectory = Path.Combine(directoryName, "pki\\trusted");//issuedUser
             if (!Directory.Exists(userIssuerCertificateDirectory))
                 Directory.CreateDirectory(userIssuerCertificateDirectory);
             securityConfiguration.UserIssuerCertificates = new CertificateTrustList
@@ -239,7 +239,7 @@ namespace Iso.Opc.Core
                 StorePath = userIssuerCertificateDirectory
             };
             //TrustedUserCertificates
-            string trustedUserCertificateDirectory = Path.Combine(directoryName, "pki/trusted");//trustedUser
+            string trustedUserCertificateDirectory = Path.Combine(directoryName, "pki\\trusted");//trustedUser
             if (!Directory.Exists(trustedUserCertificateDirectory))
                 Directory.CreateDirectory(trustedUserCertificateDirectory);
             securityConfiguration.TrustedUserCertificates = new CertificateTrustList

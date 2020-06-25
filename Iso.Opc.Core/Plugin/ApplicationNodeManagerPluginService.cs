@@ -9,7 +9,7 @@ namespace Iso.Opc.Core.Plugin
     public class ApplicationNodeManagerPluginService
     {
         #region Constants
-        private const string AssemblyBaseTypeFullName = "Iso.Opc.Interface.AbstractApplicationNodeManagerPlugin";
+        private const string AssemblyBaseTypeFullName = "Iso.Opc.Core.Implementations.AbstractApplicationNodeManagerPlugin";
         #endregion
 
         #region Fields

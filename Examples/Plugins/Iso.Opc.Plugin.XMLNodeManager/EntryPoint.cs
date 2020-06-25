@@ -21,7 +21,7 @@ namespace Iso.Opc.Plugin.XMLNodeManager
             string directoryName = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()?.Location);
             if (string.IsNullOrEmpty(directoryName)) 
                 return;
-            string xmlFilePath = Path.Combine(directoryName, "plugin/xml_example.xml");
+            string xmlFilePath = Path.Combine(directoryName, "plugin\\xml_example.xml");
             base.ResourcePath = xmlFilePath;
         }
 

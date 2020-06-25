@@ -50,17 +50,17 @@ namespace Iso.Opc.Core.GDS
             string directoryName = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
             if (string.IsNullOrEmpty(directoryName))
                 return;
-            string authoritiesStorePathDirectory = Path.Combine(directoryName, "pki/authoritie");
+            string authoritiesStorePathDirectory = Path.Combine(directoryName, "pki\\authoritie");
             if (!Directory.Exists(authoritiesStorePathDirectory))
                 Directory.CreateDirectory(authoritiesStorePathDirectory);
             _authoritiesStorePath = authoritiesStorePathDirectory;
             //Application Certificates Store Path
-            string applicationCertificatesStorePathDirectory = Path.Combine(directoryName, "pki/applications");
+            string applicationCertificatesStorePathDirectory = Path.Combine(directoryName, "pki\\applications");
             if (!Directory.Exists(applicationCertificatesStorePathDirectory))
                 Directory.CreateDirectory(applicationCertificatesStorePathDirectory);
             _applicationCertificatesStorePath = applicationCertificatesStorePathDirectory;
             //Base Certificates Store Path
-            string baseCertificateGroupStorePathDirectory = Path.Combine(directoryName, "pki/CA/default");
+            string baseCertificateGroupStorePathDirectory = Path.Combine(directoryName, "pki\\CA\\default");
             if (!Directory.Exists(baseCertificateGroupStorePathDirectory))
                 Directory.CreateDirectory(baseCertificateGroupStorePathDirectory);
             _certificateGroupConfigurationCollection.Add(new CertificateGroupConfiguration {
