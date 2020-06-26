@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -468,7 +467,7 @@ namespace Iso.Opc.Core
             string directoryName = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()?.Location);
             if (string.IsNullOrEmpty(directoryName))
                 return null;
-            string traceLogsDirectory = Path.Combine(directoryName, "logs"); ;
+            string traceLogsDirectory = Path.Combine(directoryName, "logs");
             if (!Directory.Exists(traceLogsDirectory))
                 Directory.CreateDirectory(traceLogsDirectory);
             string traceLogFile = Path.Combine(traceLogsDirectory, $"{logName}.log.txt");
@@ -686,7 +685,7 @@ namespace Iso.Opc.Core
                     return;
                 }
                 X509Certificate2 newCert = new X509Certificate2(certificate);
-                if (!string.IsNullOrEmpty(RegisteredApplication.CertificateStorePath) && !String.IsNullOrEmpty(RegisteredApplication.CertificateSubjectName))
+                if (!string.IsNullOrEmpty(RegisteredApplication.CertificateStorePath) && !string.IsNullOrEmpty(RegisteredApplication.CertificateSubjectName))
                 {
                     CertificateIdentifier cid = new CertificateIdentifier()
                     {
@@ -787,33 +786,28 @@ namespace Iso.Opc.Core
         {
             if (string.IsNullOrEmpty(certificateStorePath))
                 return;
-            using (DirectoryCertificateStore store = (DirectoryCertificateStore)CertificateStoreIdentifier.OpenStore(certificateStorePath))
+            using DirectoryCertificateStore store = (DirectoryCertificateStore)CertificateStoreIdentifier.OpenStore(certificateStorePath);
+            X509Certificate2Collection certificates = await store.Enumerate();
+            foreach (X509Certificate2 certificate in certificates)
             {
-                X509Certificate2Collection certificates = await store.Enumerate();
-                foreach (X509Certificate2 certificate in certificates)
+                if (store.GetPrivateKeyFilePath(certificate.Thumbprint) != null)
+                    continue;
+                List<string> fields = Utils.ParseDistinguishedName(certificate.Subject);
+                if (fields.Contains("CN=UA Local Discovery Server"))
+                    continue;
+                string path = Utils.GetAbsoluteFilePath(certificatePublicKeyPath, true, false, false);
+                if (path != null)
                 {
-                    if (store.GetPrivateKeyFilePath(certificate.Thumbprint) != null)
+                    if (string.Compare(path, store.GetPublicKeyFilePath(certificate.Thumbprint), StringComparison.OrdinalIgnoreCase) == 0)
                         continue;
-                    List<string> fields = Utils.ParseDistinguishedName(certificate.Subject);
-                    if (fields.Contains("CN=UA Local Discovery Server"))
-                        continue;
-                    if (store is DirectoryCertificateStore ds)
-                    {
-                        string path = Utils.GetAbsoluteFilePath(certificatePublicKeyPath, true, false, false);
-                        if (path != null)
-                        {
-                            if (string.Compare(path, ds.GetPublicKeyFilePath(certificate.Thumbprint), StringComparison.OrdinalIgnoreCase) == 0)
-                                continue;
-                        }
-                        path = Utils.GetAbsoluteFilePath(certificatePrivateKeyPath, true, false, false);
-                        if (path != null)
-                        {
-                            if (string.Compare(path, ds.GetPrivateKeyFilePath(certificate.Thumbprint), StringComparison.OrdinalIgnoreCase) == 0)
-                                continue;
-                        }
-                    }
-                    await store.Delete(certificate.Thumbprint);
                 }
+                path = Utils.GetAbsoluteFilePath(certificatePrivateKeyPath, true, false, false);
+                if (path != null)
+                {
+                    if (string.Compare(path, store.GetPrivateKeyFilePath(certificate.Thumbprint), StringComparison.OrdinalIgnoreCase) == 0)
+                        continue;
+                }
+                await store.Delete(certificate.Thumbprint);
             }
         }
         private static async Task AddToTrustedStore(ApplicationConfiguration applicationConfiguration, X509Certificate2 certificate)
@@ -1070,14 +1064,7 @@ namespace Iso.Opc.Core
         public List<ReferenceDescription> BrowseReferenceDescription(ReferenceDescription parentReferenceDescription = null)
         {
             BrowseDescriptionCollection browseDescriptionCollection = new BrowseDescriptionCollection();
-            BrowseDescription browseDescription = new BrowseDescription
-            {
-                BrowseDirection = BrowseDirection.Forward,
-                ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences,
-                IncludeSubtypes = true,
-                NodeClassMask = (uint)NodeClass.Unspecified,
-                ResultMask = (uint)BrowseResultMask.All
-            };
+            BrowseDescription browseDescription;
             //Define the node to browse
             if (parentReferenceDescription == null)
             {
@@ -1377,7 +1364,7 @@ namespace Iso.Opc.Core
                 return false;
             }
         }
-        public bool SubscribeToEvents(NodeId nodeId, MonitoredItemNotificationEventHandler callback = null, int publishingInterval = 1000)
+        public bool SubscribeToAuditUpdateMethodEvent(MonitoredItemNotificationEventHandler callback = null, int publishingInterval = 1000)
         {
             try
             {
@@ -1398,66 +1385,22 @@ namespace Iso.Opc.Core
                     Session.AddSubscription(Subscription);
                     Subscription.Create();
                 }
-
                 if (callback == null)
                     callback = MonitoredItemNotification;
-
-                MonitoredItem monitoredItem = new MonitoredItem { StartNodeId = nodeId, AttributeId = Attributes.Value };
-                monitoredItem.Notification += callback;
-
-
-                /////////////////////////////////////////////////////////////////////////////////////////////////////
-                //MonitoredItem monitoredItemEvent = new MonitoredItem
-                //{
-                //    StartNodeId = ObjectIds.Server,
-                //    AttributeId = Attributes.EventNotifier,
-                //    MonitoringMode = MonitoringMode.Reporting,
-                //    SamplingInterval = 0,
-                //    QueueSize = 1000,
-                //    DiscardOldest = true,
-                //    Filter = new EventFilter()
-                //};
-                //monitoredItemEvent.Notification += callback;
-
                 EventFilter filter = new EventFilter();
                 // browse the type model in the server address space to find the fields available for the event type.
                 SimpleAttributeOperandCollection selectClauses = new SimpleAttributeOperandCollection();
                 // must always request the NodeId for the condition instances.
                 // this can be done by specifying an operand with an empty browse path.
-                SimpleAttributeOperand operand = new SimpleAttributeOperand();
-                operand.TypeDefinitionId = ObjectTypeIds.BaseEventType;
-                operand.AttributeId = Attributes.NodeId;
-                operand.BrowsePath = new QualifiedNameCollection();
-                selectClauses.Add(operand);
-
-                // add the fields for the selected EventTypes.
-                if (ObjectTypeIds.AuditUpdateMethodEventType != null)
+                SimpleAttributeOperand operand = new SimpleAttributeOperand
                 {
-                    CollectFields(ObjectTypeIds.AuditUpdateMethodEventType, selectClauses);
-                }
-
-                // use BaseEventType as the default if no EventTypes specified.
-                else
-                {
-                    CollectFields(ObjectTypeIds.BaseEventType, selectClauses);
-                }
-
+                    TypeDefinitionId = ObjectTypeIds.BaseEventType,
+                    AttributeId = Attributes.NodeId,
+                    BrowsePath = new QualifiedNameCollection()
+                };
+                selectClauses.Add(operand); 
+                CollectFields(ObjectTypeIds.AuditUpdateMethodEventType, selectClauses);
                 filter.SelectClauses = selectClauses;
-
-                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.EventId);
-                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.EventType);
-                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.SourceNode);
-                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.SourceName);
-                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Time);
-                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.ReceiveTime);
-                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.LocalTime);
-                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Message);
-                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Severity);
-                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.Status);
-                //filter.AddSelectClause(ObjectTypes.BaseEventType, BrowseNames.InputArguments);
-                //filter.AddSelectClause(ObjectTypes.AuditUpdateMethodEventType, BrowseNames.InputArguments);
-                //filter.AddSelectClause(ObjectTypes.AuditUpdateMethodEventType, BrowseNames.MethodId);
-                //filter.AddSelectClause(ObjectTypes.AuditUpdateMethodEventType, BrowseNames.PropertyType);
                 MonitoredItem triggeringItemId = new MonitoredItem(Subscription.DefaultItem)
                 {
                     NodeClass = NodeClass.Object,
@@ -1470,15 +1413,13 @@ namespace Iso.Opc.Core
                     Filter = filter
                 };
                 triggeringItemId.Notification += callback;
-                ///////////////////////////////////////////////////////////////////////////////////////////////////////
-                Subscription.AddItem(monitoredItem);
                 Subscription.AddItem(triggeringItemId);
                 Subscription.ApplyChanges();
                 return true;
             }
             catch (Exception e)
             {
-                Utils.Trace($"Monitored Item Notification exception: {e.StackTrace}");
+                Utils.Trace($"Monitored Event Notification exception: {e.StackTrace}");
                 return false;
             }
         }
@@ -1689,24 +1630,22 @@ namespace Iso.Opc.Core
             //Issuer List Store Path
             if (!string.IsNullOrEmpty(RegisteredApplication.IssuerListStorePath))
             {
-                using (ICertificateStore store = CertificateStoreIdentifier.OpenStore(RegisteredApplication.IssuerListStorePath))
+                using ICertificateStore store = CertificateStoreIdentifier.OpenStore(RegisteredApplication.IssuerListStorePath);
+                if ((trustList.SpecifiedLists & (uint)TrustListMasks.IssuerCertificates) != 0)
                 {
-                    if ((trustList.SpecifiedLists & (uint)TrustListMasks.IssuerCertificates) != 0)
+                    foreach (byte[] issuerCertificate in trustList.IssuerCertificates)
                     {
-                        foreach (byte[] issuerCertificate in trustList.IssuerCertificates)
-                        {
-                            X509Certificate2 x509Certificate = new X509Certificate2(issuerCertificate);
-                            X509Certificate2Collection certs = store.FindByThumbprint(x509Certificate.Thumbprint).Result;
-                            if (certs.Count == 0)
-                                store.Add(x509Certificate).Wait();
-                        }
+                        X509Certificate2 x509Certificate = new X509Certificate2(issuerCertificate);
+                        X509Certificate2Collection certs = store.FindByThumbprint(x509Certificate.Thumbprint).Result;
+                        if (certs.Count == 0)
+                            store.Add(x509Certificate).Wait();
                     }
-                    if ((trustList.SpecifiedLists & (uint)TrustListMasks.IssuerCrls) != 0)
+                }
+                if ((trustList.SpecifiedLists & (uint)TrustListMasks.IssuerCrls) != 0)
+                {
+                    foreach (byte[] issuerCertificateRevocation in trustList.IssuerCrls)
                     {
-                        foreach (byte[] issuerCertificateRevocation in trustList.IssuerCrls)
-                        {
-                            store.AddCRL(new X509CRL(issuerCertificateRevocation));
-                        }
+                        store.AddCRL(new X509CRL(issuerCertificateRevocation));
                     }
                 }
             }
@@ -1778,12 +1717,9 @@ namespace Iso.Opc.Core
                     e.Error == null || 
                     e.Error.Code != StatusCodes.BadCertificateUntrusted)
                 {
-                    if (e.Error != null)
-                        Utils.Trace($"Certificate not accepted: {e.Certificate.Subject} \r\n {e.Error.Code}");
-                    else
-                    {
-                        Utils.Trace($"Certificate not accepted: {e.Certificate.Subject}");
-                    }
+                    Utils.Trace(e.Error != null
+                        ? $"Certificate not accepted: {e.Certificate.Subject} \r\n {e.Error.Code}"
+                        : $"Certificate not accepted: {e.Certificate.Subject}");
                     return;
                 }
                 e.Accept = true;
