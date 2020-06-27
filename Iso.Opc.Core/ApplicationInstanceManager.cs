@@ -1364,7 +1364,7 @@ namespace Iso.Opc.Core
                 return false;
             }
         }
-        public bool SubscribeToAuditUpdateMethodEvent(MonitoredItemNotificationEventHandler callback = null, int publishingInterval = 1000)
+        public bool SubscribeToAuditUpdateMethodEvent(MonitoredItemNotificationEventHandler callback = null, int publishingInterval = 1000, EventFilter filter = null)
         {
             try
             {
@@ -1387,20 +1387,23 @@ namespace Iso.Opc.Core
                 }
                 if (callback == null)
                     callback = MonitoredItemNotification;
-                EventFilter filter = new EventFilter();
-                // browse the type model in the server address space to find the fields available for the event type.
-                SimpleAttributeOperandCollection selectClauses = new SimpleAttributeOperandCollection();
-                // must always request the NodeId for the condition instances.
-                // this can be done by specifying an operand with an empty browse path.
-                SimpleAttributeOperand operand = new SimpleAttributeOperand
-                {
-                    TypeDefinitionId = ObjectTypeIds.BaseEventType,
-                    AttributeId = Attributes.NodeId,
-                    BrowsePath = new QualifiedNameCollection()
-                };
-                selectClauses.Add(operand); 
-                CollectFields(ObjectTypeIds.AuditUpdateMethodEventType, selectClauses);
-                filter.SelectClauses = selectClauses;
+                if (filter == null)
+                { 
+                    filter = new EventFilter();
+                    // browse the type model in the server address space to find the fields available for the event type.
+                    SimpleAttributeOperandCollection selectClauses = new SimpleAttributeOperandCollection();
+                    // must always request the NodeId for the condition instances.
+                    // this can be done by specifying an operand with an empty browse path.
+                    SimpleAttributeOperand operand = new SimpleAttributeOperand
+                    {
+                        TypeDefinitionId = ObjectTypeIds.BaseEventType,
+                        AttributeId = Attributes.NodeId,
+                        BrowsePath = new QualifiedNameCollection()
+                    };
+                    selectClauses.Add(operand);
+                    CollectFields(ObjectTypeIds.AuditUpdateMethodEventType, selectClauses);
+                    filter.SelectClauses = selectClauses;
+                }
                 MonitoredItem triggeringItemId = new MonitoredItem(Subscription.DefaultItem)
                 {
                     NodeClass = NodeClass.Object,

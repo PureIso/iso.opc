@@ -68,6 +68,8 @@
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.referenceDescriptionContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.monitorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.monitorMethodUpdateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.methodAndVariableToolStripSeparator = new System.Windows.Forms.ToolStripSeparator();
             this.callToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.informationRichTextBox = new System.Windows.Forms.RichTextBox();
             this.outputArgumentsPanel = new System.Windows.Forms.Panel();
@@ -415,7 +417,7 @@
             this.attributeGroupBox.Controls.Add(this.attributesListView);
             this.attributeGroupBox.Location = new System.Drawing.Point(1477, 46);
             this.attributeGroupBox.Name = "attributeGroupBox";
-            this.attributeGroupBox.Size = new System.Drawing.Size(552, 1004);
+            this.attributeGroupBox.Size = new System.Drawing.Size(558, 1004);
             this.attributeGroupBox.TabIndex = 6;
             this.attributeGroupBox.TabStop = false;
             this.attributeGroupBox.Text = "Attributes";
@@ -432,7 +434,7 @@
             this.attributesListView.HideSelection = false;
             this.attributesListView.Location = new System.Drawing.Point(3, 27);
             this.attributesListView.Name = "attributesListView";
-            this.attributesListView.Size = new System.Drawing.Size(546, 974);
+            this.attributesListView.Size = new System.Drawing.Size(552, 974);
             this.attributesListView.TabIndex = 6;
             this.attributesListView.UseCompatibleStateImageBehavior = false;
             this.attributesListView.View = System.Windows.Forms.View.Details;
@@ -471,21 +473,35 @@
             this.referenceDescriptionContextMenuStrip.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.referenceDescriptionContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.monitorToolStripMenuItem,
+            this.monitorMethodUpdateToolStripMenuItem,
+            this.methodAndVariableToolStripSeparator,
             this.callToolStripMenuItem});
             this.referenceDescriptionContextMenuStrip.Name = "referenceDescriptionContextMenuStrip";
-            this.referenceDescriptionContextMenuStrip.Size = new System.Drawing.Size(149, 68);
+            this.referenceDescriptionContextMenuStrip.Size = new System.Drawing.Size(280, 106);
             // 
             // monitorToolStripMenuItem
             // 
             this.monitorToolStripMenuItem.Name = "monitorToolStripMenuItem";
-            this.monitorToolStripMenuItem.Size = new System.Drawing.Size(148, 32);
-            this.monitorToolStripMenuItem.Text = "Monitor";
+            this.monitorToolStripMenuItem.Size = new System.Drawing.Size(279, 32);
+            this.monitorToolStripMenuItem.Text = "Monitor Variable";
             this.monitorToolStripMenuItem.Click += new System.EventHandler(this.MonitorToolStripMenuItemClick);
+            // 
+            // monitorMethodUpdateToolStripMenuItem
+            // 
+            this.monitorMethodUpdateToolStripMenuItem.Name = "monitorMethodUpdateToolStripMenuItem";
+            this.monitorMethodUpdateToolStripMenuItem.Size = new System.Drawing.Size(279, 32);
+            this.monitorMethodUpdateToolStripMenuItem.Text = "Monitor Method Update";
+            this.monitorMethodUpdateToolStripMenuItem.Click += new System.EventHandler(this.MonitorMethodUpdateToolStripMenuItemClick);
+            // 
+            // methodAndVariableToolStripSeparator
+            // 
+            this.methodAndVariableToolStripSeparator.Name = "methodAndVariableToolStripSeparator";
+            this.methodAndVariableToolStripSeparator.Size = new System.Drawing.Size(276, 6);
             // 
             // callToolStripMenuItem
             // 
             this.callToolStripMenuItem.Name = "callToolStripMenuItem";
-            this.callToolStripMenuItem.Size = new System.Drawing.Size(148, 32);
+            this.callToolStripMenuItem.Size = new System.Drawing.Size(279, 32);
             this.callToolStripMenuItem.Text = "Call";
             this.callToolStripMenuItem.Click += new System.EventHandler(this.CallToolStripMenuItemClick);
             // 
@@ -499,7 +515,7 @@
             this.informationRichTextBox.Location = new System.Drawing.Point(0, 1061);
             this.informationRichTextBox.Name = "informationRichTextBox";
             this.informationRichTextBox.ReadOnly = true;
-            this.informationRichTextBox.Size = new System.Drawing.Size(2043, 164);
+            this.informationRichTextBox.Size = new System.Drawing.Size(2049, 181);
             this.informationRichTextBox.TabIndex = 12;
             this.informationRichTextBox.Text = "";
             // 
@@ -552,15 +568,13 @@
             // 
             // panel1
             // 
-            this.panel1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
             this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.panel1.Controls.Add(this.monitorGroupBox);
             this.panel1.Controls.Add(this.inputGroupBox);
             this.panel1.Controls.Add(this.referenceGroupBox);
             this.panel1.Location = new System.Drawing.Point(13, 561);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1455, 491);
+            this.panel1.Size = new System.Drawing.Size(1461, 491);
             this.panel1.TabIndex = 13;
             // 
             // MainForm
@@ -646,6 +660,8 @@
         private System.Windows.Forms.Panel monitoredVariablePanel;
         private System.Windows.Forms.Button globalDiscoveryServerTrustedListButton;
         private System.Windows.Forms.Panel panel1;
+        private System.Windows.Forms.ToolStripMenuItem monitorMethodUpdateToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator methodAndVariableToolStripSeparator;
     }
 }
 

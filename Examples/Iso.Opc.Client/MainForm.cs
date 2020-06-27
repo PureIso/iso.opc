@@ -14,33 +14,26 @@ namespace Iso.Opc.Client
     public partial class MainForm : Form
     {
         #region Constants
-
         private const string ApplicationName = "Basic Client";
         private const string ApplicationUri = "urn:localhost:UA:BasicClient";
         private readonly ApplicationType _applicationType = ApplicationType.Client;
-
         #endregion
 
         #region Fields
-
-        private List<TreeNode> _monitoredTreeNodes;
         private TreeNode _selectedTreeNode;
         private NodeId _selectedObjectId;
         private NodeId _selectedMethodId;
         private ApplicationInstanceManager _applicationInstanceManager;
         private readonly StringCollection _globalDiscoveryServerUrls;
         private readonly StringCollection _globalDiscoveryServerWellKnownUrls;
-
         #endregion
 
         #region Constructor
-
         public MainForm()
         {
             InitializeComponent();
             _globalDiscoveryServerUrls = new StringCollection {"opc.tcp://localhost:58810/UADiscovery"};
             _globalDiscoveryServerWellKnownUrls = new StringCollection {"opc.tcp://localhost:58810/UADiscovery"};
-            _monitoredTreeNodes = new List<TreeNode>();
             // Load the images in an ImageList.
             ImageList imageList = new ImageList();
             imageList.Images.Add(Resources.folder_cog);
@@ -49,11 +42,9 @@ namespace Iso.Opc.Client
             // Assign the ImageList to the TreeView.
             objectTreeView.ImageList = imageList;
         }
-
         #endregion
 
         #region Private Methods
-
         private void Connect(bool connectToServer = false)
         {
             try
@@ -249,159 +240,15 @@ namespace Iso.Opc.Client
         { 
             try
             {
-                switch (e.NotificationValue)
+                if (!(e.NotificationValue is MonitoredItemNotification monitoredItemNotification))
+                    return;
+                for (int index = 0; index < monitoredVariablePanel.Controls.Count; index++)
                 {
-                    case EventFieldList notification:
-                    {
-                        NodeId eventTypeId = null;
-                        if (!(monitoredItem.Status.Filter is EventFilter filter))
-                            return;
-                        for (int index = 0; index < filter.SelectClauses.Count; index++)
-                        {
-                            SimpleAttributeOperand simpleAttributeOperand = filter.SelectClauses[index];
-                            if (simpleAttributeOperand.BrowsePath.Count != 1 ||
-                                simpleAttributeOperand.BrowsePath[0] != BrowseNames.EventType) 
-                                continue;
-                            eventTypeId = notification.EventFields[index].Value as NodeId;
-                        }
-                        // look up the known event type.
-                        Dictionary<NodeId, NodeId>  eventTypeMappings = new Dictionary<NodeId, NodeId>();
-                        if (eventTypeId == null || NodeId.IsNull(eventTypeId))
-                            return; 
-                        if (!eventTypeMappings.TryGetValue(eventTypeId, out NodeId knownTypeId))
-                        {
-                            // check for a known type
-                            if (KnownEventTypes.Any(nodeId => nodeId == eventTypeId))
-                            {
-                                knownTypeId = eventTypeId;
-                                eventTypeMappings.Add(eventTypeId, eventTypeId);
-                            }
-                            // browse for the supertypes of the event type.
-                            if (knownTypeId == null)
-                            {
-                                ReferenceDescriptionCollection supertypes = new ReferenceDescriptionCollection();
-                                    // find all of the children of the field.
-                                    BrowseDescription nodeToBrowse = new BrowseDescription
-                                    {
-                                        NodeId = eventTypeId,
-                                        BrowseDirection = BrowseDirection.Inverse,
-                                        ReferenceTypeId = ReferenceTypeIds.HasSubtype,
-                                        IncludeSubtypes = false, // more efficient to use IncludeSubtypes=False when possible.
-                                        NodeClassMask = 0, // the HasSubtype reference already restricts the targets to Types. 
-                                        ResultMask = (uint)BrowseResultMask.All
-                                    };
-
-                                    ReferenceDescriptionCollection references = _applicationInstanceManager.Browse(nodeToBrowse);
-                                while (references != null && references.Count > 0)
-                                {
-                                    // should never be more than one supertype.
-                                    supertypes.Add(references[0]);
-                                    // only follow references within this server.
-                                    if (references[0].NodeId.IsAbsolute)
-                                    {
-                                        break;
-                                    }
-                                    // get the references for the next level up.
-                                    nodeToBrowse.NodeId = (NodeId)references[0].NodeId;
-                                    references = _applicationInstanceManager.Browse(nodeToBrowse);
-                                }
-                                // find the first super type that matches a known event type.
-                                foreach (ReferenceDescription referenceDescription in supertypes)
-                                {
-                                    foreach (NodeId nodeId in KnownEventTypes)
-                                    {
-                                        if (nodeId != referenceDescription.NodeId) 
-                                            continue;
-                                        knownTypeId = nodeId;
-                                        eventTypeMappings.Add(eventTypeId, knownTypeId);
-                                        break;
-                                    }
-                                    if (knownTypeId != null)
-                                        break;
-                                }
-                            }
-                        }
-                        if (knownTypeId == null) 
-                            return; 
-                        // all of the known event types have a UInt32 as identifier.
-                        uint? id = knownTypeId.Identifier as uint?;
-                        if (id == null)
-                            return;
-                        // construct the event based on the known event type.
-                        BaseEventState baseEventState = null;
-
-                        switch (id.Value)
-                        {
-                            case ObjectTypes.ConditionType: { baseEventState = new ConditionState(null); break; }
-                            case ObjectTypes.DialogConditionType: { baseEventState = new DialogConditionState(null); break; }
-                            case ObjectTypes.AlarmConditionType: { baseEventState = new AlarmConditionState(null); break; }
-                            case ObjectTypes.ExclusiveLimitAlarmType: { baseEventState = new ExclusiveLimitAlarmState(null); break; }
-                            case ObjectTypes.NonExclusiveLimitAlarmType: { baseEventState = new NonExclusiveLimitAlarmState(null); break; }
-                            case ObjectTypes.AuditEventType: { baseEventState = new AuditEventState(null); break; }
-                            case ObjectTypes.AuditUpdateMethodEventType: { baseEventState = new AuditUpdateMethodEventState(null); break; }
-                            default:
-                            {
-                                baseEventState = new BaseEventState(null);
-                                break;
-                            }
-                        }
-                        // get the filter which defines the contents of the notification.
-                        filter = monitoredItem.Status.Filter as EventFilter; 
-                        // initialize the event with the values in the notification.
-                        baseEventState.Update(_applicationInstanceManager.Session.SystemContext, filter.SelectClauses, notification); 
-                        // save the original notification.
-                        baseEventState.Handle = notification;
-                        // construct the audit object.
-                        if (baseEventState is AuditUpdateMethodEventState audit)
-                        {
-                            // look up the condition type metadata in the local cache.
-                            string sourceName = "";
-                            if (audit.SourceName.Value != null) 
-                                sourceName = Utils.Format("{0}", audit.SourceName.Value);
-                            string type = "";
-                            if (audit.TypeDefinitionId != null)
-                                type = Utils.Format("{0}",
-                                    _applicationInstanceManager.Session.NodeCache.Find(audit.TypeDefinitionId));
-
-                            string method = "";
-                            if (audit.MethodId != null)
-                                method = Utils.Format("{0}",
-                                    _applicationInstanceManager.Session.NodeCache.Find(
-                                        BaseVariableState.GetValue(audit.MethodId)));
-
-                            string status = "";
-                            if (audit.Status != null)
-                                status = Utils.Format("{0}", audit.Status.Value);
-
-                            string time = "";
-                            if (audit.Time != null)
-                                time = Utils.Format("{0:HH:mm:ss.fff}", audit.Time.Value.ToLocalTime());
-                            
-                            string message = "";
-                            if (audit.Message != null)
-                                message = Utils.Format("{0}", audit.Message.Value);
-                            
-                            string inputArguments = "";
-                            if (audit.InputArguments != null)
-                                inputArguments = Utils.Format("{0}", new Variant(audit.InputArguments.Value));
-
-
-                            InformationDisplay($"sourceName: {sourceName}, type:{type}, method:{method}, status:{status}, time:{time}, message:{message}, inputArguments:{inputArguments}");
-                        }
-                        break;
-                    }
-                    case MonitoredItemNotification monitoredItemNotification:
-                    {
-                        for (int index = 0; index < monitoredVariablePanel.Controls.Count; index++)
-                        {
-                            if (monitoredVariablePanel.Controls[index].Name != monitoredItem.ResolvedNodeId.ToString())
-                                continue;
-                            ArgumentUserControl argumentUserControl =
-                                (ArgumentUserControl)monitoredVariablePanel.Controls[index];
-                            argumentUserControl.ValueInput = monitoredItemNotification.Value.WrappedValue.ToString();
-                        }
-                        break;
-                    }
+                    if (monitoredVariablePanel.Controls[index].Name != monitoredItem.ResolvedNodeId.ToString())
+                        continue;
+                    ArgumentUserControl argumentUserControl =
+                        (ArgumentUserControl)monitoredVariablePanel.Controls[index];
+                    argumentUserControl.ValueInput = monitoredItemNotification.Value.WrappedValue.ToString();
                 }
             }
             catch (Exception ex)
@@ -409,7 +256,192 @@ namespace Iso.Opc.Client
                 InformationDisplay($"Monitored Item Notification exception: {ex.StackTrace}");
             }
         }
+        private void MonitorMethodUpdateNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
+        {
+            try
+            {
+                if (!(e.NotificationValue is EventFieldList notification)) 
+                    return;
+                NodeId eventTypeId = null;
+                if (!(monitoredItem.Status.Filter is EventFilter filter))
+                    return;
+                for (int index = 0; index < filter.SelectClauses.Count; index++)
+                {
+                    SimpleAttributeOperand simpleAttributeOperand = filter.SelectClauses[index];
+                    if (simpleAttributeOperand.BrowsePath.Count != 1 ||
+                        simpleAttributeOperand.BrowsePath[0] != BrowseNames.EventType)
+                        continue;
+                    eventTypeId = notification.EventFields[index].Value as NodeId;
+                }
 
+                // look up the known event type.
+                Dictionary<NodeId, NodeId> eventTypeMappings = new Dictionary<NodeId, NodeId>();
+                if (eventTypeId == null || NodeId.IsNull(eventTypeId))
+                    return;
+                if (!eventTypeMappings.TryGetValue(eventTypeId, out NodeId knownTypeId))
+                {
+                    // check for a known type
+                    if (KnownEventTypes.Any(nodeId => nodeId == eventTypeId))
+                    {
+                        knownTypeId = eventTypeId;
+                        eventTypeMappings.Add(eventTypeId, eventTypeId);
+                    }
+
+                    // browse for the supertypes of the event type.
+                    if (knownTypeId == null)
+                    {
+                        ReferenceDescriptionCollection supertypes = new ReferenceDescriptionCollection();
+                        // find all of the children of the field.
+                        BrowseDescription nodeToBrowse = new BrowseDescription
+                        {
+                            NodeId = eventTypeId,
+                            BrowseDirection = BrowseDirection.Inverse,
+                            ReferenceTypeId = ReferenceTypeIds.HasSubtype,
+                            IncludeSubtypes = false, // more efficient to use IncludeSubtypes=False when possible.
+                            NodeClassMask = 0, // the HasSubtype reference already restricts the targets to Types. 
+                            ResultMask = (uint) BrowseResultMask.All
+                        };
+
+                        ReferenceDescriptionCollection
+                            references = _applicationInstanceManager.Browse(nodeToBrowse);
+                        while (references != null && references.Count > 0)
+                        {
+                            // should never be more than one supertype.
+                            supertypes.Add(references[0]);
+                            // only follow references within this server.
+                            if (references[0].NodeId.IsAbsolute)
+                            {
+                                break;
+                            }
+
+                            // get the references for the next level up.
+                            nodeToBrowse.NodeId = (NodeId) references[0].NodeId;
+                            references = _applicationInstanceManager.Browse(nodeToBrowse);
+                        }
+
+                        // find the first super type that matches a known event type.
+                        foreach (ReferenceDescription referenceDescription in supertypes)
+                        {
+                            foreach (NodeId nodeId in KnownEventTypes)
+                            {
+                                if (nodeId != referenceDescription.NodeId)
+                                    continue;
+                                knownTypeId = nodeId;
+                                eventTypeMappings.Add(eventTypeId, knownTypeId);
+                                break;
+                            }
+
+                            if (knownTypeId != null)
+                                break;
+                        }
+                    }
+                }
+
+                if (knownTypeId == null)
+                    return;
+                // all of the known event types have a UInt32 as identifier.
+                uint? id = knownTypeId.Identifier as uint?;
+                if (id == null)
+                    return;
+                // construct the event based on the known event type.
+                BaseEventState baseEventState = null;
+
+                switch (id.Value)
+                {
+                    case ObjectTypes.ConditionType:
+                    {
+                        baseEventState = new ConditionState(null);
+                        break;
+                    }
+                    case ObjectTypes.DialogConditionType:
+                    {
+                        baseEventState = new DialogConditionState(null);
+                        break;
+                    }
+                    case ObjectTypes.AlarmConditionType:
+                    {
+                        baseEventState = new AlarmConditionState(null);
+                        break;
+                    }
+                    case ObjectTypes.ExclusiveLimitAlarmType:
+                    {
+                        baseEventState = new ExclusiveLimitAlarmState(null);
+                        break;
+                    }
+                    case ObjectTypes.NonExclusiveLimitAlarmType:
+                    {
+                        baseEventState = new NonExclusiveLimitAlarmState(null);
+                        break;
+                    }
+                    case ObjectTypes.AuditEventType:
+                    {
+                        baseEventState = new AuditEventState(null);
+                        break;
+                    }
+                    case ObjectTypes.AuditUpdateMethodEventType:
+                    {
+                        baseEventState = new AuditUpdateMethodEventState(null);
+                        break;
+                    }
+                    default:
+                    {
+                        baseEventState = new BaseEventState(null);
+                        break;
+                    }
+                }
+
+                // get the filter which defines the contents of the notification.
+                filter = monitoredItem.Status.Filter as EventFilter;
+                // initialize the event with the values in the notification.
+                baseEventState.Update(_applicationInstanceManager.Session.SystemContext, filter.SelectClauses,
+                    notification);
+                // save the original notification.
+                baseEventState.Handle = notification;
+                // construct the audit object.
+                if (baseEventState is AuditUpdateMethodEventState audit)
+                {
+                    // look up the condition type metadata in the local cache.
+                    string sourceName = "";
+                    if (audit.SourceName.Value != null)
+                        sourceName = Utils.Format("{0}", audit.SourceName.Value);
+                    string type = "";
+                    if (audit.TypeDefinitionId != null)
+                        type = Utils.Format("{0}",
+                            _applicationInstanceManager.Session.NodeCache.Find(audit.TypeDefinitionId));
+
+                    string method = "";
+                    if (audit.MethodId != null)
+                        method = Utils.Format("{0}",
+                            _applicationInstanceManager.Session.NodeCache.Find(
+                                BaseVariableState.GetValue(audit.MethodId)));
+
+                    string status = "";
+                    if (audit.Status != null)
+                        status = Utils.Format("{0}", audit.Status.Value);
+
+                    string time = "";
+                    if (audit.Time != null)
+                        time = Utils.Format("{0:HH:mm:ss.fff}", audit.Time.Value.ToLocalTime());
+
+                    string message = "";
+                    if (audit.Message != null)
+                        message = Utils.Format("{0}", audit.Message.Value);
+
+                    string inputArguments = "";
+                    if (audit.InputArguments != null)
+                        inputArguments = Utils.Format("{0}", new Variant(audit.InputArguments.Value));
+
+
+                    InformationDisplay(
+                        $"sourceName: {sourceName}, type:{type}, method:{method}, status:{status}, time:{time}, message:{message}, inputArguments:{inputArguments}");
+
+                }
+            }
+            catch (Exception ex)
+            {
+                InformationDisplay($"Monitored Item Notification exception: {ex.StackTrace}");
+            }
+        }
         private void InformationDisplay(string message)
         {
             if (informationRichTextBox.InvokeRequired)
@@ -479,9 +511,6 @@ namespace Iso.Opc.Client
 
         private void ObjectTreeViewMouseDown(object sender, MouseEventArgs e)
         {
-            _selectedTreeNode = null;
-            _selectedObjectId = null;
-            _selectedMethodId = null;
             if (e.Button != MouseButtons.Right)
                 return;
             //get selected node using pattern matching and null propagation
@@ -492,21 +521,23 @@ namespace Iso.Opc.Client
             {
                 case NodeClass.Variable:
                     monitorToolStripMenuItem.Enabled = true;
+                    monitorMethodUpdateToolStripMenuItem.Enabled = false;
                     callToolStripMenuItem.Enabled = false;
                     break;
                 case NodeClass.Method:
-                {
                     monitorToolStripMenuItem.Enabled = false;
+                    monitorMethodUpdateToolStripMenuItem.Enabled = true;
                     callToolStripMenuItem.Enabled = true;
                     break;
-                }
                 default: 
                     _selectedTreeNode = null;
+                    _selectedObjectId = null;
+                    _selectedMethodId = null;
                     monitorToolStripMenuItem.Enabled = false;
                     callToolStripMenuItem.Enabled = false;
+                    monitorMethodUpdateToolStripMenuItem.Enabled = false;
                     break;
             }
-
             if (sender == null)
                 return;
             Point point = (Point) ((TreeView) sender)?.PointToScreen(e.Location);
@@ -517,15 +548,20 @@ namespace Iso.Opc.Client
         {
             if (!(_selectedTreeNode?.Tag is AttributeData attributeData))
                 return;
-            if (_monitoredTreeNodes.Contains(_selectedTreeNode)) 
-                return;
-            _monitoredTreeNodes.Add(_selectedTreeNode);
             Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(attributeData.DataType, attributeData.ValueRank));
             if (defaultValue.Value == null)
                 defaultValue.Value = ""; 
             AddMonitoredVariableUserControl(defaultValue.Value.ToString(), attributeData.Description.Text, 
                 attributeData.DisplayName.Text, defaultValue.TypeInfo, attributeData.NodeId);
             _applicationInstanceManager.SubscribeToNode(attributeData.NodeId, MonitoredItemNotification, 500);
+        }
+
+        private void MonitorMethodUpdateToolStripMenuItemClick(object sender, EventArgs e)
+        {
+            if (!(_selectedTreeNode?.Tag is AttributeData))
+                return;
+            _applicationInstanceManager.SubscribeToAuditUpdateMethodEvent(
+                MonitorMethodUpdateNotification, 500);
         }
 
         private void CallToolStripMenuItemClick(object sender, EventArgs e)
