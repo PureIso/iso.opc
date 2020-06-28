@@ -42,6 +42,7 @@ namespace Iso.Opc.Core.Server
                     abstractApplicationNodeManagerPlugin.Initialise(this);
                     //Get current namespace uris
                     List<string> temporaryNamespaceUris = NamespaceUris.ToList();
+                    Console.WriteLine($"Adding Namespace: {temporaryNamespaceUris[0]}");
                     //Add the new namespaces
                     temporaryNamespaceUris.AddRange(abstractApplicationNodeManagerPlugin.NamespaceUris);
                     //override the current namespace uris

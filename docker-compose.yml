@@ -1,0 +1,40 @@
+version: "3.7"
+
+networks:
+    bridge:
+        driver: bridge
+
+services:
+    #opc.ua.server
+    opc.ua.server:   
+        container_name: opc.ua.server
+        build:
+            context: .
+            dockerfile: ./docker/server/Dockerfile
+        ports:
+            - 48001:48001
+        command: dotnet Iso.Opc.Server.dll
+        environment:
+            - DOTNET_ENVIRONMENT=Development
+            # - COINBASE_API_KEY= 
+            # - COINBASE_API_PASSPHRASE=
+            # - COINBASE_API_SECRET=
+        networks:
+            bridge:
+    
+    #opc.ua.global.discovery.server
+    opc.ua.global.discovery.server:   
+        container_name: opc.ua.global.discovery.server
+        build:
+            context: .
+            dockerfile: ./docker/global.discovery.server/Dockerfile
+        ports:
+            - 58810:58810
+        command: dotnet Iso.Opc.GlobalDiscoveryServer.dll
+        environment:
+            - DOTNET_ENVIRONMENT=Development
+            # - COINBASE_API_KEY= 
+            # - COINBASE_API_PASSPHRASE=
+            # - COINBASE_API_SECRET=
+        networks:
+            bridge:
