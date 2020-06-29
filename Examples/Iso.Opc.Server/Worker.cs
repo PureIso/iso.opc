@@ -40,7 +40,7 @@ namespace Iso.OPC.Server
             StringCollection serverCapabilities = new StringCollection { "DA" };
             StringCollection discoveryUrls = new StringCollection
             {
-                "opc.tcp://localhost:58810/UADiscovery"
+                "opc.tcp://opc.ua.global.discovery.server:58810/UADiscovery"
             };
             //Initialise
             _applicationInstanceManager = new ApplicationInstanceManager(ApplicationName, ApplicationUri,
@@ -52,14 +52,21 @@ namespace Iso.OPC.Server
                 null, 
                 _applicationType, 
                 true);
-            
-            _mainServer = new MainServer(_applicationInstanceManager);
-            _mainServer.Start(_applicationInstanceManager.ApplicationInstance.ApplicationConfiguration);
-            bool connected = _applicationInstanceManager.ConnectToGlobalDiscoveryServer("opc.tcp://localhost:58810/UADiscovery", "appadmin", "demo");
-            if (!connected)
-                return;
-            _applicationInstanceManager.RegisterApplication();
-            _applicationInstanceManager.RequestNewCertificatePullMode();
+            try
+            {
+                _mainServer = new MainServer(_applicationInstanceManager);
+                _mainServer.Start(_applicationInstanceManager.ApplicationInstance.ApplicationConfiguration);
+                bool connected = _applicationInstanceManager.ConnectToGlobalDiscoveryServer("opc.tcp://opc.ua.global.discovery.server:58810/UADiscovery", "appadmin", "demo");
+                if (connected)
+                {
+                    _applicationInstanceManager.RegisterApplication();
+                    _applicationInstanceManager.RequestNewCertificatePullMode();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation("Exception: ", ex.StackTrace);
+            }
             await base.StartAsync(cancellationToken);
         }
         public override Task StopAsync(CancellationToken cancellationToken)

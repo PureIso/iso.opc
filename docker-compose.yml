@@ -21,6 +21,10 @@ services:
             # - COINBASE_API_SECRET=
         networks:
             bridge:
+        depends_on:
+            - opc.ua.global.discovery.server
+        links:
+            - opc.ua.global.discovery.server
     
     #opc.ua.global.discovery.server
     opc.ua.global.discovery.server:   
