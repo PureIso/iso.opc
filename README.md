@@ -1,9 +1,7 @@
 # Iso.Opc
 
-**Version: 1.0.0**
-
 Iso.Opc is an [OPC UA .Net Standard](https://github.com/OPCFoundation/UA-.NETStandard)OPC-UA wrapper with sample application.
-The library is for learning and understanding OPC-UA
+The library is for learning and understanding OPC-UA with docker implementation.
 
 ## Core Features
 
@@ -13,6 +11,7 @@ The library is for learning and understanding OPC-UA
 - Method calling
 - Plugin Architecture
 - Certificate handling
+- docker implemetation for services
 
 ## Getting Started
 
@@ -21,7 +20,6 @@ Build the project and run the Global Discovery Server, followed by the Server th
 ## Technologies
 
 - [.Net C#](https://docs.microsoft.com/en-us/dotnet/csharp/) - (Language - Backend)
-
 
 ## Installation
 
