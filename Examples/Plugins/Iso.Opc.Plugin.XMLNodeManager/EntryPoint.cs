@@ -14,7 +14,7 @@ namespace Iso.Opc.Plugin.XMLNodeManager
         #endregion
         public EntryPoint()
         {
-            base.ApplicationName = "XML Server Node Manager";
+            base.ApplicationName = "XMLServerNodeManager";
             base.Author = "Ola";
             base.Description = "XML Plugin Test";
             base.Version = "1.0.0.0";
