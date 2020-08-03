@@ -29,6 +29,7 @@ namespace Iso.Opc.Core.Implementations
 
         #region Private Fields
         private BaseObjectState _previousBaseNode;
+        private DataTypeState _previousDataType;
         private MethodState _previousMethod;
         #endregion
 
@@ -159,6 +160,21 @@ namespace Iso.Opc.Core.Implementations
                     references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, _previousBaseNode.NodeId));
                     _previousMethod = null;
                     break;
+                case NodeClass.DataType:
+                    if (!(nodeState is DataTypeState dataTypeState))
+                        return nodeState;
+                    _previousDataType = dataTypeState;
+                    //Bind previous method now since it will be cleared
+                    if (_previousMethod != null)
+                    {
+                        int index = noteStateCollectionToBind.FindIndex(x => x.NodeId == _previousMethod.NodeId);
+                        if (index == -1)
+                            noteStateCollectionToBind.Add(_previousMethod);
+                        else
+                            noteStateCollectionToBind[index] = _previousMethod;
+                    }
+                    _previousMethod = null;
+                    break;
                 case NodeClass.Method:
                     if (!(nodeState is MethodState methodState))
                         return nodeState;
@@ -212,6 +228,45 @@ namespace Iso.Opc.Core.Implementations
                                 OnSimpleWriteValue = OnWriteValue
                             };
                         }
+                    }
+                    else if (_previousDataType != null)
+                    {
+                        //if (!(nodeState is PropertyState propertyState))
+                        //    return nodeState;
+                        //_previousDataType.DataTypeDefinition = StructureDefinition;
+                        //BindNodeStateActions(propertyState);
+                        //if (propertyState.DisplayName == BrowseNames.InputArguments)
+                        //{
+                        //    _previousMethod.InputArguments = new PropertyState<Argument[]>(_previousMethod)
+                        //    {
+                        //        NodeId = propertyState.NodeId,
+                        //        BrowseName = propertyState.BrowseName,
+                        //        DisplayName = propertyState.DisplayName,
+                        //        TypeDefinitionId = propertyState.TypeDefinitionId,
+                        //        ReferenceTypeId = propertyState.ReferenceTypeId,
+                        //        DataType = propertyState.DataType,
+                        //        ValueRank = propertyState.ValueRank,
+                        //        Value = ExtensionObject.ToArray(propertyState.Value, typeof(Argument)) as Argument[],
+                        //        OnReadUserAccessLevel = OnReadUserAccessLevel,
+                        //        OnSimpleWriteValue = OnWriteValue
+                        //    };
+                        //}
+                        //else if (propertyState.DisplayName == BrowseNames.OutputArguments)
+                        //{
+                        //    _previousMethod.OutputArguments = new PropertyState<Argument[]>(_previousMethod)
+                        //    {
+                        //        NodeId = propertyState.NodeId,
+                        //        BrowseName = propertyState.BrowseName,
+                        //        DisplayName = propertyState.DisplayName,
+                        //        TypeDefinitionId = propertyState.TypeDefinitionId,
+                        //        ReferenceTypeId = propertyState.ReferenceTypeId,
+                        //        DataType = propertyState.DataType,
+                        //        ValueRank = propertyState.ValueRank,
+                        //        Value = ExtensionObject.ToArray(propertyState.Value, typeof(Argument)) as Argument[],
+                        //        OnReadUserAccessLevel = OnReadUserAccessLevel,
+                        //        OnSimpleWriteValue = OnWriteValue
+                        //    };
+                        //}
                     }
                     break;
                 default:
