@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.Plugin.InCodeNodeMa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Iso.Opc.Plugin.XMLNodeManager", "Examples\Plugins\Iso.Opc.Plugin.XMLNodeManager\Iso.Opc.Plugin.XMLNodeManager.csproj", "{E9A742B3-98A9-4875-9465-B1575F5A4BB2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.Plugin.XMLDataTypeNodeManager", "Iso.Opc.Plugin.XMLDataTypeNodeManager\Iso.Opc.Plugin.XMLDataTypeNodeManager.csproj", "{DDB992B5-B3E5-45FC-A97F-A57F5FC49D1F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso.Opc.Plugin.XMLDataTypeNodeManager", "Examples\Plugins\Iso.Opc.Plugin.XMLDataTypeNodeManager\Iso.Opc.Plugin.XMLDataTypeNodeManager.csproj", "{DDB992B5-B3E5-45FC-A97F-A57F5FC49D1F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

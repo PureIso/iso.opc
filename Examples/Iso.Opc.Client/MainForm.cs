@@ -107,10 +107,36 @@ namespace Iso.Opc.Client
                 if (!connectedToServer)
                     return;
 
-                TreeNode[] browsedObjects =
-                    {new TreeNode(Root.NameObjects), new TreeNode(Root.NameTypes), new TreeNode(Root.NameViews)};
+                List<TreeNode> browsedObjects = new List<TreeNode>();
+                if(_applicationInstanceManager.FlatExtendedDataDescriptionDictionary.ContainsKey(ObjectIds.ObjectsFolder.Identifier.ToString()))
+                {
+                    ExtendedDataDescription objectReference = _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[ObjectIds.ObjectsFolder.Identifier.ToString()];
+                    browsedObjects.Add(new TreeNode()
+                    {
+                        Text = objectReference.DataDescription.AttributeData.BrowseName.Name,
+                        Tag = objectReference.DataDescription.AttributeData
+                    });
+                }
+                if (_applicationInstanceManager.FlatExtendedDataDescriptionDictionary.ContainsKey(ObjectIds.TypesFolder.Identifier.ToString()))
+                {
+                    ExtendedDataDescription typesReference = _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[ObjectIds.TypesFolder.Identifier.ToString()];
+                    browsedObjects.Add(new TreeNode()
+                    {
+                        Text = typesReference.DataDescription.AttributeData.BrowseName.Name,
+                        Tag = typesReference.DataDescription.AttributeData
+                    });
+                }
+                if (_applicationInstanceManager.FlatExtendedDataDescriptionDictionary.ContainsKey(ObjectIds.ViewsFolder.Identifier.ToString()))
+                {
+                    ExtendedDataDescription viewReference = _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[ObjectIds.ViewsFolder.Identifier.ToString()];
+                    browsedObjects.Add(new TreeNode()
+                    {
+                        Text = viewReference.DataDescription.AttributeData.BrowseName.Name,
+                        Tag = viewReference.DataDescription.AttributeData
+                    });
+                }
                 objectTreeView.Enabled = true;
-                objectTreeView.Nodes.AddRange(browsedObjects);
+                objectTreeView.Nodes.AddRange(browsedObjects.ToArray());
                 connectionStatusPanel.BackColor = Color.Green;
             }
             catch (Exception exception)
@@ -566,24 +592,19 @@ namespace Iso.Opc.Client
 
         private void CallToolStripMenuItemClick(object sender, EventArgs e)
         {
+            inputArgumentsPanel.Controls.Clear();
+            outputArgumentsPanel.Controls.Clear();
+            _selectedObjectId = null;
+            _selectedMethodId = null;
             if (!(_selectedTreeNode?.Tag is AttributeData attributeData))
                 return;
-            //since we have a method we need to validate the arguments and object
-            //get parent attribute data
-            TreeNode selectedParentNode = _selectedTreeNode.Parent;
-            if (!(selectedParentNode?.Tag is AttributeData parentAttributeData))
+            if (!(_selectedTreeNode.Parent?.Tag is AttributeData parentAttributeData))
                 return;
             _selectedObjectId = parentAttributeData.NodeId;
             _selectedMethodId = attributeData.NodeId;
-            ExtendedDataDescription methodReference =
-                _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[attributeData.BrowseName.Name];
-            //extract input arguments
-            if (methodReference.VariableDataDescriptions == null)
-            {
-                methodReference = _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[attributeData.NodeId.Identifier.ToString()];
-                if (methodReference.VariableDataDescriptions == null)
-                    return;
-            }
+
+            ExtendedDataDescription methodReference = _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[attributeData.NodeId.Identifier.ToString()];
+            //extract input/output descriptions
             DataDescription inputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
                 x.AttributeData.BrowseName.Name == NameVariables.InputArguments);
             DataDescription outputDataDescription = methodReference.VariableDataDescriptions.FirstOrDefault(x =>
@@ -593,8 +614,7 @@ namespace Iso.Opc.Client
                 (ExtensionObject[]) inputDataDescription?.AttributeData.Value.Value;
             ExtensionObject[] outputExtensionObjects =
                 (ExtensionObject[]) outputDataDescription?.AttributeData.Value.Value;
-            inputArgumentsPanel.Controls.Clear();
-            outputArgumentsPanel.Controls.Clear();
+            
             callMethodButton.Enabled = true;
             if (inputExtensionObjects != null)
             {
@@ -604,7 +624,7 @@ namespace Iso.Opc.Client
                     Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(argument.DataType, argument.ValueRank));
                     if (defaultValue.Value == null)
                         defaultValue.Value = "";
-                    AddInputArgumentUserControl(defaultValue.Value.ToString(), argument.Description.Text, argument.Name,
+                    AddInputArgumentUserControl(defaultValue.Value?.ToString(), argument.Description.Text, argument.Name,
                         defaultValue.TypeInfo);
                 }
             }
@@ -614,7 +634,7 @@ namespace Iso.Opc.Client
             {
                 Argument argument = (Argument) extensionObject.Body;
                 Variant defaultValue = new Variant(TypeInfo.GetDefaultValue(argument.DataType, argument.ValueRank));
-                AddOutputArgumentUserControl(defaultValue.Value.ToString(), argument.Description.Text, argument.Name,
+                AddOutputArgumentUserControl(defaultValue.Value?.ToString(), argument.Description.Text, argument.Name,
                     defaultValue.TypeInfo);
             }
         }
@@ -625,14 +645,13 @@ namespace Iso.Opc.Client
             TreeNode parentNode = objectTreeView.SelectedNode;
             if (parentNode == null)
                 return;
-            ExtendedDataDescription objectReference = null;
-            if (_applicationInstanceManager.FlatExtendedDataDescriptionDictionary.ContainsKey(parentNode.Text))
-            {
-                objectReference = _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[parentNode.Text];
-            }
-            if (objectReference == null)
+            if (!(parentNode?.Tag is AttributeData parentNodeAttributeData))
                 return;
-            PopulateAttributeListView(objectReference.DataDescription.AttributeData);
+            if (!_applicationInstanceManager.FlatExtendedDataDescriptionDictionary.ContainsKey(parentNodeAttributeData.NodeId.Identifier.ToString()))
+                return;
+            ExtendedDataDescription objectReference = _applicationInstanceManager.FlatExtendedDataDescriptionDictionary[parentNodeAttributeData.NodeId.Identifier.ToString()];
+            PopulateAttributeListView(parentNodeAttributeData);
+
             TreeNode[] browsedObjects;
             if (objectReference.MethodDataDescriptions != null)
             {
@@ -644,7 +663,6 @@ namespace Iso.Opc.Client
                     }).ToArray();
                 PopulateTreeNode(parentNode, browsedObjects);
             }
-
             if (objectReference.VariableDataDescriptions != null)
             {
                 browsedObjects = (from x in objectReference.VariableDataDescriptions
@@ -655,7 +673,6 @@ namespace Iso.Opc.Client
                     }).ToArray();
                 PopulateTreeNode(parentNode, browsedObjects);
             }
-
             if (objectReference.ObjectDataDescriptions == null)
                 return;
             browsedObjects = (from x in objectReference.ObjectDataDescriptions

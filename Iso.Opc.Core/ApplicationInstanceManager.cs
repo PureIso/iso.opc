@@ -655,13 +655,7 @@ namespace Iso.Opc.Core
         }
         private void AddToFlatExtendedDataDescriptionDictionary(ExtendedDataDescription extendedDataDescription)
         {
-            if (!FlatExtendedDataDescriptionDictionary.ContainsKey(extendedDataDescription.DataDescription.ReferenceDescription.BrowseName
-                .Name))
-            {
-                FlatExtendedDataDescriptionDictionary[extendedDataDescription.DataDescription.ReferenceDescription.BrowseName.Name] = extendedDataDescription;
-            }
-            else if (!FlatExtendedDataDescriptionDictionary.ContainsKey(extendedDataDescription.DataDescription.ReferenceDescription.NodeId
-                .Identifier.ToString()))
+            if (!FlatExtendedDataDescriptionDictionary.ContainsKey(extendedDataDescription.DataDescription.ReferenceDescription.NodeId.Identifier.ToString()))
             {
                 FlatExtendedDataDescriptionDictionary[extendedDataDescription.DataDescription.ReferenceDescription.NodeId.Identifier.ToString()] = extendedDataDescription;
             }
@@ -1190,15 +1184,25 @@ namespace Iso.Opc.Core
                     AttributeData = ReadAttributes(referenceDescription),
                     ReferenceDescription = referenceDescription
                 };
-                ExtendedDataDescription objectDataDescription = new ExtendedDataDescription
+                ExtendedDataDescription extendedDataDescription = new ExtendedDataDescription
                 {
                     DataDescription = dataDescription,
                     VariableDataDescriptions = GetVariablesDataDescriptions(dataDescription),
                     MethodDataDescriptions = GetMethodsExtendedDescriptions(dataDescription),
                     ObjectDataDescriptions = GetObjectExtendedDataDescription(dataDescription)
                 };
-                extendedDataDescriptions.Add(objectDataDescription);
-                AddToFlatExtendedDataDescriptionDictionary(objectDataDescription);
+                if(extendedDataDescription.VariableDataDescriptions != null &&
+                   extendedDataDescription.MethodDataDescriptions != null &&
+                   extendedDataDescription.ObjectDataDescriptions != null)
+                {
+                    if (extendedDataDescription.VariableDataDescriptions.Any() ||
+                        extendedDataDescription.MethodDataDescriptions.Any() ||
+                        extendedDataDescription.ObjectDataDescriptions.Any())
+                    {
+                        extendedDataDescriptions.Add(extendedDataDescription);
+                        AddToFlatExtendedDataDescriptionDictionary(extendedDataDescription);
+                    }
+                }
             }
             return extendedDataDescriptions;
         }
@@ -1226,9 +1230,18 @@ namespace Iso.Opc.Core
                     MethodDataDescriptions = GetMethodsExtendedDescriptions(dataDescription),
                     ObjectDataDescriptions = GetObjectExtendedDataDescription(dataDescription)
                 };
-                extendedDataDescriptions.Add(extendedDataDescription);
-                if (!FlatExtendedDataDescriptionDictionary.ContainsKey(dataDescription.ReferenceDescription.BrowseName.Name))
-                    FlatExtendedDataDescriptionDictionary[dataDescription.ReferenceDescription.BrowseName.Name] = extendedDataDescription;
+                if (extendedDataDescription.VariableDataDescriptions != null &&
+                   extendedDataDescription.MethodDataDescriptions != null &&
+                   extendedDataDescription.ObjectDataDescriptions != null)
+                {
+                    if (extendedDataDescription.VariableDataDescriptions.Any() ||
+                        extendedDataDescription.MethodDataDescriptions.Any() ||
+                        extendedDataDescription.ObjectDataDescriptions.Any())
+                    {
+                        extendedDataDescriptions.Add(extendedDataDescription);
+                        AddToFlatExtendedDataDescriptionDictionary(extendedDataDescription);
+                    }
+                }
             }
             return extendedDataDescriptions;
         }
