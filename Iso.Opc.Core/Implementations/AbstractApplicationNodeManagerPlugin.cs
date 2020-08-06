@@ -135,7 +135,7 @@ namespace Iso.Opc.Core.Implementations
                 value = AccessLevels.CurrentReadOrWrite;
             return ServiceResult.Good;
         }
-        public virtual NodeState BindNodeStates(IDictionary<NodeId, IList<IReference>> externalReferences, NodeState nodeState, ref NodeStateCollection noteStateCollectionToBind)
+        public virtual NodeState BindNodeStates(IDictionary<NodeId, IList<IReference>> externalReferences, NodeState nodeState, ref NodeStateCollection nodeStateCollectionToBind)
         {
             switch (nodeState.NodeClass)
             {
@@ -146,11 +146,11 @@ namespace Iso.Opc.Core.Implementations
                     //Bind previous method now since it will be cleared
                     if (_previousMethod != null)
                     {
-                        int index = noteStateCollectionToBind.FindIndex(x => x.NodeId == _previousMethod.NodeId);
+                        int index = nodeStateCollectionToBind.FindIndex(x => x.NodeId == _previousMethod.NodeId);
                         if (index == -1)
-                            noteStateCollectionToBind.Add(_previousMethod);
+                            nodeStateCollectionToBind.Add(_previousMethod);
                         else
-                            noteStateCollectionToBind[index] = _previousMethod;
+                            nodeStateCollectionToBind[index] = _previousMethod;
                     }
                     // ensure the process object can be found via the server object. 
                     if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
@@ -163,17 +163,13 @@ namespace Iso.Opc.Core.Implementations
                 case NodeClass.DataType:
                     if (!(nodeState is DataTypeState dataTypeState))
                         return nodeState;
+                    BindNodeStateActions(dataTypeState);
                     _previousDataType = dataTypeState;
-                    //Bind previous method now since it will be cleared
-                    if (_previousMethod != null)
-                    {
-                        int index = noteStateCollectionToBind.FindIndex(x => x.NodeId == _previousMethod.NodeId);
-                        if (index == -1)
-                            noteStateCollectionToBind.Add(_previousMethod);
-                        else
-                            noteStateCollectionToBind[index] = _previousMethod;
-                    }
-                    _previousMethod = null;
+                    int index2 = nodeStateCollectionToBind.FindIndex(x => x.NodeId == _previousDataType.NodeId);
+                    if (index2 == -1)
+                        nodeStateCollectionToBind.Add(_previousDataType);
+                    else
+                        nodeStateCollectionToBind[index2] = _previousDataType;
                     break;
                 case NodeClass.Method:
                     if (!(nodeState is MethodState methodState))
@@ -182,11 +178,11 @@ namespace Iso.Opc.Core.Implementations
                     _previousBaseNode?.AddChild(methodState);
                     if (_previousMethod != null)
                     {
-                        int index = noteStateCollectionToBind.FindIndex(x => x.NodeId == _previousMethod.NodeId);
+                        int index = nodeStateCollectionToBind.FindIndex(x => x.NodeId == _previousMethod.NodeId);
                         if (index == -1)
-                            noteStateCollectionToBind.Add(_previousMethod);
+                            nodeStateCollectionToBind.Add(_previousMethod);
                         else
-                            noteStateCollectionToBind[index] = _previousMethod;
+                            nodeStateCollectionToBind[index] = _previousMethod;
                     }
                     _previousMethod = methodState;
                     return methodState;
@@ -229,62 +225,23 @@ namespace Iso.Opc.Core.Implementations
                             };
                         }
                     }
-                    else if (_previousDataType != null)
-                    {
-                        //if (!(nodeState is PropertyState propertyState))
-                        //    return nodeState;
-                        //_previousDataType.DataTypeDefinition = StructureDefinition;
-                        //BindNodeStateActions(propertyState);
-                        //if (propertyState.DisplayName == BrowseNames.InputArguments)
-                        //{
-                        //    _previousMethod.InputArguments = new PropertyState<Argument[]>(_previousMethod)
-                        //    {
-                        //        NodeId = propertyState.NodeId,
-                        //        BrowseName = propertyState.BrowseName,
-                        //        DisplayName = propertyState.DisplayName,
-                        //        TypeDefinitionId = propertyState.TypeDefinitionId,
-                        //        ReferenceTypeId = propertyState.ReferenceTypeId,
-                        //        DataType = propertyState.DataType,
-                        //        ValueRank = propertyState.ValueRank,
-                        //        Value = ExtensionObject.ToArray(propertyState.Value, typeof(Argument)) as Argument[],
-                        //        OnReadUserAccessLevel = OnReadUserAccessLevel,
-                        //        OnSimpleWriteValue = OnWriteValue
-                        //    };
-                        //}
-                        //else if (propertyState.DisplayName == BrowseNames.OutputArguments)
-                        //{
-                        //    _previousMethod.OutputArguments = new PropertyState<Argument[]>(_previousMethod)
-                        //    {
-                        //        NodeId = propertyState.NodeId,
-                        //        BrowseName = propertyState.BrowseName,
-                        //        DisplayName = propertyState.DisplayName,
-                        //        TypeDefinitionId = propertyState.TypeDefinitionId,
-                        //        ReferenceTypeId = propertyState.ReferenceTypeId,
-                        //        DataType = propertyState.DataType,
-                        //        ValueRank = propertyState.ValueRank,
-                        //        Value = ExtensionObject.ToArray(propertyState.Value, typeof(Argument)) as Argument[],
-                        //        OnReadUserAccessLevel = OnReadUserAccessLevel,
-                        //        OnSimpleWriteValue = OnWriteValue
-                        //    };
-                        //}
-                    }
                     break;
                 default:
                     if (_previousBaseNode != null)
                     {
-                        int index = noteStateCollectionToBind.FindIndex(x => x.NodeId == _previousBaseNode.NodeId);
+                        int index = nodeStateCollectionToBind.FindIndex(x => x.NodeId == _previousBaseNode.NodeId);
                         if (index == -1)
-                            noteStateCollectionToBind.Add(_previousBaseNode);
+                            nodeStateCollectionToBind.Add(_previousBaseNode);
                         else
-                            noteStateCollectionToBind[index] = _previousBaseNode;
+                            nodeStateCollectionToBind[index] = _previousBaseNode;
                     }
                     if (_previousMethod != null)
                     {
-                        int index = noteStateCollectionToBind.FindIndex(x => x.NodeId == _previousMethod.NodeId);
+                        int index = nodeStateCollectionToBind.FindIndex(x => x.NodeId == _previousMethod.NodeId);
                         if (index == -1)
-                            noteStateCollectionToBind.Add(_previousMethod);
+                            nodeStateCollectionToBind.Add(_previousMethod);
                         else
-                            noteStateCollectionToBind[index] = _previousMethod;
+                            nodeStateCollectionToBind[index] = _previousMethod;
                     }
                     _previousBaseNode = null;
                     _previousMethod = null;
