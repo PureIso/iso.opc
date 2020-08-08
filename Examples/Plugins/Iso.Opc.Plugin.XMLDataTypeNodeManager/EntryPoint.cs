@@ -77,8 +77,11 @@ namespace Iso.Opc.Plugin.XMLDataTypeNodeManager
                     methodNodeState.OnCallMethod = AddApplication;
                     break;
                 case DataTypeState dataTypeState when dataTypeState.DisplayName.Text == Processor.DisplayName:
+                    // add the types defined in the quickstart information model library to the factory.
+                    ApplicationNodeManager.Server.Factory.AddEncodeableTypes(typeof(Processor).Assembly);
+                    ApplicationNodeManager.Server.Factory.AddEncodeableTypes(this.GetType().Assembly);
                     EncodeableFactory.GlobalFactory.AddEncodeableType(typeof(Processor));
-                   // _processor = ExtensionObject.ToEncodeable(new ExtensionObject(dataTypeState.NodeId)) as Processor;
+                    _processor = ExtensionObject.ToEncodeable(new ExtensionObject(dataTypeState.NodeId)) as Processor;
                     break;
             }
         }
