@@ -692,72 +692,13 @@ namespace Iso.Opc.Client
             List<object> arguments = GetInputArgumentFromUserControl();
             IList<object> outputArguments =
                 _applicationInstanceManager.Session.Call(_selectedObjectId, _selectedMethodId, arguments.Count >0?arguments.ToArray():null);
-
             ExtensionObject inputExtensionObjects = outputArguments[1] as ExtensionObject;
             BinaryDecoder binaryDecoder = new BinaryDecoder(inputExtensionObjects.Body as byte[], _applicationInstanceManager.Session.MessageContext);
-            Processor p = new Processor();
-            p.Decode(binaryDecoder);
+            string name = binaryDecoder.ReadString("Name");
+            double maxSpeed = binaryDecoder.ReadDouble("MaxSpeed");
+            double minSpeed = binaryDecoder.ReadDouble("MinSpeed");
             SetOutputArgumentValueForUserControl(outputArguments.ToList());
         }
         #endregion
-    }
-
-    public class Processor : IEncodeable
-    {
-        public static string DisplayName = "Processor";
-        [DataMember(Name = "Name", IsRequired = false, Order = 1)]
-        public string Name { get; set; }
-        [DataMember(Name = "MaxSpeed", IsRequired = false, Order = 2)]
-        public double MaxSpeed { get; set; }
-        [DataMember(Name = "MinSpeed", IsRequired = false, Order = 3)]
-        public double MinSpeed { get; set; }
-
-
-        public bool IsEqual(IEncodeable encodeable)
-        {
-            if (Object.ReferenceEquals(this, encodeable))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        public ExpandedNodeId TypeId => NodeId.Null;
-
-        public ExpandedNodeId BinaryEncodingId => NodeId.Null;
-
-        public ExpandedNodeId XmlEncodingId => NodeId.Null;
-
-        /// <summary>
-        /// Called by the .NET framework during deserialization.
-        /// </summary>
-        [OnDeserializing]
-        private void Initialize(StreamingContext context)
-        {
-            Initialize();
-        }
-        private void Initialize()
-        {
-            Name = "UNKNOWN";
-            MaxSpeed = 0;
-            MinSpeed = 0;
-        }
-        public void Encode(IEncoder encoder)
-        {
-            encoder.WriteString("Name", Name);
-            encoder.WriteDouble("MaxSpeed", MaxSpeed);
-            encoder.WriteDouble("MinSpeed", MinSpeed);
-        }
-
-        public void Decode(IDecoder decoder)
-        {
-            Name = decoder.ReadString("Name");
-            MaxSpeed = decoder.ReadDouble("MaxSpeed");
-            MinSpeed = decoder.ReadDouble("MinSpeed");
-        }
-
-        public override string ToString() => $"{{ Name={Name}; MaxSpeed={MaxSpeed}; MinSpeed={MinSpeed}; }}";
-
     }
 }
