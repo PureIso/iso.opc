@@ -17,6 +17,11 @@ The library is for learning and understanding OPC-UA with docker implementation.
 
 Build the project and run the Global Discovery Server, followed by the Server then the Client.
 
+## Working with Plugins
+
+- Using visual studios build solution.
+- Run the "copy_plugins.bat", it will copy the plugins to the exchange.service plugin directory (release and debug)
+
 ## Technologies
 
 - [.Net C#](https://docs.microsoft.com/en-us/dotnet/csharp/) - (Language - Backend)

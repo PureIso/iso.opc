@@ -1,0 +1,16 @@
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.InCodeNodeManager\bin\Debug\net5.0\Iso.Opc.Plugin.InCodeNodeManager.dll" "%~dp0Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.InCodeNodeManager\bin\Debug\net5.0\Iso.Opc.Plugin.InCodeNodeManager.pdb" "%~dp0Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLDataTypeNodeManager\bin\Debug\net5.0\Iso.Opc.Plugin.XMLDataTypeNodeManager.dll" "%~dp0Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLDataTypeNodeManager\bin\Debug\net5.0\Iso.Opc.Plugin.XMLDataTypeNodeManager.pdb" "%~dp0Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLDataTypeNodeManager\bin\Debug\net5.0\XmlNodes\xml_example_types.xml" "%~dp0Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLNodeManager\bin\Debug\net5.0\Iso.Opc.Plugin.XMLNodeManager.dll" "%~dp0Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLNodeManager\bin\Debug\net5.0\Iso.Opc.Plugin.XMLNodeManager.pdb" "%~dp0Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLNodeManager\bin\Debug\net5.0\XmlNodes\xml_example.xml" "%~dp0Examples\Iso.Opc.Server\bin\Debug\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.InCodeNodeManager\bin\Release\net5.0\Iso.Opc.Plugin.InCodeNodeManager.dll" "%~dp0Examples\Iso.Opc.Server\bin\Release\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.InCodeNodeManager\bin\Release\net5.0\Iso.Opc.Plugin.InCodeNodeManager.pdb" "%~dp0Examples\Iso.Opc.Server\bin\Release\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLDataTypeNodeManager\bin\Release\net5.0\Iso.Opc.Plugin.XMLDataTypeNodeManager.dll" "%~dp0Examples\Iso.Opc.Server\bin\Release\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLDataTypeNodeManager\bin\Release\net5.0\Iso.Opc.Plugin.XMLDataTypeNodeManager.pdb" "%~dp0Examples\Iso.Opc.Server\bin\Release\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLDataTypeNodeManager\bin\Release\net5.0\XmlNodes\xml_example_types.xml" "%~dp0Examples\Iso.Opc.Server\bin\Release\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLNodeManager\bin\Release\net5.0\Iso.Opc.Plugin.XMLNodeManager.dll" "%~dp0Examples\Iso.Opc.Server\bin\Release\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLNodeManager\bin\Release\net5.0\Iso.Opc.Plugin.XMLNodeManager.pdb" "%~dp0Examples\Iso.Opc.Server\bin\Release\netcoreapp5.0\plugin" /R /H /Y
+xcopy /E "%~dp0Examples\Plugins\Iso.Opc.Plugin.XMLNodeManager\bin\Release\net5.0\XmlNodes\xml_example.xml" "%~dp0Examples\Iso.Opc.Server\bin\Release\netcoreapp5.0\plugin" /R /H /Y
