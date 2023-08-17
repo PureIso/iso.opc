@@ -11,7 +11,7 @@ The library is for learning and understanding OPC-UA with docker implementation.
 - Method calling
 - Plugin Architecture
 - Certificate handling
-- docker implemetation for services
+- Docker implemetation for services
 
 ## Getting Started
 
