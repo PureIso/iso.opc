@@ -30,6 +30,9 @@ Build the project and run the Global Discovery Server, followed by the Server th
 
 By default simply run and build the application, end user can start as a server or are a global discovery server
 
+## TODO
+- Update to .net 8
+
 ## License
 
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
